@@ -3985,8 +3985,11 @@ function open5eSpellToLocal(sp) {
     classes: (sp.classes||[]).map(c=>c.name),
     damage: dmgRoll,
     saveType: sp.saving_throw_ability ? ('Спасбросок '+sp.saving_throw_ability) : null,
-    description: sp.desc || '',
-    higherLevels: sp.higher_level || null,
+    // Полное текстовое описание Open5e приходит только на английском —
+    // не показываем его без перевода. Вместо этого даём честную пометку.
+    description: null,
+    higherLevels: null,
+    _untranslated: true,
     _source: 'open5e'
   };
 }
@@ -4154,6 +4157,8 @@ function renderAIResult(data, container) {
 
   if (data.description) {
     html += `<div class="ai-description">${data.description}</div>`;
+  } else if (data._untranslated) {
+    html += `<div class="ai-description" style="font-style:normal;color:#a08868">ℹ️ Это заклинание пока не добавлено в русскоязычную базу приложения, поэтому полнотекстовое описание эффекта не показано (чтобы не показывать его на английском). Основные параметры выше — точные. Полный текст можно найти в книге правил или D&D Beyond.</div>`;
   }
   if (data.higherLevels) {
     html += `<div class="ai-field"><div class="ai-field-label">На высоких уровнях</div><div class="ai-field-value" style="color:#a0c0d0">${data.higherLevels}</div></div>`;
