@@ -1657,6 +1657,10 @@
         <!-- SKILLS TAB -->
         <div class="tab-content" id="char-skills">
           <div class="section">
+            <div class="section-title">Пассивные значения</div>
+            <div class="combat-stats-grid" id="passive-block"></div>
+          </div>
+          <div class="section" style="padding-top:0">
             <div class="skills-list" id="skills-list"></div>
           </div>
         </div>
@@ -1672,6 +1676,10 @@
       </div>
       <div class="content">
         <div class="section">
+          <div class="section-title">Заклинательные характеристики</div>
+          <div class="combat-stats-grid" id="spellcasting-block"></div>
+        </div>
+        <div class="section" style="padding-top:0">
           <div class="section-title">Ячейки Заклинаний</div>
           <div class="spell-slots-grid" id="spell-slots-grid"></div>
         </div>
@@ -2154,6 +2162,48 @@ function mod(score) { return Math.floor((score-10)/2); }
 function modStr(score) { const m=mod(score); return (m>=0?'+':'')+m; }
 function profBonus() { const lvl=parseInt(document.getElementById('char-level')?.value||1); return Math.ceil(lvl/4)+1; }
 
+// Заклинательная характеристика по классу (индекс в ABILITIES: ИНТ=3, МУД=4, ХАР=5)
+const CASTING_ABILITY = {
+  'Маг':3,
+  'Клерик':4, 'Друид':4, 'Следопыт':4,
+  'Бард':5, 'Паладин':5, 'Колдун':5, 'Чародей':5
+};
+
+// #1 — СЛ спасброска и бонус атаки заклинанием (считаются из класса и характеристик)
+function renderSpellcasting() {
+  const el = document.getElementById('spellcasting-block');
+  if(!el) return;
+  const cls = document.getElementById('char-class')?.value;
+  const ai = CASTING_ABILITY[cls];
+  if(ai===undefined) {
+    el.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--ink-light);font-style:italic;padding:8px 0;font-size:13px">${esc(cls||'Этот класс')} не использует заклинания по базовым правилам</div>`;
+    return;
+  }
+  const pb = profBonus();
+  const m = mod(state.abilities[ai]);
+  const dc = 8 + pb + m;
+  const atk = pb + m;
+  el.innerHTML =
+    `<div class="combat-stat"><div class="combat-stat-val" style="font-size:26px">${dc}</div><div class="combat-stat-label">СЛ СПАСБРОСКА</div></div>`
+   +`<div class="combat-stat"><div class="combat-stat-val" style="font-size:26px;cursor:pointer" onclick="rollCheck('Атака заклинанием', ${atk})">${atk>=0?'+':''}${atk}</div><div class="combat-stat-label">БОНУС АТАКИ</div></div>`
+   +`<div class="combat-stat"><div class="combat-stat-val" style="font-size:26px">${ABILITIES[ai]}</div><div class="combat-stat-label">ХАРАКТЕРИСТИКА</div></div>`;
+}
+
+// #2 — пассивные значения (10 + модификатор + бонус мастерства при владении)
+function renderPassives() {
+  const el = document.getElementById('passive-block');
+  if(!el) return;
+  const pb = profBonus();
+  const want = [['Восприятие','👁'],['Анализ','🔍'],['Проницательность','🧠']];
+  el.innerHTML = want.map(([nm,ic])=>{
+    const i = SKILLS_DATA.findIndex(s=>s.name===nm);
+    if(i<0) return '';
+    const base = mod(state.abilities[ABILITIES.indexOf(SKILLS_DATA[i].attr)]);
+    const val = 10 + base + (state.skillProfs[i] ? pb : 0);
+    return `<div class="combat-stat"><div class="combat-stat-val" style="font-size:26px">${val}</div><div class="combat-stat-label">${ic} ${nm.toUpperCase()}</div></div>`;
+  }).join('');
+}
+
 // ============ TABS ============
 function switchTab(tab, btn) {
   document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display='none');
@@ -2191,6 +2241,8 @@ function updateAbility(i, val) {
   renderAbilities();
   renderSkills();
   renderSavingThrows();
+  renderPassives();
+  renderSpellcasting();
   updateInitiative();
   saveAll();
 }
@@ -2214,6 +2266,7 @@ function renderSkills() {
 function toggleSkillProf(i) {
   state.skillProfs[i] = !state.skillProfs[i];
   renderSkills();
+  renderPassives();
   saveAll();
 }
 
@@ -2263,13 +2316,46 @@ function onMaxHPChange() {
 
 // Урон сначала съедает временные HP, остаток — текущие
 function applyDamage(amt) {
+  const total = Math.max(0, amt); // весь полученный урон — для проверки концентрации
   const ti = document.getElementById('temp-hp');
   let temp = parseInt(ti && ti.value)||0;
   if(temp>0) { const a=Math.min(temp,amt); temp-=a; amt-=a; if(ti) ti.value=temp; state.tempHP=temp; }
   const was = state.hp.current;
   state.hp.current = Math.max(0, state.hp.current-amt);
-  updateHPDisplay(); saveAll();
-  if(state.hp.current===0 && was>0) showToast('💀 0 HP — кидай спасброски от смерти!');
+  updateHPDisplay();
+  const concentrating = state.conditions.includes('Концентрация');
+  if(state.hp.current===0) {
+    // при 0 HP персонаж без сознания — концентрация автоматически теряется
+    if(concentrating) { removeCondition('Концентрация'); }
+    if(was>0) showToast('💀 0 HP — кидай спасброски от смерти!');
+  } else if(total>0 && concentrating) {
+    rollConcentration(total);
+  }
+  saveAll();
+}
+
+// Снять состояние и обновить чип
+function removeCondition(cond) {
+  state.conditions = state.conditions.filter(c=>c!==cond);
+  const chip = document.querySelector('.condition-chip[data-cond="'+cond+'"]');
+  if(chip) chip.classList.remove('active');
+}
+
+// #4 — спасбросок Телосложения на удержание концентрации при получении урона
+function rollConcentration(dmg) {
+  const dc = Math.max(10, Math.floor(dmg/2));
+  const pb = profBonus();
+  const conBonus = mod(state.abilities[2]) + (state.saveProfs[2] ? pb : 0); // ТЕЛ = индекс 2
+  const roll = Math.ceil(Math.random()*20);
+  const totalRoll = roll + conBonus;
+  addRollHistory('Концентрация (ТЕЛ)', totalRoll, [roll], conBonus, 20);
+  const bStr = (conBonus>=0?'+':'')+conBonus;
+  if(totalRoll >= dc) {
+    showToast(`🧿 Концентрация удержана: к20(${roll})${bStr} = ${totalRoll} ≥ СЛ ${dc}`);
+  } else {
+    removeCondition('Концентрация');
+    showToast(`🧿 Концентрация прервана! к20(${roll})${bStr} = ${totalRoll} < СЛ ${dc}`);
+  }
 }
 
 function changeHP(delta) {
@@ -2633,12 +2719,15 @@ function onLevelChange() {
   state.hitDice.used=Math.min(state.hitDice.used, lvl);
   state.hitDice.die=CLASS_HIT_DIE[document.getElementById('char-class').value]||8;
   renderHitDice();
+  renderPassives();
+  renderSpellcasting();
   updateXP(); saveAll();
 }
 
 function onClassChange() {
   state.hitDice.die=CLASS_HIT_DIE[document.getElementById('char-class').value]||8;
   renderHitDice();
+  renderSpellcasting();
   saveAll();
 }
 
@@ -2866,6 +2955,8 @@ function renderAll() {
   updateInitiative();
   renderSpellSlots();
   renderSpellList();
+  renderSpellcasting();
+  renderPassives();
   renderInventory();
   renderAttacks();
   renderHitDice();
