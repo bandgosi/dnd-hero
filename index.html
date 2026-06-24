@@ -53,8 +53,8 @@
     height: -webkit-fill-available;
   }
 
-  .screen { display: none; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-  .screen.active { display: flex; flex-direction: column; }
+  .screen { display: none; flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .screen.active { display: flex; flex-direction: column; min-height: 0; }
 
   /* ---- NAV BAR ---- */
   .nav-bar {
@@ -116,6 +116,7 @@
   /* ---- CONTENT AREA ---- */
   .content {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     background: var(--parchment);
@@ -1440,7 +1441,7 @@
   <div class="screen" id="screen-main">
 
     <!-- Page content -->
-    <div id="tab-character" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+    <div id="tab-character" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;">
       <div class="page-header" style="position:relative">
         <h1>ПЕРСОНАЖ</h1>
         <button onclick="openCharMenu()" style="position:absolute;right:12px;top:calc(var(--safe-top) + 12px);background:rgba(200,150,42,0.15);border:1px solid var(--gold);border-radius:8px;color:var(--gold-light);font-family:Cinzel,serif;font-size:11px;padding:6px 10px;cursor:pointer;letter-spacing:0.5px">☰ Герои</button>
@@ -1669,7 +1670,7 @@
     </div><!-- end tab-character -->
 
     <!-- SPELLS TAB -->
-    <div id="tab-spells" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+    <div id="tab-spells" style="display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden;">
       <div class="page-header">
         <h1>ЗАКЛИНАНИЯ</h1>
         <p>Магическое искусство</p>
@@ -1694,7 +1695,7 @@
     </div>
 
     <!-- DICE TAB -->
-    <div id="tab-dice" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+    <div id="tab-dice" style="display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden;">
       <div class="page-header">
         <h1>КУБИКИ</h1>
         <p>Пусть удача решает</p>
@@ -1741,7 +1742,7 @@
     </div>
 
     <!-- INVENTORY TAB -->
-    <div id="tab-inventory" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+    <div id="tab-inventory" style="display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden;">
       <div class="page-header">
         <h1>СНАРЯЖЕНИЕ</h1>
         <p>Сокровища авантюриста</p>
@@ -1772,7 +1773,7 @@
     </div>
 
     <!-- NOTES TAB -->
-    <div id="tab-notes" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+    <div id="tab-notes" style="display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden;">
       <div class="page-header">
         <h1>ЖУРНАЛ</h1>
         <p>Записи авантюриста</p>
@@ -1798,7 +1799,7 @@
     </div>
 
     <!-- GUIDE TAB -->
-    <div id="tab-guide" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+    <div id="tab-guide" style="display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden;">
       <div class="page-header">
         <h1>СПРАВОЧНИК</h1>
         <p>Знание — лучшее оружие</p>
@@ -2060,20 +2061,25 @@
   </div>
 
   <div class="ai-search-wrap">
+    <div id="ai-class-row" style="margin-bottom:10px;display:none">
+      <select id="ai-class-select" onchange="onAiClassChange()" style="width:100%;font-family:Crimson Text,serif;font-size:15px;padding:8px 10px;background:rgba(240,220,180,0.08);border:1px solid rgba(200,150,42,0.4);border-radius:8px;color:var(--parchment);-webkit-appearance:none">
+        <option value="Колдун">Колдун (Warlock)</option>
+        <option value="Маг">Маг (Wizard)</option>
+        <option value="Чародей">Чародей (Sorcerer)</option>
+        <option value="Клерик">Клерик (Cleric)</option>
+        <option value="Друид">Друид (Druid)</option>
+        <option value="Бард">Бард (Bard)</option>
+        <option value="Паладин">Паладин (Paladin)</option>
+        <option value="Следопыт">Следопыт (Ranger)</option>
+      </select>
+    </div>
     <div class="ai-cat-row" id="ai-cat-row"></div>
     <div class="ai-search-row">
-      <input class="ai-search-input" id="ai-search-input" type="text" placeholder="Название заклинания или предмета..." autocomplete="off">
-      <button class="ai-search-btn" onclick="doAISearch()">Найти</button>
+      <input class="ai-search-input" id="ai-search-input" type="text" placeholder="Фильтр по названию..." autocomplete="off" oninput="filterKnowledgeList()">
     </div>
   </div>
 
-  <div class="ai-results" id="ai-results">
-    <div class="ai-empty">
-      🔮 Введите название заклинания,<br>оружия, доспеха или магического предмета<br><br>
-      <div style="color:var(--gold);font-size:11px;margin-top:8px">Например:</div>
-      <div class="ai-suggestion-list" id="ai-suggestions"></div>
-    </div>
-  </div>
+  <div class="ai-results" id="ai-results"></div>
 </div>
 
 <div class="modal-overlay" id="modal-custom-dice">
@@ -4421,120 +4427,40 @@ function levenshtein(a, b) {
   return matrix[b.length][a.length];
 }
 
-// ============ AI KNOWLEDGE BASE ============
-let aiMode = 'spell'; // 'spell' | 'item'
-let aiCategory = 'Заклинания';
-let aiResultData = null;
+// ============ AI KNOWLEDGE BASE (browsable, local-only, same UX as Guide) ============
+let aiMode = 'spell'; // kept for compatibility with rest of app
+let knowledgeMode = 'spell'; // 'spell' | 'item'
+let knowledgeClassFilter = 'Колдун';
+let knowledgeLevelFilter = -1; // -1 = все
+let knowledgeItemCat = 'weapon';
+let _knowledgeFullList = [];
+let _knowledgeCache = [];
 
-const AI_CATEGORIES = {
-  spell: ['Заклинания','Заговоры','Ритуалы'],
-  item: ['Оружие','Броня','Магические предметы','Снаряжение','Инструменты']
-};
-
-const AI_SUGGESTIONS = {
-  spell: ['Огненный шар','Мистический заряд','Невидимость','Лечение ран','Волшебная стрела','Полёт','Очарование личности'],
-  item: ['Длинный меч','Кожаный доспех','Плащ исчезновения','Посох магика','Зелье лечения','Кольчуга','Арбалет']
-};
-
-const SYSTEM_PROMPT_SPELL = `Ты эксперт по D&D 5e (5-я редакция). Отвечай ТОЛЬКО валидным JSON без разметки.
-Когда пользователь называет заклинание (на русском или английском), верни его полные характеристики.
-Формат ответа:
-{
-  "name": "Название на русском",
-  "nameEn": "Name in English",
-  "level": 0,
-  "school": "Школа магии",
-  "castingTime": "1 действие",
-  "range": "30 футов",
-  "duration": "Мгновенная",
-  "components": "В, С, М (описание материала если есть)",
-  "concentration": false,
-  "ritual": false,
-  "classes": ["Маг","Колдун"],
-  "damage": "2к6 огонь (при попадании)",
-  "saveType": "Ловкость сл 13",
-  "description": "Подробное описание эффекта заклинания на русском языке (2-4 предложения).",
-  "higherLevels": "Описание усиления при использовании ячейки высокого уровня, или null"
-}
-Если такого заклинания не существует, верни: {"error": "Заклинание не найдено"}`;
-
-const SYSTEM_PROMPT_ITEM = `Ты эксперт по D&D 5e (5-я редакция). Отвечай ТОЛЬКО валидным JSON без разметки.
-Когда пользователь называет предмет снаряжения (на русском или английском), верни его характеристики.
-Формат ответа для ОРУЖИЯ:
-{
-  "type": "weapon",
-  "name": "Название на русском",
-  "nameEn": "Name in English",
-  "itemType": "Оружие (воинское рукопашное)",
-  "cost": "15 зм",
-  "weight": "3 фунта",
-  "damage": "1к8 рубящий",
-  "damageVersatile": "1к10 (двуручный)",
-  "properties": ["Универсальное"],
-  "description": "Описание оружия",
-  "rarity": null
-}
-Формат для ДОСПЕХОВ:
-{
-  "type": "armor",
-  "name": "...",
-  "nameEn": "...",
-  "itemType": "Средний доспех",
-  "cost": "...",
-  "weight": "...",
-  "ac": "13 + мод. Лов (макс +2)",
-  "stealthDisadvantage": true,
-  "minStrength": 0,
-  "properties": [],
-  "description": "...",
-  "rarity": null
-}
-Формат для МАГИЧЕСКИХ ПРЕДМЕТОВ:
-{
-  "type": "magic",
-  "name": "...",
-  "nameEn": "...",
-  "itemType": "Чудесный предмет",
-  "cost": "varies",
-  "weight": "...",
-  "attunement": true,
-  "rarity": "Редкий",
-  "properties": [],
-  "description": "Подробное описание эффекта предмета на русском языке."
-}
-Формат для СНАРЯЖЕНИЯ/ИНСТРУМЕНТОВ:
-{
-  "type": "gear",
-  "name": "...",
-  "nameEn": "...",
-  "itemType": "Снаряжение",
-  "cost": "...",
-  "weight": "...",
-  "properties": [],
-  "description": "Описание и использование предмета."
-}
-Если предмет не существует в D&D 5e, верни: {"error": "Предмет не найден"}`;
+const KNOWLEDGE_CLASS_LIST = ['Колдун','Маг','Чародей','Клерик','Друид','Бард','Паладин','Следопыт'];
 
 function openAISearch(mode) {
   aiMode = mode;
-  aiResultData = null;
+  knowledgeMode = mode;
   document.getElementById('ai-overlay').classList.add('open');
-  const cats = AI_CATEGORIES[mode];
-  aiCategory = cats[0];
-  const catRow = document.getElementById('ai-cat-row');
-  catRow.innerHTML = cats.map((c,i) =>
-    `<button class="ai-cat-btn ${i===0?'active':''}" onclick="setAICategory('${c}',this)">${c}</button>`
-  ).join('');
-  const suggestions = AI_SUGGESTIONS[mode];
-  const sugEl = document.getElementById('ai-suggestions');
-  if (sugEl) sugEl.innerHTML = suggestions.map(s =>
-    `<button class="ai-suggestion" onclick="quickSearch('${s}')">${s}</button>`
-  ).join('');
   const input = document.getElementById('ai-search-input');
   input.value = '';
-  input.placeholder = mode === 'spell' ? 'Огненный шар, Невидимость...' : 'Длинный меч, Зелье лечения...';
-  document.getElementById('ai-overlay-title').textContent = mode === 'spell' ? '🔮 ЗАКЛИНАНИЯ' : '⚔️ ПРЕДМЕТЫ И СНАРЯЖЕНИЕ';
-  document.getElementById('ai-results').innerHTML = `<div class="ai-empty">🔮 Введите название или выберите из примеров<br><div class="ai-suggestion-list" id="ai-suggestions-2">${suggestions.map(s=>`<button class="ai-suggestion" onclick="quickSearch('${s}')">${s}</button>`).join('')}</div></div>`;
+
+  if (mode === 'spell') {
+    document.getElementById('ai-overlay-title').textContent = '🔮 ЗАКЛИНАНИЯ';
+    document.getElementById('ai-class-row').style.display = 'block';
+    const charClass = document.getElementById('char-class')?.value;
+    knowledgeClassFilter = KNOWLEDGE_CLASS_LIST.includes(charClass) ? charClass : 'Колдун';
+    document.getElementById('ai-class-select').value = knowledgeClassFilter;
+    knowledgeLevelFilter = -1;
+    renderKnowledgeLevelRow();
+  } else {
+    document.getElementById('ai-overlay-title').textContent = '⚔️ ПРЕДМЕТЫ И СНАРЯЖЕНИЕ';
+    document.getElementById('ai-class-row').style.display = 'none';
+    knowledgeItemCat = 'weapon';
+    renderKnowledgeItemCatRow();
+  }
+  input.placeholder = 'Фильтр по названию...';
+  refreshKnowledgeList();
   setTimeout(() => input.focus(), 300);
 }
 
@@ -4543,266 +4469,135 @@ function closeAISearch() {
   document.getElementById('ai-search-input').blur();
 }
 
-function setAICategory(cat, btn) {
-  aiCategory = cat;
-  document.querySelectorAll('.ai-cat-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+function onAiClassChange() {
+  knowledgeClassFilter = document.getElementById('ai-class-select').value;
+  refreshKnowledgeList();
 }
 
-function quickSearch(name) {
-  document.getElementById('ai-search-input').value = name;
-  doAISearch();
+function renderKnowledgeLevelRow() {
+  const levels = [[-1,'Все'],[0,'Заговор'],[1,'1'],[2,'2'],[3,'3'],[4,'4'],[5,'5'],[6,'6'],[7,'7'],[8,'8'],[9,'9']];
+  const row = document.getElementById('ai-cat-row');
+  row.innerHTML = levels.map(([lvl,label]) =>
+    '<button class="level-filter-btn ' + (lvl===-1?'active-lf':'') + '" onclick="setKnowledgeLevel(' + lvl + ',this)">' + label + '</button>'
+  ).join('');
 }
 
-const SCHOOL_RU = {
-  'Abjuration':'Ограждение','Conjuration':'Вызов','Divination':'Прорицание',
-  'Enchantment':'Очарование','Evocation':'Воплощение','Illusion':'Иллюзия',
-  'Necromancy':'Некромантия','Transmutation':'Преобразование','Universal':'Универсальное'
-};
-
-const CAST_RU = {
-  'action':'1 действие','bonus-action':'1 бонусное действие',
-  'reaction':'1 реакция','1minute':'1 минута','10minutes':'10 минут',
-  '1hour':'1 час','8hours':'8 часов','special':'Особое'
-};
-
-const DMGTYPE_RU = {
-  'fire':'огонь','cold':'холод','lightning':'молния','acid':'кислота',
-  'poison':'яд','necrotic':'некротика','radiant':'излучение',
-  'thunder':'гром','force':'сила','psychic':'психика',
-  'bludgeoning':'дробящий','piercing':'колющий','slashing':'рубящий'
-};
-
-function open5eSpellToLocal(sp) {
-  const dmgTypes = (sp.damage_types||[]).map(d=>DMGTYPE_RU[d]||d).join(', ');
-  const dmgRoll = sp.damage_roll ? sp.damage_roll + (dmgTypes ? ' '+dmgTypes : '') : null;
-  const compParts = [];
-  if(sp.verbal) compParts.push('В');
-  if(sp.somatic) compParts.push('С');
-  if(sp.material) compParts.push(sp.material_specified ? `М (${sp.material_specified})` : 'М');
-  return {
-    name: sp.name,
-    nameEn: sp.name,
-    level: sp.level,
-    school: SCHOOL_RU[sp.school?.name] || sp.school?.name || '',
-    castingTime: CAST_RU[sp.casting_time] || sp.casting_time || '1 действие',
-    range: sp.range_text || (sp.range === 0 ? 'Касание/На себя' : sp.range+' футов'),
-    duration: sp.duration || '',
-    components: compParts.join(', '),
-    concentration: sp.concentration,
-    ritual: sp.ritual,
-    classes: (sp.classes||[]).map(c=>c.name),
-    damage: dmgRoll,
-    saveType: sp.saving_throw_ability ? ('Спасбросок '+sp.saving_throw_ability) : null,
-    // Полное текстовое описание Open5e приходит только на английском —
-    // не показываем его без перевода. Вместо этого даём честную пометку.
-    description: null,
-    higherLevels: null,
-    _untranslated: true,
-    _source: 'open5e'
-  };
+function setKnowledgeLevel(lvl, btn) {
+  knowledgeLevelFilter = lvl;
+  document.querySelectorAll('#ai-cat-row .level-filter-btn').forEach(b => b.classList.remove('active-lf'));
+  btn.classList.add('active-lf');
+  refreshKnowledgeList();
 }
 
-async function doAISearch() {
-  const query = document.getElementById('ai-search-input').value.trim();
-  if (!query) return;
-
-  const resultsDiv = document.getElementById('ai-results');
-
-  // 1. Сначала локальная русская база (мгновенно, офлайн, на русском)
-  const localResults = searchLocalDB(query, aiMode);
-
-  if (localResults.length) {
-    showSearchResults(localResults, resultsDiv);
-    return;
-  }
-
-  // Предметов в Open5e нет — только локальная база
-  if (aiMode === 'item') {
-    resultsDiv.innerHTML = `<div class="ai-empty">😕 Предмет «${esc(query)}» не найден в базе.<br><br><span style="font-size:12px;color:#705040">Попробуй другое название или добавь вручную.</span></div>`;
-    return;
-  }
-
-  // 2. Заклинания: если в базе нет — резервный поиск в Open5e (результат будет на английском)
-  resultsDiv.innerHTML = `<div class="ai-loading"><div class="ai-loading-orb"></div><div class="ai-loading-text">ПОИСК В КНИГАХ ЗАКЛИНАНИЙ...</div></div>`;
-
-  try {
-    const encoded = encodeURIComponent(query);
-    const url = `https://api.open5e.com/v2/spells/?search=${encoded}&document__slug=wotc-srd&limit=5`;
-    const resp = await fetch(url);
-    const data = await resp.json();
-
-    if (data.results && data.results.length > 0) {
-      const converted = data.results.map(open5eSpellToLocal);
-      showSearchResults(converted, resultsDiv);
-      return;
-    }
-
-    // 3. Fallback: search without SRD filter
-    const url2 = `https://api.open5e.com/v2/spells/?search=${encoded}&limit=8`;
-    const resp2 = await fetch(url2);
-    const data2 = await resp2.json();
-
-    if (data2.results && data2.results.length > 0) {
-      const converted2 = data2.results.slice(0,5).map(open5eSpellToLocal);
-      showSearchResults(converted2, resultsDiv);
-      return;
-    }
-
-    // 4. Ultimate fallback: local DB
-    if (localResults.length) {
-      showSearchResults(localResults, resultsDiv);
-    } else {
-      resultsDiv.innerHTML = `<div class="ai-empty">😕 Ничего не найдено по запросу «${query}»<br><br><span style="font-size:12px;color:#705040">Попробуйте на английском или другое название</span></div>`;
-    }
-  } catch(e) {
-    // Offline: fall back to local DB
-    if (localResults.length) {
-      showSearchResults(localResults, resultsDiv);
-    } else {
-      resultsDiv.innerHTML = `<div class="ai-empty">📵 Нет соединения<br><span style="font-size:12px;color:#705040">Данные из встроенной базы недоступны для этого запроса.<br>Попробуйте: Огненный шар, Невидимость, Кинжал...</span></div>`;
-    }
-  }
+function renderKnowledgeItemCatRow() {
+  const cats = [['weapon','⚔️ Оружие'],['armor','🛡️ Доспехи'],['magic','🔮 Магические'],['gear','🎒 Снаряжение']];
+  const row = document.getElementById('ai-cat-row');
+  row.innerHTML = cats.map(([key,label],i) =>
+    '<button class="level-filter-btn ' + (i===0?'active-lf':'') + '" onclick="setKnowledgeItemCat(\'' + key + '\',this)">' + label + '</button>'
+  ).join('');
 }
 
-function showSearchResults(results, resultsDiv) {
-  if (!results.length) {
-    resultsDiv.innerHTML = `<div class="ai-empty">😕 Ничего не найдено</div>`;
-    return;
-  }
-  if (results.length === 1) {
-    aiResultData = results[0];
-    renderAIResult(results[0], resultsDiv);
-    return;
-  }
-  resultsDiv.innerHTML = `
-    <div style="font-family:Cinzel,serif;font-size:12px;color:var(--gold);letter-spacing:1px;margin-bottom:12px">НАЙДЕНО ${results.length} РЕЗУЛЬТАТОВ</div>
-    <div class="ai-suggestion-list">
-      ${results.map((r,i) => `<button class="ai-suggestion" style="text-align:left;padding:12px 14px" onclick="selectResult(${i})">
-        <div style="color:var(--parchment);font-size:13px">${r.name}</div>
-        <div style="font-size:11px;margin-top:2px;color:#806050">${r.school||r.itemType||''} ${r.level!==undefined?' · '+(r.level===0?'Заговор':r.level+' ур.'):''}</div>
-      </button>`).join('')}
-    </div>`;
-  window._searchResults = results;
+function setKnowledgeItemCat(cat, btn) {
+  knowledgeItemCat = cat;
+  document.querySelectorAll('#ai-cat-row .level-filter-btn').forEach(b => b.classList.remove('active-lf'));
+  btn.classList.add('active-lf');
+  refreshKnowledgeList();
 }
 
-function selectResult(i) {
-  const item = window._searchResults[i];
-  aiResultData = item;
-  renderAIResult(item, document.getElementById('ai-results'));
-}
-
-function renderAIResult(data, container) {
-  let html = '<div class="ai-result-card">';
-
-  // HEADER
-  html += `<div class="ai-result-header">
-    <div class="ai-result-name">${data.name}</div>`;
-  if (data.nameEn) html += `<div style="font-size:12px;color:#706050;margin-top:2px;font-style:italic">${data.nameEn}</div>`;
-  html += '<div class="ai-result-meta">';
-
-  if (aiMode === 'spell') {
-    const lvlText = data.level === 0 ? 'Заговор' : `${data.level} уровень`;
-    html += `<span class="ai-tag ai-tag-level">${lvlText}</span>`;
-    if (data.school) html += `<span class="ai-tag ai-tag-school">${data.school}</span>`;
-    if (data.concentration) html += `<span class="ai-tag ai-tag-conc">🎯 Концентрация</span>`;
-    if (data.ritual) html += `<span class="ai-tag ai-tag-ritual">📿 Ритуал</span>`;
+function refreshKnowledgeList() {
+  if (knowledgeMode === 'spell') {
+    _knowledgeFullList = DB_SPELLS.filter(sp => {
+      const classMatch = (sp.classes||[]).includes(knowledgeClassFilter);
+      const levelMatch = knowledgeLevelFilter === -1 || sp.level === knowledgeLevelFilter;
+      return classMatch && levelMatch;
+    }).sort((a,b) => (a.level-b.level) || a.name.localeCompare(b.name,'ru'));
   } else {
-    if (data.itemType) html += `<span class="ai-tag ai-tag-type">${data.itemType}</span>`;
-    if (data.rarity) html += `<span class="ai-tag ai-tag-rarity">${data.rarity}</span>`;
-    if (data.attunement) html += `<span class="ai-tag ai-tag-conc">🔗 Настройка</span>`;
-    if (data.cost) html += `<span class="ai-tag ai-tag-cost">💰 ${data.cost}</span>`;
+    const sourceMap = { weapon: DB_WEAPONS, armor: DB_ARMOR, magic: DB_MAGIC_ITEMS, gear: DB_GEAR };
+    _knowledgeFullList = sourceMap[knowledgeItemCat] || [];
+  }
+  filterKnowledgeList();
+}
+
+function filterKnowledgeList() {
+  const query = document.getElementById('ai-search-input').value.trim().toLowerCase();
+  let list = _knowledgeFullList;
+  if (query) {
+    list = list.filter(it => (it.name||'').toLowerCase().includes(query) || (it.nameEn||'').toLowerCase().includes(query));
+  }
+  renderKnowledgeList(list);
+}
+
+function renderKnowledgeList(list) {
+  _knowledgeCache = list;
+  const container = document.getElementById('ai-results');
+
+  if (!list.length) {
+    container.innerHTML = '<div class="ai-empty">😕 Ничего не найдено<br><span style="font-size:12px;color:#705040">Попробуй другой класс, уровень или фильтр</span></div>';
+    return;
   }
 
-  html += '</div></div>';
+  var html = '<div style="font-family:Cinzel,serif;font-size:11px;color:var(--gold);letter-spacing:1px;margin-bottom:12px">' + list.length + (knowledgeMode==='spell' ? ' ЗАКЛИНАНИЙ' : ' ПРЕДМЕТОВ') + '</div>';
 
-  // BODY
-  html += '<div class="ai-result-body">';
-
-  if (aiMode === 'spell') {
-    const fields = [
-      ['Время накладывания', data.castingTime],
-      ['Дистанция', data.range],
-      ['Длительность', data.duration],
-      ['Компоненты', data.components],
-    ].filter(f => f[1]);
-
-    fields.forEach(([label, val]) => {
-      html += `<div class="ai-field"><div class="ai-field-label">${label}</div><div class="ai-field-value">${val}</div></div>`;
+  if (knowledgeMode === 'spell') {
+    list.forEach(function(sp, i) {
+      var conc = sp.concentration ? '🎯 ' : '';
+      var ritual = sp.ritual ? '📿 ' : '';
+      var higher = sp.higherLevels ? '<br><br><em>На высоких уровнях:</em> ' + sp.higherLevels : '';
+      html += '<div class="spell-browser-card" id="aikcard-' + i + '" onclick="toggleAiKCard(' + i + ')">';
+      html += '<div class="spell-level-badge">' + (sp.level===0?'З':sp.level) + '</div>';
+      html += '<div class="spell-browser-info">';
+      html += '<div class="spell-browser-name">' + sp.name + '</div>';
+      html += '<div class="spell-browser-meta">' + (sp.school||'') + ' ' + conc + ritual + '· ' + (sp.castingTime||'') + ' · ' + (sp.range||'') + '</div>';
+      html += '<div class="spell-browser-desc">' + (sp.description||'') + higher + '</div>';
+      html += '</div>';
+      html += '<button class="add-spell-mini" onclick="event.stopPropagation();addKnowledgeSpell(' + i + ')">+ В лист</button>';
+      html += '</div>';
     });
-
-    if (data.damage) {
-      html += `<div class="ai-field"><div class="ai-field-label">Урон / Эффект</div><div class="ai-field-value" style="color:#e08080;font-weight:600">${data.damage}</div></div>`;
-    }
-    if (data.saveType) {
-      html += `<div class="ai-field"><div class="ai-field-label">Спасбросок</div><div class="ai-field-value" style="color:#c0a060">${data.saveType}</div></div>`;
-    }
-    if (data.classes?.length) {
-      html += `<div class="ai-field"><div class="ai-field-label">Классы</div><div class="ai-field-value">${data.classes.join(', ')}</div></div>`;
-    }
   } else {
-    const fields = [
-      ['Тип', data.itemType],
-      ['Стоимость', data.cost],
-      ['Вес', data.weight],
-    ].filter(f => f[1]);
-    fields.forEach(([label, val]) => {
-      html += `<div class="ai-field"><div class="ai-field-label">${label}</div><div class="ai-field-value">${val}</div></div>`;
+    list.forEach(function(it, i) {
+      var subtitle = '';
+      if (it.type === 'weapon') subtitle = (it.damage || '—') + (it.damageVersatile ? ' / ' + it.damageVersatile : '') + ' · ' + (it.cost || '') + ' · ' + (it.weight || '');
+      else if (it.type === 'armor') subtitle = 'КД ' + (it.ac || '—') + ' · ' + (it.cost || '') + ' · ' + (it.weight || '');
+      else if (it.type === 'magic') subtitle = (it.rarity || '') + (it.attunement ? ' · 🔗 Настройка' : '') + (it.cost && it.cost !== '—' ? ' · ' + it.cost : '');
+      else subtitle = (it.cost || '') + (it.weight ? ' · ' + it.weight : '');
+
+      html += '<div class="spell-browser-card" id="aikcard-' + i + '" onclick="toggleAiKCard(' + i + ')">';
+      html += '<div class="spell-level-badge" style="background:linear-gradient(135deg,#8b1a1a,#6b0f0f);border-color:#c9962a">' + (ITEM_CAT_ICONS[it.type]||'🎒') + '</div>';
+      html += '<div class="spell-browser-info">';
+      html += '<div class="spell-browser-name">' + it.name + '</div>';
+      html += '<div class="spell-browser-meta">' + (it.itemType||'') + ' · ' + subtitle + '</div>';
+      html += '<div class="spell-browser-desc">' + (it.description||'') + '</div>';
+      html += '</div>';
+      html += '<button class="add-spell-mini" onclick="event.stopPropagation();addKnowledgeItem(' + i + ')">+ В сумку</button>';
+      html += '</div>';
     });
-
-    if (data.damage) {
-      html += `<div class="ai-field"><div class="ai-field-label">Урон</div><div class="ai-field-value" style="color:#e08080;font-weight:600">${data.damage}${data.damageVersatile?' / '+data.damageVersatile:''}</div></div>`;
-    }
-    if (data.ac) {
-      html += `<div class="ai-field"><div class="ai-field-label">Класс Доспеха</div><div class="ai-field-value" style="color:#80b0e0;font-weight:600">${data.ac}</div></div>`;
-    }
-    if (data.properties?.length) {
-      html += `<div class="ai-field"><div class="ai-field-label">Свойства</div><div class="ai-field-value">${data.properties.join(', ')}</div></div>`;
-    }
-    if (data.stealthDisadvantage) {
-      html += `<div class="ai-field"><div class="ai-field-value" style="color:#e08080">⚠️ Помеха на скрытность</div></div>`;
-    }
   }
-
-  if (data.description) {
-    html += `<div class="ai-description">${data.description}</div>`;
-  } else if (data._untranslated) {
-    html += `<div class="ai-description" style="font-style:normal;color:#a08868">ℹ️ Это заклинание пока не добавлено в русскоязычную базу приложения, поэтому полнотекстовое описание эффекта не показано (чтобы не показывать его на английском). Основные параметры выше — точные. Полный текст можно найти в книге правил или D&D Beyond.</div>`;
-  }
-  if (data.higherLevels) {
-    html += `<div class="ai-field"><div class="ai-field-label">На высоких уровнях</div><div class="ai-field-value" style="color:#a0c0d0">${data.higherLevels}</div></div>`;
-  }
-
-  // ADD BUTTON
-  const btnLabel = aiMode === 'spell' ? '+ Добавить в список заклинаний' : '+ Добавить в инвентарь';
-  html += `<button class="ai-add-btn" onclick="addFromAI()">${btnLabel}</button>`;
-  html += '</div></div>';
 
   container.innerHTML = html;
 }
 
-function addFromAI() {
-  if (!aiResultData) return;
-  const d = aiResultData;
+function toggleAiKCard(i) {
+  var card = document.getElementById('aikcard-' + i);
+  if (card) card.classList.toggle('expanded');
+}
 
-  if (aiMode === 'spell') {
-    state.spells.push({
-      name: d.name,
-      level: d.level || 0,
-      school: d.school || '',
-      cast: d.castingTime || '1 действие'
-    });
-    renderSpellList();
-    saveAll();
-    showToast(`✨ ${d.name} добавлено!`);
-  } else {
-    const icon = d.type === 'weapon' ? '⚔️' : d.type === 'armor' ? '🛡️' : d.type === 'magic' ? '🔮' : '🎒';
-    state.inventory.push({ name: d.name, qty: 1, icon, detail: d });
-    renderInventory();
-    saveAll();
-    showToast(`🎒 ${d.name} добавлено!`);
-  }
-  closeAISearch();
+function addKnowledgeSpell(i) {
+  var sp = _knowledgeCache[i];
+  if (!sp) return;
+  state.spells.push({ name: sp.name, level: sp.level||0, school: sp.school||'', cast: sp.castingTime||'1 действие' });
+  renderSpellList();
+  saveAll();
+  showToast('✨ ' + sp.name + ' добавлено!');
+}
+
+function addKnowledgeItem(i) {
+  var it = _knowledgeCache[i];
+  if (!it) return;
+  var icon = it.type==='weapon'?'⚔️':it.type==='armor'?'🛡️':it.type==='magic'?'🔮':'🎒';
+  state.inventory.push({ name: it.name, qty: 1, icon: icon, detail: it });
+  renderInventory();
+  saveAll();
+  showToast('🎒 ' + it.name + ' добавлено!');
 }
 
 function showToast(msg) {
