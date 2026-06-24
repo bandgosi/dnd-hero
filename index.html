@@ -36,13 +36,21 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
+  html {
+    height: 100%;
+    overflow: hidden;
+  }
+
   body {
     font-family: 'Crimson Text', Georgia, serif;
     background: #1a0f00;
     color: var(--ink);
     min-height: 100vh;
     min-height: -webkit-fill-available;
+    min-height: 100dvh;
     overflow: hidden;
+    touch-action: manipulation;
+    overscroll-behavior: none;
   }
 
   /* ---- APP SHELL ---- */
@@ -51,6 +59,7 @@
     flex-direction: column;
     height: 100vh;
     height: -webkit-fill-available;
+    height: 100dvh;
   }
 
   .screen { display: none; flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -119,6 +128,8 @@
     min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior-y: contain;
     background: var(--parchment);
     background-image:
       radial-gradient(ellipse at 20% 50%, rgba(180,140,80,0.08) 0%, transparent 60%),
@@ -4623,14 +4634,6 @@ document.head.appendChild(toastStyle);
 document.querySelectorAll('.modal-overlay').forEach(m=>{
   m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });
 });
-
-// Prevent zoom on double-tap
-let lastTap=0;
-document.addEventListener('touchend',e=>{
-  const now=Date.now();
-  if(now-lastTap<300) e.preventDefault();
-  lastTap=now;
-},{passive:false});
 
 // Register Service Worker for offline support
 if ('serviceWorker' in navigator) {
