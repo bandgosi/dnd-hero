@@ -1798,6 +1798,7 @@
       <div class="subtabs">
         <button class="subtab-btn guide-sub active" onclick="switchGuideTab('myclass',this)">🧙 Мой класс</button>
         <button class="subtab-btn guide-sub" onclick="switchGuideTab('spellbrowser',this)">📖 Заклинания</button>
+        <button class="subtab-btn guide-sub" onclick="switchGuideTab('itembrowser',this)">🎒 Снаряжение</button>
         <button class="subtab-btn guide-sub" onclick="switchGuideTab('rules',this)">⚔️ Правила</button>
         <button class="subtab-btn guide-sub" onclick="switchGuideTab('tips',this)">💡 Советы</button>
         <button class="subtab-btn guide-sub" onclick="switchGuideTab('aihelper',this)">🤖 Помощник</button>
@@ -1839,6 +1840,20 @@
             <div id="browser-results">
               <div class="ai-empty" style="padding:20px 0">Выбери класс и нажми «Найти»<br><button onclick="browseSpells()" style="margin-top:12px;background:var(--crimson);border:none;border-radius:8px;color:var(--parchment);font-family:Cinzel,serif;font-size:13px;padding:10px 24px;cursor:pointer;letter-spacing:1px">🔍 НАЙТИ ЗАКЛИНАНИЯ</button></div>
             </div>
+          </div>
+        </div>
+
+        <!-- ITEM BROWSER -->
+        <div class="tab-content" id="guide-itembrowser">
+          <div class="section">
+            <div class="section-title">Каталог снаряжения</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px" id="item-cat-filter-btns">
+              <button class="level-filter-btn active-lf" data-cat="weapon" onclick="setItemCatFilter('weapon',this)">⚔️ Оружие</button>
+              <button class="level-filter-btn" data-cat="armor" onclick="setItemCatFilter('armor',this)">🛡️ Доспехи</button>
+              <button class="level-filter-btn" data-cat="magic" onclick="setItemCatFilter('magic',this)">🔮 Магические</button>
+              <button class="level-filter-btn" data-cat="gear" onclick="setItemCatFilter('gear',this)">🎒 Снаряжение</button>
+            </div>
+            <div id="item-browser-results"></div>
           </div>
         </div>
 
@@ -2987,6 +3002,7 @@ const CLASS_GUIDES = {
     weaponProf: 'Простое оружие',
     savingProf: 'Мудрость, Харизма',
     spellcasting: 'Магия Договора (Pact Magic)',
+    maxSpellLevelFn: lvl => lvl<=2?1:lvl<=4?2:lvl<=6?3:lvl<=8?4:5,
     features: [
       { lvl:1, name:'Покровитель', desc:'Выбираешь покровителя: Архифей, Инфернал, Великий Древний и др. Каждый даёт уникальные способности.' },
       { lvl:1, name:'Магия Договора', desc:'Ячейки заклинаний восстанавливаются после короткого или долгого отдыха. Все ячейки одного уровня (1 ур. → 2 ур. на 3-м уровне).' },
@@ -3007,6 +3023,7 @@ const CLASS_GUIDES = {
     weaponProf: 'Кинжалы, дротики, посохи, арбалеты лёгкие',
     savingProf: 'Интеллект, Мудрость',
     spellcasting: 'Книга заклинаний (Spellbook)',
+    maxSpellLevelFn: lvl => Math.min(9, Math.ceil(lvl/2)),
     features: [
       { lvl:1, name:'Книга заклинаний', desc:'Начинаешь с 6 заклинаниями 1-го уровня. Можно добавлять новые из свитков или других книг.' },
       { lvl:1, name:'Восстановление Магии', desc:'После короткого отдыха восстанавливаешь ячейки заклинаний суммарным уровнем ≤ половина уровня мага.' },
@@ -3015,6 +3032,120 @@ const CLASS_GUIDES = {
     ],
     slotsByLevel: ['—','2×1','3×1','4×2','4×2+3×1','4×3+3×1+2×1'],
     tips: ['Береги высокоуровневые ячейки для огненного шара и молнии.','Каждый день можно готовить заклинания заново — адаптируйся к ситуации.']
+  },
+  'Чародей': {
+    icon: '✨', en: 'Sorcerer', enKey: 'sorcerer',
+    desc: 'Чародей рождён с магией в крови. Меньше заклинаний, чем у Мага, но Метамагия позволяет творить с ними чудеса.',
+    hitDie: 'к6',
+    mainStat: 'Харизма (ХАР)',
+    armorProf: 'Нет',
+    weaponProf: 'Кинжалы, дротики, дубинки, лёгкие арбалеты, посохи',
+    savingProf: 'Телосложение, Харизма',
+    spellcasting: 'Магия по наитию (известные заклинания)',
+    maxSpellLevelFn: lvl => Math.min(9, Math.ceil(lvl/2)),
+    features: [
+      { lvl:1, name:'Источник Чародейства', desc:'Драконья кровь (сопротивление урону, бонус КД) или Дикая магия (случайные эффекты при накладывании).' },
+      { lvl:2, name:'Очки Чародейства', desc:'Пул очков = уровень персонажа. Можно превращать в ячейки заклинаний и обратно.' },
+      { lvl:3, name:'Метамагия', desc:'2 опции на выбор: Стремительное заклинание (бонусным действием), Скрытное заклинание (без компонентов), Удвоенное заклинание (2 цели) и др.' },
+      { lvl:4, name:'Улучшение характеристик', desc:'+2 к ХАР или другим характеристикам.' },
+    ],
+    slotsByLevel: ['—','2×1','3×1','4×2','4×2+3×1','4×3+2×2+1×1'],
+    tips: ['Очки Чародейства — твой главный ресурс. Превращай их в ячейки, когда нужно больше заклинаний.','Стремительное заклинание (Quickened Spell) позволяет атаковать заговором и заклинанием в один ход.']
+  },
+  'Клерик': {
+    icon: '⛪', en: 'Cleric', enKey: 'cleric',
+    desc: 'Клерик — проводник божественной силы своего бога. Лучший лекарь в игре, но способен и сражаться, и контролировать бой.',
+    hitDie: 'к8',
+    mainStat: 'Мудрость (МУД)',
+    armorProf: 'Лёгкие, средние доспехи, щиты',
+    weaponProf: 'Простое оружие',
+    savingProf: 'Мудрость, Харизма',
+    spellcasting: 'Подготовка заклинаний (Prepared)',
+    maxSpellLevelFn: lvl => Math.min(9, Math.ceil(lvl/2)),
+    features: [
+      { lvl:1, name:'Божественный домен', desc:'Жизнь, Война, Свет, Природа, Буря, Обман, Знание, Гробница — даёт бонусные заклинания домена и умения.' },
+      { lvl:1, name:'Накладывание заклинаний', desc:'Готовишь список заклинаний каждый день (МУД-модификатор + уровень Клерика). Можешь накладывать любое из них, не зная заранее.' },
+      { lvl:2, name:'Божественный канал', desc:'Раз за отдых: Изгнание нежити или эффект домена. Заряды растут с уровнем.' },
+      { lvl:4, name:'Улучшение характеристик', desc:'+2 к МУД или другим характеристикам.' },
+    ],
+    slotsByLevel: ['—','2×1','3×1','4×2','4×2+3×1','4×3+2×2+1×1'],
+    tips: ['Лечащее слово — бонусное действие, лечи на ходу, не теряя атаку.','Духовное оружие — бесплатный дополнительный источник урона каждый ход.']
+  },
+  'Друид': {
+    icon: '🌿', en: 'Druid', enKey: 'druid',
+    desc: 'Друид служит силам природы. Может превращаться в зверей (Дикий облик) и владеет мощной природной магией.',
+    hitDie: 'к8',
+    mainStat: 'Мудрость (МУД)',
+    armorProf: 'Лёгкие, средние доспехи (не металл), щиты (не металл)',
+    weaponProf: 'Дубинки, кинжалы, дротики, булавы, посохи, серпы, скимитары, пращи, копья',
+    savingProf: 'Интеллект, Мудрость',
+    spellcasting: 'Подготовка заклинаний (Prepared)',
+    maxSpellLevelFn: lvl => Math.min(9, Math.ceil(lvl/2)),
+    features: [
+      { lvl:1, name:'Друидический', desc:'Знаешь секретный язык друидов.' },
+      { lvl:2, name:'Дикий облик', desc:'2 раза за отдых превращаешься в изученного зверя на час. ПО зверя растёт с уровнем.' },
+      { lvl:2, name:'Круг друидов', desc:'Земли, Луны, Духов и др. — уникальные умения и бонусные заклинания.' },
+      { lvl:4, name:'Улучшение характеристик', desc:'+2 к МУД или другим характеристикам.' },
+    ],
+    slotsByLevel: ['—','2×1','3×1','4×2','4×2+3×1','4×3+2×2+1×1'],
+    tips: ['Дикий облик отлично подходит для разведки (форма крысы/птицы) и танкования (медведь).','Заклинание Лоза-хлыст наносит урон и подтягивает врага — отличная замена оружию.']
+  },
+  'Бард': {
+    icon: '🎵', en: 'Bard', enKey: 'bard',
+    desc: 'Бард плетёт магию через музыку и слово. Самый гибкий класс: лечит, контролирует, баффает и неплохо дерётся.',
+    hitDie: 'к8',
+    mainStat: 'Харизма (ХАР)',
+    armorProf: 'Лёгкие доспехи',
+    weaponProf: 'Простое оружие, ручные арбалеты, рапиры, шпаги-метлы (длинные мечи)',
+    savingProf: 'Ловкость, Харизма',
+    spellcasting: 'Магия по наитию (известные заклинания)',
+    maxSpellLevelFn: lvl => Math.min(9, Math.ceil(lvl/2)),
+    features: [
+      { lvl:1, name:'Бардовское вдохновение', desc:'Бонусным действием даёшь союзнику к6 (растёт с уровнем), которое он добавляет к броску. Заряды = мод. ХАР.' },
+      { lvl:2, name:'Универсал', desc:'Получаешь владение 2 навыками на выбор.' },
+      { lvl:2, name:'Магическая секретность', desc:'Можешь изучать 1 заклинание любого класса при выборе новых заклинаний.' },
+      { lvl:3, name:'Школа Бардов', desc:'Доблесть или Знания — определяет дальнейшую специализацию.' },
+    ],
+    slotsByLevel: ['—','2×1','3×1','4×2','4×2+3×1','4×3+2×2+1×1'],
+    tips: ['Вдохновение можно использовать на спасбросок союзника ПОСЛЕ броска, если есть время отреагировать.','Зловещий смех/Дисгармоничные шептания — мощный контроль уже с 1 уровня.']
+  },
+  'Паладин': {
+    icon: '🛡️', en: 'Paladin', enKey: 'paladin',
+    desc: 'Паладин сочетает доблесть воина с божественной магией. Танк, лекарь и заклинатель в одном персонаже.',
+    hitDie: 'к10',
+    mainStat: 'Сила и Харизма',
+    armorProf: 'Все доспехи и щиты',
+    weaponProf: 'Простое и воинское оружие',
+    savingProf: 'Мудрость, Харизма',
+    spellcasting: 'Полу-заклинатель (с 2 уровня)',
+    maxSpellLevelFn: lvl => lvl<2?0:lvl<=4?1:lvl<=8?2:lvl<=12?3:lvl<=16?4:5,
+    features: [
+      { lvl:1, name:'Чувство божественности', desc:'Определяешь присутствие небожителей, нежити и исчадий рядом.' },
+      { lvl:1, name:'Наложение рук', desc:'Пул хитов = 5 × уровень. Действием лечишь или снимаешь яд/болезнь касанием.' },
+      { lvl:2, name:'Божественная кара', desc:'При попадании оружием можно потратить ячейку: +2к8 урона излучением (+1к8 за уровень слота выше 1-го).' },
+      { lvl:3, name:'Священная клятва', desc:'Преданности, Древности, Мести и др. — даёт заклинания клятвы и уникальные умения.' },
+    ],
+    slotsByLevel: ['—','—','2×1','3×1','3×1','4×2'],
+    tips: ['Божественная кара лучше всего работает с большим оружием — кубики урона удваиваются при крите.','Бережно трать ячейки: они нужны и на заклинания, и на Кару.']
+  },
+  'Следопыт': {
+    icon: '🏹', en: 'Ranger', enKey: 'ranger',
+    desc: 'Следопыт — охотник и разведчик, владеющий природной магией. Силён против конкретного типа врагов и местности.',
+    hitDie: 'к10',
+    mainStat: 'Ловкость и Мудрость',
+    armorProf: 'Лёгкие, средние доспехи, щиты',
+    weaponProf: 'Простое и воинское оружие',
+    savingProf: 'Сила, Ловкость',
+    spellcasting: 'Полу-заклинатель (с 2 уровня)',
+    maxSpellLevelFn: lvl => lvl<2?0:lvl<=4?1:lvl<=8?2:lvl<=12?3:lvl<=16?4:5,
+    features: [
+      { lvl:1, name:'Избранный враг', desc:'Преимущество на Выживание для отслеживания и Анализ/Природу для сведений о выбранном типе существ.' },
+      { lvl:1, name:'Природный следопыт', desc:'Выбранная местность: не замедляешься труднопроходимой территорией, не теряешься, скрытно путешествуешь группой.' },
+      { lvl:2, name:'Боевой стиль', desc:'Архаист, Дуэлянт, Оборона, Лучник и др. — постоянный пассивный бонус в бою.' },
+      { lvl:3, name:'Архетип Следопыта', desc:'Хранитель Зверей, Соглядатай и др. — определяет дальнейшие умения.' },
+    ],
+    slotsByLevel: ['—','—','2×1','3×1','3×1','4×2'],
+    tips: ['Охотничья метка — твой главный источник урона, накладывай в первую очередь.','Боевой стиль Лучник (+2 к атаке дальним оружием) — топовый выбор для лука.']
   },
   'Воин': {
     icon: '⚔️', en: 'Fighter', enKey: 'fighter',
@@ -3036,9 +3167,12 @@ const CLASS_GUIDES = {
 };
 
 const WARLOCK_SPELLS_BY_LEVEL = {
-  0: ['Мистический заряд','Малая иллюзия','Яд брызгами','Рубящий удар','Зловещий трезубец','Пляшущие огни','Жуткий шёпот'],
-  1: ['Очарование личности','Защита от добра и зла','Шестое чувство','Ведьмин снаряд','Армор ведьмы','Взрывная волна','Усыпление'],
-  2: ['Мрак','Невидимость','Удержание личности','Туманный шаг','Зеркальное отображение','Сглаз','Паутина','Шёпот теней'],
+  0: ['Мистический заряд','Малая иллюзия','Яд брызгами','Леденящее прикосновение','Дружба','Волшебная рука','Истинный удар','Фокусы'],
+  1: ['Очарование личности','Защита от добра и зла','Доспех Агатиса','Руки Хадара','Понимание языков','Быстрое бегство','Адское возмездие','Сглаз','Иллюзорный текст','Невидимый слуга','Ведьмин снаряд'],
+  2: ['Мрак','Невидимость','Удержание личности','Туманный шаг','Зеркальное отображение','Облако кинжалов','Корона безумия','Порабощение внимания','Внушение','Луч ослабления','Удар ужаса','Паучье лазание'],
+  3: ['Контрзаклинание','Рассеивание магии','Страх','Полёт','Газообразная форма','Голод Хадара','Гипнотический узор','Магический круг','Большая иллюзия','Снятие проклятия','Языки','Вампирское прикосновение'],
+  4: ['Изгнание','Тление','Дверь измерений','Иллюзорная местность'],
+  5: ['Связь с иным планом','Видение','Удержание чудовища','Слежение'],
 };
 
 let browserLevelFilter = -1;
@@ -3049,6 +3183,74 @@ function switchGuideTab(tab, btn) {
   document.querySelectorAll('.guide-sub').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   if (tab === 'myclass') renderClassGuide();
+  if (tab === 'itembrowser') renderItemBrowser();
+}
+
+let itemBrowserCat = 'weapon';
+
+function setItemCatFilter(cat, btn) {
+  itemBrowserCat = cat;
+  document.querySelectorAll('#item-cat-filter-btns .level-filter-btn').forEach(b => b.classList.remove('active-lf'));
+  btn.classList.add('active-lf');
+  renderItemBrowser();
+}
+
+const ITEM_CAT_ICONS = { weapon: '⚔️', armor: '🛡️', magic: '🔮', gear: '🎒' };
+const ITEM_CAT_LABELS = { weapon: 'Оружие', armor: 'Доспех', magic: 'Магия', gear: 'Снаряжение' };
+
+function renderItemBrowser() {
+  const container = document.getElementById('item-browser-results');
+  const sourceMap = { weapon: DB_WEAPONS, armor: DB_ARMOR, magic: DB_MAGIC_ITEMS, gear: DB_GEAR };
+  const items = sourceMap[itemBrowserCat] || [];
+
+  if (!items.length) {
+    container.innerHTML = '<div class="ai-empty">Список пуст</div>';
+    return;
+  }
+
+  window._itemBrowserCache = items;
+
+  var html = '<div style="font-family:Cinzel,serif;font-size:11px;color:var(--crimson);letter-spacing:1px;margin-bottom:12px">' + items.length + ' ПРЕДМЕТОВ</div>';
+
+  items.forEach(function(it, i) {
+    var subtitle = '';
+    if (it.type === 'weapon') {
+      subtitle = (it.damage || '—') + (it.damageVersatile ? ' / ' + it.damageVersatile : '') + ' · ' + (it.cost || '') + ' · ' + (it.weight || '');
+    } else if (it.type === 'armor') {
+      subtitle = 'КД ' + (it.ac || '—') + ' · ' + (it.cost || '') + ' · ' + (it.weight || '');
+    } else if (it.type === 'magic') {
+      subtitle = (it.rarity || '') + (it.attunement ? ' · 🔗 Настройка' : '') + (it.cost && it.cost !== '—' ? ' · ' + it.cost : '');
+    } else {
+      subtitle = (it.cost || '') + (it.weight ? ' · ' + it.weight : '');
+    }
+
+    html += '<div class="spell-browser-card" id="itembcard-' + i + '" onclick="toggleItemBcard(' + i + ')">';
+    html += '<div class="spell-level-badge" style="background:linear-gradient(135deg,#8b1a1a,#6b0f0f);border-color:#c9962a">' + ITEM_CAT_ICONS[it.type] + '</div>';
+    html += '<div class="spell-browser-info">';
+    html += '<div class="spell-browser-name">' + it.name + '</div>';
+    html += '<div class="spell-browser-meta">' + (it.itemType || ITEM_CAT_LABELS[it.type]) + ' · ' + subtitle + '</div>';
+    html += '<div class="spell-browser-desc">' + (it.description || '') + '</div>';
+    html += '</div>';
+    html += '<button class="add-spell-mini" onclick="event.stopPropagation();addItemFromBrowser(' + i + ')">+ В сумку</button>';
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+function toggleItemBcard(i) {
+  var card = document.getElementById('itembcard-' + i);
+  if (card) card.classList.toggle('expanded');
+}
+
+function addItemFromBrowser(i) {
+  var it = window._itemBrowserCache[i];
+  if (!it) return;
+  var icon = it.type === 'weapon' ? '⚔️' : it.type === 'armor' ? '🛡️' : it.type === 'magic' ? '🔮' : '🎒';
+  state.inventory.push({ name: it.name, qty: 1, icon: icon, detail: it });
+  renderInventory();
+  saveAll();
+  showToast('🎒 ' + it.name + ' добавлено!');
 }
 
 function renderClassGuide() {
@@ -3070,20 +3272,22 @@ function renderClassGuide() {
   }
 
   let spellsHTML = '';
-  if (className === 'Колдун') {
-    const maxSpellLevel = level <= 2 ? 1 : level <= 4 ? 2 : level <= 6 ? 3 : level <= 8 ? 4 : 5;
-    spellsHTML = `
-      <div class="section-title">Доступные заклинания (до ${maxSpellLevel} ур.)</div>`;
-    for (let l = 0; l <= maxSpellLevel; l++) {
-      const spells = WARLOCK_SPELLS_BY_LEVEL[l];
-      if (!spells) continue;
-      var spellBtns = spells.map(function(s) {
-        return '<button onclick="quickSearchFromGuide(this)" data-spell="' + s + '" style="padding:5px 10px;background:rgba(100,70,200,0.2);border:1px solid rgba(100,70,200,0.4);border-radius:12px;color:#c0a0ff;font-size:12px;cursor:pointer;font-family:Crimson Text,serif">' + s + '</button>';
-      }).join('');
-      spellsHTML += '<div style="margin-bottom:10px">'
-        + '<div style="font-family:Cinzel,serif;font-size:11px;color:#8060c0;letter-spacing:1px;margin-bottom:6px">' + (l===0?'ЗАГОВОРЫ':l+' УРОВЕНЬ') + '</div>'
-        + '<div style="display:flex;flex-wrap:wrap;gap:6px">' + spellBtns + '</div>'
-        + '</div>';
+  if (guide.spellcasting && guide.spellcasting !== 'Нет') {
+    const maxSpellLevel = guide.maxSpellLevelFn ? guide.maxSpellLevelFn(level) : 5;
+    const classSpells = DB_SPELLS.filter(sp => (sp.classes||[]).includes(className) && sp.level <= maxSpellLevel);
+    if (classSpells.length) {
+      spellsHTML = `<div class="section-title">Доступные заклинания (до ${maxSpellLevel} ур.)</div>`;
+      for (let l = 0; l <= maxSpellLevel; l++) {
+        const spells = classSpells.filter(sp => sp.level === l).map(sp => sp.name);
+        if (!spells.length) continue;
+        var spellBtns = spells.map(function(s) {
+          return '<button onclick="quickSearchFromGuide(this)" data-spell="' + s + '" style="padding:5px 10px;background:rgba(100,70,200,0.2);border:1px solid rgba(100,70,200,0.4);border-radius:12px;color:#c0a0ff;font-size:12px;cursor:pointer;font-family:Crimson Text,serif">' + s + '</button>';
+        }).join('');
+        spellsHTML += '<div style="margin-bottom:10px">'
+          + '<div style="font-family:Cinzel,serif;font-size:11px;color:#8060c0;letter-spacing:1px;margin-bottom:6px">' + (l===0?'ЗАГОВОРЫ':l+' УРОВЕНЬ') + '</div>'
+          + '<div style="display:flex;flex-wrap:wrap;gap:6px">' + spellBtns + '</div>'
+          + '</div>';
+      }
     }
   }
 
@@ -3615,7 +3819,7 @@ const DB_SPELLS = [
   {name:"Свет",nameEn:"Light",level:0,school:"Воплощение",castingTime:"1 действие",range:"Касание",duration:"1 час",components:"В, М (светлячок)",concentration:false,ritual:false,classes:["Бард","Клерик","Маг","Паладин","Чародей"],damage:null,saveType:null,description:"Прикасаетесь к одному предмету размером не более 10 футов. Предмет излучает яркий свет в радиусе 20 футов и тусклый свет ещё 20 футов. Цвет можно выбрать любой.",higherLevels:null},
   {name:"Истинный удар",nameEn:"True Strike",level:0,school:"Прорицание",castingTime:"1 действие",range:"30 футов",duration:"Концентрация, до 1 раунда",components:"С",concentration:true,ritual:false,classes:["Бард","Колдун","Маг","Плут","Чародей"],damage:null,saveType:null,description:"Вы получаете мимолётное понимание защиты цели. В следующий ход у вас есть преимущество на первый бросок атаки против неё.",higherLevels:null},
   {name:"Пляшущие огни",nameEn:"Dancing Lights",level:0,school:"Воплощение",castingTime:"1 действие",range:"120 футов",duration:"Концентрация, до 1 минуты",components:"В, С, М (кусочек фосфора)",concentration:true,ritual:false,classes:["Бард","Маг","Чародей"],damage:null,saveType:null,description:"Создаёте до четырёх огоньков размером с факел в пределах дистанции. Можно объединить их в одну форму гуманоида. Каждый огонёк светится как свеча.",higherLevels:null},
-  {name:"Зловещий трезубец",nameEn:"Toll the Dead",level:0,school:"Некромантия",castingTime:"1 действие",range:"60 футов",duration:"Мгновенная",components:"В, С",concentration:false,ritual:false,classes:["Клерик","Маг","Колдун"],damage:"1к8/1к12 некр. (если повреждено)",saveType:"Мудрость",description:"Раздаётся звон погребального колокола. Цель делает спасбросок Мудрости или получает урон некротической энергией 1к8. Если у цели не хватает HP — урон 1к12.",higherLevels:"Урон увеличивается на 1к8/1к12 на 5, 11 и 17 уровне."},
+  {name:"Зловещий трезубец",nameEn:"Toll the Dead",level:0,school:"Некромантия",castingTime:"1 действие",range:"60 футов",duration:"Мгновенная",components:"В, С",concentration:false,ritual:false,classes:["Клерик","Маг"],damage:"1к8/1к12 некр. (если повреждено)",saveType:"Мудрость",description:"Раздаётся звон погребального колокола. Цель делает спасбросок Мудрости или получает урон некротической энергией 1к8. Если у цели не хватает HP — урон 1к12.",higherLevels:"Урон увеличивается на 1к8/1к12 на 5, 11 и 17 уровне."},
 
   // 1 УРОВЕНЬ
   {name:"Волшебная стрела",nameEn:"Magic Missile",level:1,school:"Воплощение",castingTime:"1 действие",range:"120 футов",duration:"Мгновенная",components:"В, С",concentration:false,ritual:false,classes:["Маг","Чародей"],damage:"3 × (1к4+1) силовой — автопопадание",saveType:null,description:"Три светящихся дротика магической силы поражают цели по вашему выбору в пределах дистанции. Дротики попадают одновременно, каждый наносит урон 1к4+1. Всегда попадают, иммунитета нет.",higherLevels:"Каждый слот выше 1-го добавляет 1 дротик."},
@@ -3669,7 +3873,7 @@ const DB_SPELLS = [
 
   // ── ДОПОЛНИТЕЛЬНЫЕ 1 УРОВЕНЬ ──
   {name:"Огненные ладони",nameEn:"Burning Hands",level:1,school:"Воплощение",castingTime:"1 действие",range:"На себя (15-футовый конус)",duration:"Мгновенная",components:"В, С",concentration:false,ritual:false,classes:["Маг","Чародей"],damage:"3к6 огонь",saveType:"Ловкость",description:"Из кончиков пальцев вырывается пелена пламени. Каждое существо в 15-футовом конусе делает спасбросок Ловкости: провал — 3к6 огня, успех — половина. Воспламеняемые предметы загораются.",higherLevels:"Урон +1к6 за каждый слот выше 1-го."},
-  {name:"Доспех мага",nameEn:"Mage Armor",level:1,school:"Ограждение",castingTime:"1 действие",range:"Касание",duration:"8 часов",components:"В, С, М (кусочек выделанной кожи)",concentration:false,ritual:false,classes:["Колдун","Маг","Чародей"],damage:null,saveType:null,description:"Касаетесь существа без доспеха. Его базовый КД становится 13 + модификатор Ловкости на время действия. Заклинание заканчивается, если цель надевает доспех.",higherLevels:null},
+  {name:"Доспех мага",nameEn:"Mage Armor",level:1,school:"Ограждение",castingTime:"1 действие",range:"Касание",duration:"8 часов",components:"В, С, М (кусочек выделанной кожи)",concentration:false,ritual:false,classes:["Маг","Чародей"],damage:null,saveType:null,description:"Касаетесь существа без доспеха. Его базовый КД становится 13 + модификатор Ловкости на время действия. Заклинание заканчивается, если цель надевает доспех.",higherLevels:null},
   {name:"Громовая волна",nameEn:"Thunderwave",level:1,school:"Воплощение",castingTime:"1 действие",range:"На себя (куб 15 футов)",duration:"Мгновенная",components:"В, С",concentration:false,ritual:false,classes:["Бард","Друид","Маг","Чародей"],damage:"2к8 гром",saveType:"Телосложение",description:"Волна громовой силы расходится от вас. Существа в кубе 15 футов делают спасбросок Телосложения: провал — 2к8 грома и их отталкивает на 10 футов, успех — половина и без сдвига.",higherLevels:"Урон +1к8 за каждый слот выше 1-го."},
   {name:"Благословение",nameEn:"Bless",level:1,school:"Очарование",castingTime:"1 действие",range:"30 футов",duration:"Концентрация, до 1 минуты",components:"В, С, М (капля святой воды)",concentration:true,ritual:false,classes:["Клерик","Паладин"],damage:null,saveType:null,description:"Благословляете до трёх существ. Каждый раз, совершая бросок атаки или спасбросок, цель добавляет 1к4 к результату.",higherLevels:"Каждый слот выше 1-го — ещё одно существо."},
   {name:"Героизм",nameEn:"Heroism",level:1,school:"Очарование",castingTime:"1 действие",range:"Касание",duration:"Концентрация, до 1 минуты",components:"В, С",concentration:true,ritual:false,classes:["Бард","Паладин"],damage:null,saveType:null,description:"Согласное существо наполняется храбростью. Оно невосприимчиво к испугу и в начале каждого своего хода получает временные хиты, равные вашему модификатору заклинательной характеристики.",higherLevels:"Каждый слот выше 1-го — ещё одно существо."},
@@ -3712,7 +3916,7 @@ const DB_SPELLS = [
   {name:"Высшая невидимость",nameEn:"Greater Invisibility",level:4,school:"Иллюзия",castingTime:"1 действие",range:"Касание",duration:"Концентрация, до 1 минуты",components:"В, С",concentration:true,ritual:false,classes:["Бард","Маг","Чародей"],damage:null,saveType:null,description:"Существо становится невидимым и остаётся таковым даже когда атакует или накладывает заклинания.",higherLevels:null},
   {name:"Стена огня",nameEn:"Wall of Fire",level:4,school:"Воплощение",castingTime:"1 действие",range:"120 футов",duration:"Концентрация, до 1 минуты",components:"В, С, М (кусочек фосфора)",concentration:true,ritual:false,classes:["Друид","Маг","Чародей"],damage:"5к8 огонь",saveType:"Ловкость",description:"Создаёте стену огня (до 60 футов в длину, 20 в высоту). Существа в области и рядом с горячей стороной при появлении делают спасбросок Ловкости: провал — 5к8 огня, успех — половина.",higherLevels:"Урон +1к8 за каждый слот выше 4-го."},
   {name:"Полиморф",nameEn:"Polymorph",level:4,school:"Преобразование",castingTime:"1 действие",range:"60 футов",duration:"Концентрация, до 1 часа",components:"В, С, М (кокон гусеницы)",concentration:true,ritual:false,classes:["Бард","Друид","Маг","Чародей"],damage:null,saveType:"Мудрость",description:"Превращаете существо в зверя с ПО не выше его уровня (несогласное делает спасбросок Мудрости). Цель получает хиты новой формы; при их потере возвращается в исходный облик.",higherLevels:null},
-  {name:"Тление",nameEn:"Blight",level:4,school:"Некромантия",castingTime:"1 действие",range:"30 футов",duration:"Мгновенная",components:"В, С",concentration:false,ritual:false,classes:["Друид","Маг","Чародей"],damage:"8к8 некротический",saveType:"Телосложение",description:"Высасываете влагу и жизнь из существа. Спасбросок Телосложения: провал — 8к8 некротики, успех — половина. Растения проваливают автоматически и получают максимум урона.",higherLevels:"Урон +1к8 за каждый слот выше 4-го."},
+  {name:"Тление",nameEn:"Blight",level:4,school:"Некромантия",castingTime:"1 действие",range:"30 футов",duration:"Мгновенная",components:"В, С",concentration:false,ritual:false,classes:["Друид","Колдун","Маг","Чародей"],damage:"8к8 некротический",saveType:"Телосложение",description:"Высасываете влагу и жизнь из существа. Спасбросок Телосложения: провал — 8к8 некротики, успех — половина. Растения проваливают автоматически и получают максимум урона.",higherLevels:"Урон +1к8 за каждый слот выше 4-го."},
 
   // ── ДОПОЛНИТЕЛЬНЫЕ 5 УРОВЕНЬ ──
   {name:"Массовое лечение ран",nameEn:"Mass Cure Wounds",level:5,school:"Воплощение",castingTime:"1 действие",range:"60 футов",duration:"Мгновенная",components:"В, С",concentration:false,ritual:false,classes:["Бард","Друид","Клерик"],damage:null,saveType:null,description:"До шести существ в сфере радиусом 30 футов восстанавливают по 3к8 + модификатор заклинательной характеристики хитов. Не действует на нежить и конструктов.",higherLevels:"Восстановление +1к8 за каждый слот выше 5-го."},
@@ -3721,6 +3925,77 @@ const DB_SPELLS = [
   {name:"Стена силы",nameEn:"Wall of Force",level:5,school:"Воплощение",castingTime:"1 действие",range:"120 футов",duration:"Концентрация, до 10 минут",components:"В, С, М (щепотка пудры из прозрачного камня)",concentration:true,ritual:false,classes:["Маг"],damage:null,saveType:null,description:"Создаёте невидимую стену чистой силы. Сквозь неё ничто не проходит физически, её нельзя пробить немагически; рассеивается лишь Развоплощением или Рассеиванием магии.",higherLevels:null},
   {name:"Телекинез",nameEn:"Telekinesis",level:5,school:"Преобразование",castingTime:"1 действие",range:"60 футов",duration:"Концентрация, до 10 минут",components:"В, С",concentration:true,ritual:false,classes:["Маг","Чародей"],damage:null,saveType:null,description:"Силой мысли перемещаете существ или предметы. Действием можно двигать предмет до 1000 фунтов или существо (проверка вашей заклинательной характеристики против Силы цели) на 30 футов.",higherLevels:null},
   {name:"Облако смерти",nameEn:"Cloudkill",level:5,school:"Вызов",castingTime:"1 действие",range:"120 футов",duration:"Концентрация, до 10 минут",components:"В, С",concentration:true,ritual:false,classes:["Маг","Чародей"],damage:"5к8 яд",saveType:"Телосложение",description:"Сфера ядовитого тумана радиусом 20 футов. Существа в ней делают спасбросок Телосложения: провал — 5к8 яда, успех — половина. Облако каждый ход смещается на 10 футов от вас.",higherLevels:"Урон +1к8 за каждый слот выше 5-го."},
+
+  // ── ПОЛНЫЙ СПИСОК ЗАКЛИНАНИЙ КОЛДУНА (PHB) — недостающие ──
+  {name:"Фокусы",nameEn:"Prestidigitation",level:0,school:"Преобразование",castingTime:"1 действие",range:"10 футов",duration:"До 1 часа",components:"В, С",concentration:false,ritual:false,classes:["Бард","Колдун","Маг","Чародей"],damage:null,saveType:null,description:"Простейший волшебный трюк: зажечь свечу, очистить или испачкать предмет, создать запах или звук, охладить, согреть или подкрасить мелкий предмет. Эффект слабый и недолгий, для боя не годится.",higherLevels:null},
+  {name:"Доспех Агатиса",nameEn:"Armor of Agathys",level:1,school:"Ограждение",castingTime:"1 действие",range:"На себя",duration:"8 часов",components:"В, С, М (капля морской воды)",concentration:false,ritual:false,classes:["Колдун"],damage:"5 холод (при ближнем ударе по вам)",saveType:null,description:"Защитная сила окружает вас ледяной коркой. Вы получаете 5 временных хитов; пока хоть один из них остаётся, существо, ударившее вас в ближнем бою, получает 5 урона холодом.",higherLevels:"Временные хиты и урон +5 за каждый слот выше 1-го."},
+  {name:"Руки Хадара",nameEn:"Arms of Hadar",level:1,school:"Вызов",castingTime:"1 действие",range:"На себя (10-футовый радиус)",duration:"Мгновенная",components:"В, С",concentration:false,ritual:false,classes:["Колдун"],damage:"2к6 некротический",saveType:"Телосложение",description:"Из вас рвутся тёмные тентакли. Каждое существо в радиусе 10 футов делает спасбросок Телосложения: провал — 2к6 некротического урона и невозможность реакций до начала вашего следующего хода, успех — половина урона.",higherLevels:"Урон +1к6 за каждый слот выше 1-го."},
+  {name:"Понимание языков",nameEn:"Comprehend Languages",level:1,school:"Прорицание",castingTime:"1 действие",range:"На себя",duration:"1 час",components:"В, С, М (щепотка сажи и соли)",concentration:false,ritual:true,classes:["Бард","Колдун","Маг"],damage:null,saveType:null,description:"На время действия вы понимаете буквальный смысл любой устной речи, которую слышите, и можете прочитать любой письменный текст (хотя и не быстро). Не расшифровывает скрытые послания и шифры. Ритуал.",higherLevels:null},
+  {name:"Быстрое бегство",nameEn:"Expeditious Retreat",level:1,school:"Преобразование",castingTime:"1 бонусное действие",range:"На себя",duration:"Концентрация, до 10 минут",components:"В, С",concentration:true,ritual:false,classes:["Колдун","Маг","Чародей"],damage:null,saveType:null,description:"Заклинание позволяет передвигаться с невероятной скоростью. Пока оно активно, вы можете бонусным действием совершать действие Рывок.",higherLevels:null},
+  {name:"Адское возмездие",nameEn:"Hellish Rebuke",level:1,school:"Воплощение",castingTime:"1 реакция",range:"60 футов",duration:"Мгновенная",components:"В, С",concentration:false,ritual:false,classes:["Колдун"],damage:"2к10 огонь",saveType:"Ловкость",description:"Реакцией на то, что существо причинило вам урон, вы указываете на него пальцем, и оно охватывается адским пламенем. Существо делает спасбросок Ловкости: провал — 2к10 урона огнём, успех — половина.",higherLevels:"Урон +1к10 за каждый слот выше 1-го."},
+  {name:"Сглаз",nameEn:"Hex",level:1,school:"Очарование",castingTime:"1 бонусное действие",range:"90 футов",duration:"Концентрация, до 1 часа",components:"В, С, М (засушенная лапка тритона)",concentration:true,ritual:false,classes:["Колдун"],damage:"+1к6 некротический при попадании",saveType:null,description:"Накладываете проклятие на существо. Каждый раз, попадая по нему атакой, вы наносите дополнительно 1к6 урона некротикой. Также выбираете характеристику — цель совершает проверки этой характеристикой с помехой. Если цель умирает, можно бонусным действием перенести проклятие на другую.",higherLevels:"При слоте 3–4 ур. длится до 8 часов, 5+ — до 24 часов."},
+  {name:"Иллюзорный текст",nameEn:"Illusory Script",level:1,school:"Иллюзия",castingTime:"1 минута",range:"Касание",duration:"10 дней",components:"С, М (чернила с пыльцой папоротника)",concentration:false,ritual:true,classes:["Бард","Колдун","Маг"],damage:null,saveType:null,description:"Пишете текст, который выглядит как тайное послание, проклятие или бессмыслица для всех, кроме тех, кого вы укажете при накладывании — они читают его как обычный текст. Ритуал.",higherLevels:null},
+  {name:"Невидимый слуга",nameEn:"Unseen Servant",level:1,school:"Вызов",castingTime:"1 действие",range:"60 футов",duration:"1 час",components:"В, С, М (нить и кусочек дерева)",concentration:false,ritual:true,classes:["Бард","Колдун","Маг"],damage:null,saveType:null,description:"Создаёте невидимую безмозглую силовую сущность в виде слуги. Она выполняет простые задачи: убрать, починить, налить, поднести (до 10 кг). Не может атаковать, КД 10, 1 хит. Ритуал.",higherLevels:null},
+  {name:"Ведьмин снаряд",nameEn:"Witch Bolt",level:1,school:"Воплощение",castingTime:"1 действие",range:"30 футов",duration:"Концентрация, до 1 минуты",components:"В, С, М (веточка от куста, ударенного молнией)",concentration:true,ritual:false,classes:["Колдун"],damage:"1к12 молния",saveType:null,description:"Дуга мерцающей энергии бьёт по цели (рукопашная атака заклинанием). При попадании — 1к12 урона молнией; в начале каждого вашего следующего хода действием можно автоматически повторить тот же урон без нового броска атаки, пока цель в пределах дистанции.",higherLevels:null},
+
+  {name:"Облако кинжалов",nameEn:"Cloud of Daggers",level:2,school:"Вызов",castingTime:"1 действие",range:"60 футов",duration:"Концентрация, до 1 минуты",components:"В, С, М (миниатюрные серебряные кинжалы)",concentration:true,ritual:false,classes:["Бард","Колдун","Маг"],damage:"4к4 рубящий",saveType:null,description:"Заполняете куб 5 футов вращающимися призрачными кинжалами. Любое существо, входящее в эту область или начинающее в ней ход, получает 4к4 рубящего урона.",higherLevels:null},
+  {name:"Корона безумия",nameEn:"Crown of Madness",level:2,school:"Очарование",castingTime:"1 действие",range:"120 футов",duration:"Концентрация, до 1 минуты",components:"В, С",concentration:true,ritual:false,classes:["Колдун","Маг"],damage:null,saveType:"Мудрость",description:"На голове гуманоида появляется призрачная корона. Спасбросок Мудрости или цель очарована и в каждом своём ходу должна (по вашему выбору бонусным действием) атаковать ближайшее к ней существо, кроме вас.",higherLevels:null},
+  {name:"Порабощение внимания",nameEn:"Enthrall",level:2,school:"Очарование",castingTime:"1 действие",range:"60 футов",duration:"1 минута",components:"В, С",concentration:false,ritual:false,classes:["Бард","Колдун"],damage:null,saveType:"Мудрость",description:"Произносите речь, что приковывает внимание слушателей. Существа, способные вас слышать, делают спасбросок Мудрости (с преимуществом, если враждебны) — провал даёт помеху на проверки Восприятия, направленные не на вас, пока заклинание длится.",higherLevels:null},
+  {name:"Внушение",nameEn:"Suggestion",level:2,school:"Очарование",castingTime:"1 действие",range:"30 футов",duration:"Концентрация, до 8 часов",components:"В, С, М (змеиный язык и мёд или сахар)",concentration:true,ritual:false,classes:["Бард","Колдун","Маг"],damage:null,saveType:"Мудрость",description:"Предлагаете разумному существу разумный с виду образ действия (не более пары предложений). Спасбросок Мудрости или цель выполняет указание, насколько может, до конца действия заклинания или выполнения задачи.",higherLevels:null},
+
+  {name:"Газообразная форма",nameEn:"Gaseous Form",level:3,school:"Преобразование",castingTime:"1 действие",range:"Касание",duration:"Концентрация, до 1 часа",components:"В, С, М (чернильный мешочек кальмара)",concentration:true,ritual:false,classes:["Колдун","Маг"],damage:null,saveType:"Телосложение",description:"Согласное существо превращается в туманное облако: скорость полёта 10 футов, может проходить через щели, сопротивление к немагическому урону, не может атаковать или взаимодействовать с предметами обычным образом.",higherLevels:null},
+  {name:"Магический круг",nameEn:"Magic Circle",level:3,school:"Ограждение",castingTime:"1 минута",range:"10 футов",duration:"1 час",components:"В, С, М (святая вода или железные опилки)",concentration:false,ritual:false,classes:["Колдун","Маг"],damage:null,saveType:"Харизма",description:"На полу появляется барьер против выбранного вами вида существ (нежить, исчадия, элементали, феи, небожители, аберрации). Они не могут пересечь барьер добровольно и атакуют сквозь него с помехой.",higherLevels:null},
+  {name:"Большая иллюзия",nameEn:"Major Image",level:3,school:"Иллюзия",castingTime:"1 действие",range:"120 футов",duration:"Концентрация, до 10 минут",components:"В, С, М (кусочек овечьей шерсти)",concentration:true,ritual:false,classes:["Бард","Колдун","Маг"],damage:null,saveType:null,description:"Создаёте образ предмета, существа или явления в кубе 20 футов, включая звук, запах и температуру. Иллюзия выглядит совершенно реалистично, пока вы не прекратите концентрацию или не отойдёте слишком далеко.",higherLevels:null},
+  {name:"Снятие проклятия",nameEn:"Remove Curse",level:3,school:"Ограждение",castingTime:"1 действие",range:"Касание",duration:"Мгновенная",components:"В, С",concentration:false,ritual:false,classes:["Клерик","Колдун","Паладин","Маг"],damage:null,saveType:null,description:"Снимает все проклятия с существа или предмета, которого вы касаетесь. Если проклятие наложено связанным с предметом артефактом — снимает только эффект, но не сам предмет.",higherLevels:null},
+  {name:"Языки",nameEn:"Tongues",level:3,school:"Прорицание",castingTime:"1 действие",range:"Касание",duration:"1 час",components:"В, М (немного сажи и щепотка глины, мела и серы)",concentration:false,ritual:false,classes:["Бард","Клерик","Колдун","Маг"],damage:null,saveType:null,description:"Касаетесь согласного существа. На время действия оно понимает любой устный язык и любое существо, понимающее язык, понимает его речь.",higherLevels:null},
+
+  {name:"Дверь измерений",nameEn:"Dimension Door",level:4,school:"Вызов",castingTime:"1 действие",range:"500 футов",duration:"Мгновенная",components:"В",concentration:false,ritual:false,classes:["Бард","Колдун","Маг","Чародей"],damage:null,saveType:null,description:"Телепортируетесь вместе с одним согласным существом (если рядом) в точку, которую видите или знаете, в пределах дистанции. Если место занято, оба получаете 4к6 урона силой и переноситесь в ближайшее свободное пространство.",higherLevels:null},
+  {name:"Иллюзорная местность",nameEn:"Hallucinatory Terrain",level:4,school:"Иллюзия",castingTime:"10 минут",range:"300 футов",duration:"24 часа",components:"В, С, М (камешек, кусочек растения и щепотка земли)",concentration:false,ritual:false,classes:["Бард","Колдун","Друид","Маг"],damage:null,saveType:null,description:"Делаете участок местности (куб до 150 футов) выглядящим как другой ландшафт: лес, болото, холм и т.п. Физические свойства не меняются — существа всё ещё спотыкаются о реальные камни под видимостью равнины.",higherLevels:null},
+
+  {name:"Связь с иным планом",nameEn:"Contact Other Plane",level:5,school:"Прорицание",castingTime:"1 минута",range:"На себя",duration:"1 минута",components:"В",concentration:false,ritual:true,classes:["Колдун","Маг"],damage:"6к6 психический (при провале спасбр.)",saveType:"Мудрость",description:"Мысленно связываетесь с непостижимой сущностью из другого плана. Если провалили спасбросок Мудрости — получаете 6к6 психического урона и впадаете в безумие на 1к10 минут. При успехе можно задать до 5 вопросов, на которые сущность отвечает однословно. Ритуал.",higherLevels:null},
+  {name:"Видение",nameEn:"Dream",level:5,school:"Иллюзия",castingTime:"1 минута",range:"Особая",duration:"8 часов",components:"В, С, М (горсть песка)",concentration:false,ritual:false,classes:["Бард","Колдун"],damage:null,saveType:"Харизма",description:"Входите в сновидение знакомого существа (даже на другом плане) и общаетесь с ним или показываете нужный образ. Можно превратить сон в ужасный кошмар: спасбросок Харизмы или цель получает 3к6 психического урона и не отдыхает за этот сон.",higherLevels:null},
+  {name:"Слежение",nameEn:"Scrying",level:5,school:"Прорицание",castingTime:"10 минут",range:"Особая",duration:"Концентрация, до 10 минут",components:"В, С, М (фокус на 1000 зм — хрустальный шар, зеркало или чаша со святой водой)",concentration:true,ritual:false,classes:["Бард","Клерик","Колдун","Друид","Маг"],damage:null,saveType:"Мудрость",description:"Видите и слышите выбранное существо где-либо на том же плане. Цель делает спасбросок Мудрости (с преимуществом, если враждебна вам, или модификатором за родство — знакомое лучше уязвимо). При успехе заклинание не действует.",higherLevels:null},
+
+  // ── ЗАКЛИНАНИЯ КЛЕРИКА ──
+  {name:"Хранение умирающего",nameEn:"Spare the Dying",level:0,school:"Некромантия",castingTime:"1 действие",range:"Касание",duration:"Мгновенная",components:"В, С",concentration:false,ritual:false,classes:["Клерик"],damage:null,saveType:null,description:"Касаетесь существа с 0 хитов. Оно становится стабильным и не должно бросать спасброски от смерти, пока не получит урон. Не восстанавливает хиты.",higherLevels:null},
+  {name:"Починка",nameEn:"Mending",level:0,school:"Преобразование",castingTime:"1 минута",range:"Касание",duration:"Мгновенная",components:"В, С, М (две магнитные иглы)",concentration:false,ritual:false,classes:["Бард","Клерик","Друид","Маг","Чародей"],damage:null,saveType:null,description:"Полностью устраняет одну трещину или разрыв в небольшом предмете (например, разорванной цепи, проколотом бурдюке или сломанном клинке без отсутствующих частей). Не действует на конструктов и нежить.",higherLevels:null},
+  {name:"Кара",nameEn:"Bane",level:1,school:"Очарование",castingTime:"1 действие",range:"30 футов",duration:"Концентрация, до 1 минуты",components:"В, С, М (капля крови)",concentration:true,ritual:false,classes:["Клерик"],damage:null,saveType:"Харизма",description:"До трёх существ делают спасбросок Харизмы. Провалившие в течение действия заклинания при бросках атаки или спасбросков должны вычитать 1к4 из результата.",higherLevels:"Каждый слот выше 1-го — ещё одна цель."},
+  {name:"Направляющий снаряд",nameEn:"Guiding Bolt",level:1,school:"Воплощение",castingTime:"1 действие",range:"120 футов",duration:"1 раунд",components:"В, С",concentration:false,ritual:false,classes:["Клерик"],damage:"4к6 излучение",saveType:null,description:"Вспышка света устремляется к цели (дальнобойная атака заклинанием). При попадании — 4к6 урона излучением, и следующая атака по этой цели до конца вашего следующего хода совершается с преимуществом.",higherLevels:"Урон +1к6 за каждый слот выше 1-го."},
+  {name:"Нанесение ран",nameEn:"Inflict Wounds",level:1,school:"Некромантия",castingTime:"1 действие",range:"Касание",duration:"Мгновенная",components:"В, С",concentration:false,ritual:false,classes:["Клерик"],damage:"3к10 некротический",saveType:null,description:"Тёмная энергия течёт через вашу руку (рукопашная атака заклинанием). При попадании — 3к10 урона некротикой.",higherLevels:"Урон +1к10 за каждый слот выше 1-го."},
+  {name:"Щит веры",nameEn:"Shield of Faith",level:1,school:"Ограждение",castingTime:"1 бонусное действие",range:"60 футов",duration:"Концентрация, до 10 минут",components:"В, С, М (маленький пергамент с молитвой)",concentration:true,ritual:false,classes:["Клерик","Паладин"],damage:null,saveType:null,description:"Мерцающее поле силы окружает согласное существо, давая ему +2 к КД на время действия.",higherLevels:null},
+  {name:"Святилище",nameEn:"Sanctuary",level:1,school:"Ограждение",castingTime:"1 бонусное действие",range:"30 футов",duration:"1 минута",components:"В, С, М (мелкая серебряная отметина в форме солнца)",concentration:false,ritual:false,classes:["Клерик"],damage:null,saveType:"Мудрость",description:"Защищаете существо. Любое существо, целящееся в защищённого атакой или вредным заклинанием, должно сначала сделать спасбросок Мудрости — при провале выбирает новую цель или теряет атаку/заклинание.",higherLevels:null},
+  {name:"Оживление мертвеца",nameEn:"Animate Dead",level:3,school:"Некромантия",castingTime:"1 минута",range:"10 футов",duration:"Особая",components:"В, С, М (драгоценный камень или сосуд ценой 50+ зм)",concentration:false,ritual:false,classes:["Клерик","Маг","Колдун"],damage:null,saveType:null,description:"Поднимаете кости или труп как зомби или скелета, подчинённого вам. Существо подчиняется простым командам и сражается на вашей стороне. Длится, пока вы не сотворите заклинание повторно (тогда контроль навсегда).",higherLevels:"Каждый слот выше 3-го — ещё два существа."},
+  {name:"Духовные хранители",nameEn:"Spirit Guardians",level:3,school:"Вызов",castingTime:"1 действие",range:"На себя (15-футовый радиус)",duration:"Концентрация, до 10 минут",components:"В, С, М (святой символ)",concentration:true,ritual:false,classes:["Клерик"],damage:"3к8 излучение/некротика",saveType:"Мудрость",description:"Вокруг вас появляются призрачные духи-хранители в радиусе 15 футов. Враждебные существа в области при входе делают спасбросок Мудрости: провал — 3к8 урона (излучение или некротика, по вашему выбору при накладывании), успех — половина. Ваша скорость снижается вдвое внутри области.",higherLevels:"Урон +1к8 за каждый слот выше 3-го."},
+  {name:"Защита от смерти",nameEn:"Death Ward",level:4,school:"Ограждение",castingTime:"1 действие",range:"Касание",duration:"8 часов",components:"В, С",concentration:false,ritual:false,classes:["Клерик","Паладин"],damage:null,saveType:null,description:"Согласное существо: первый раз, когда оно должно опуститься до 0 хитов (но не от прямого уничтожения), вместо этого остаётся с 1 хитом. Заклинание расходуется после срабатывания.",higherLevels:null},
+  {name:"Высшее восстановление",nameEn:"Greater Restoration",level:5,school:"Ограждение",castingTime:"1 действие",range:"Касание",duration:"Мгновенная",components:"В, С, М (алмазная пыль на 100 зм, расходуется)",concentration:false,ritual:false,classes:["Бард","Клерик","Друид"],damage:null,saveType:null,description:"Касаетесь существа и снимаете одно из: истощение (1 уровень), проклятие, иссушение характеристики, окаменение, или эффект, снижающий максимум хитов.",higherLevels:null},
+
+  // ── ЗАКЛИНАНИЯ ДРУИДА ──
+  {name:"Опутывание",nameEn:"Entangle",level:1,school:"Вызов",castingTime:"1 действие",range:"90 футов",duration:"Концентрация, до 1 минуты",components:"В, С",concentration:true,ritual:false,classes:["Друид"],damage:null,saveType:"Силы",description:"Трава и лозы вырастают в квадрате 20 футов. Существа в области делают спасбросок Силы при появлении заклинания или входе в область — провал даёт обездвиженность, пока существо в зоне.",higherLevels:null},
+  {name:"Чудоягоды",nameEn:"Goodberry",level:1,school:"Преобразование",castingTime:"1 действие",range:"Касание",duration:"Мгновенная",components:"В, С, М (веточка омелы)",concentration:false,ritual:false,classes:["Друид","Следопыт"],damage:null,saveType:null,description:"Создаёт 10 ягод, светящихся магией. Каждая ягода восстанавливает 1 хит при съедании и насыщает как полноценный приём пищи. Ягоды теряют силу через 24 часа.",higherLevels:null},
+  {name:"Шипастый рост",nameEn:"Spike Growth",level:2,school:"Преобразование",castingTime:"1 действие",range:"150 футов",duration:"Концентрация, до 10 минут",components:"В, С, М (шип растения)",concentration:true,ritual:false,classes:["Друид","Следопыт"],damage:"2к4 колющий за 5 футов движения",saveType:null,description:"Земля в радиусе 20 футов покрывается острыми шипами и колючками — становится труднопроходимой. Существо, движущееся через область, получает 2к4 урона за каждые 5 футов пройденного пути.",higherLevels:null},
+  {name:"Лунный луч",nameEn:"Moonbeam",level:2,school:"Вызов",castingTime:"1 действие",range:"120 футов",duration:"Концентрация, до 1 минуты",components:"В, С, М (осколок лунного камня в серебряной оправе)",concentration:true,ritual:false,classes:["Друид"],damage:"2к10 излучение",saveType:"Телосложение",description:"Столп бледного света освещает цилиндр радиусом 5 футов. Существа, входящие в область или начинающие там ход, делают спасбросок Телосложения: провал — 2к10 урона излучением, успех — половина. Оборотни в зверином облике автоматически проваливают.",higherLevels:"Урон +1к10 за каждый слот выше 2-го."},
+  {name:"Кора",nameEn:"Barkskin",level:2,school:"Преобразование",castingTime:"1 действие",range:"Касание",duration:"Концентрация, до 1 часа",components:"В, С, М (горсть коры)",concentration:true,ritual:false,classes:["Друид","Следопыт"],damage:null,saveType:null,description:"Согласное существо получает кожу, грубую как древесная кора. КД цели не может быть ниже 16, независимо от доспеха и Ловкости.",higherLevels:null},
+  {name:"Призыв зверей",nameEn:"Conjure Animals",level:3,school:"Вызов",castingTime:"1 действие",range:"60 футов",duration:"Концентрация, до 1 часа",components:"В, С",concentration:true,ritual:false,classes:["Друид","Следопыт"],damage:null,saveType:null,description:"Призываете духов в облике зверей: одно существо ПО 2, два ПО 1, четыре ПО ½ или восемь ПО ¼. Они появляются в свободных местах в пределах дистанции и сражаются на вашей стороне до конца действия или своей гибели.",higherLevels:"Слот выше 3-го удваивает количество существ за каждые два уровня."},
+  {name:"Рост растений",nameEn:"Plant Growth",level:3,school:"Преобразование",castingTime:"1 действие или 8 часов",range:"150 футов",duration:"Мгновенная",components:"В, С",concentration:false,ritual:false,classes:["Бард","Друид","Следопыт"],damage:null,saveType:null,description:"При накладывании действием растения в радиусе 100 футов становятся труднопроходимой местностью на 1 месяц. При накладывании 8 часов улучшает урожайность растений в области на сезон.",higherLevels:null},
+  {name:"Стена ветра",nameEn:"Wind Wall",level:3,school:"Воплощение",castingTime:"1 действие",range:"120 футов",duration:"Концентрация, до 1 минуты",components:"В, С, М (тонкая деревянная щепка)",concentration:true,ritual:false,classes:["Друид","Следопыт"],damage:"3к8 дробящий",saveType:"Силы",description:"Вертикальная стена сильного ветра встаёт в пределах дистанции. Пролетающие через неё мелкие существа и предметы отбрасываются назад; стрелы и подобные снаряды сбиваются с курса (преимущество на спасбросок Силы или 3к8 дробящего урона).",higherLevels:null},
+  {name:"Насекомая чума",nameEn:"Insect Plague",level:5,school:"Вызов",castingTime:"1 действие",range:"300 футов",duration:"Концентрация, до 10 минут",components:"В, С, М (кусочек навоза)",concentration:true,ritual:false,classes:["Клерик","Друид"],damage:"4к10 колющий",saveType:"Телосложение",description:"Сфера кружащихся насекомых радиусом 20 футов появляется в точке. Существа в области делают спасбросок Телосложения: провал — 4к10 колющего урона, успех — половина. Область считается густым туманом.",higherLevels:"Урон +1к10 за каждый слот выше 5-го."},
+  {name:"Слияние с природой",nameEn:"Commune with Nature",level:5,school:"Прорицание",castingTime:"1 минута",range:"На себя",duration:"Мгновенная",components:"В, С",concentration:false,ritual:true,classes:["Друид","Следопыт"],damage:null,saveType:null,description:"Сливаетесь с природой и получаете знания об окружающей местности в радиусе 3 миль: рельеф, водоёмы, обычные существа и растения, заметные постройки. Ритуал.",higherLevels:null},
+
+  // ── ЗАКЛИНАНИЯ БАРДА ──
+  {name:"Жестокая насмешка",nameEn:"Vicious Mockery",level:0,school:"Очарование",castingTime:"1 действие",range:"60 футов",duration:"Мгновенная",components:"В",concentration:false,ritual:false,classes:["Бард"],damage:"1к4 психический",saveType:"Мудрость",description:"Осыпаете цель оскорблениями, вплетёнными в скрытую магию. Спасбросок Мудрости или цель получает 1к4 урона психической энергией и совершает следующую атаку с помехой (стыд и неуверенность сбивают прицел).",higherLevels:"Урон +1к4 на 5, 11 и 17 уровне."},
+  {name:"Дисгармоничные шептания",nameEn:"Dissonant Whispers",level:1,school:"Очарование",castingTime:"1 действие",range:"60 футов",duration:"Мгновенная",components:"В",concentration:false,ritual:false,classes:["Бард"],damage:"3к6 психический",saveType:"Мудрость",description:"Шепчете душераздирающую фразу прямо в разум цели. Спасбросок Мудрости: провал — 3к6 психического урона и существо должно немедленно потратить реакцию, чтобы убежать от вас (если может).",higherLevels:"Урон +1к6 за каждый слот выше 1-го."},
+  {name:"Гомерический хохот Таши",nameEn:"Tasha's Hideous Laughter",level:1,school:"Очарование",castingTime:"1 действие",range:"30 футов",duration:"Концентрация, до 1 минуты",components:"В, С, М (перо чёрной птицы)",concentration:true,ritual:false,classes:["Бард","Колдун","Маг"],damage:null,saveType:"Мудрость",description:"Существо находит всё уморительно смешным. Спасбросок Мудрости или цель падает и становится недееспособной от хохота — не может встать. В конце своих ходов повторяет спасбросок.",higherLevels:null},
+  {name:"Зов животных",nameEn:"Animal Messenger",level:2,school:"Очарование",castingTime:"1 действие",range:"30 футов",duration:"24 часа",components:"В, С, М (зерно)",concentration:false,ritual:true,classes:["Бард","Друид"],damage:null,saveType:null,description:"Выбираете крохотного зверя в пределах дистанции (например, белку или ворона). Он доставляет короткое сообщение к месту, которое вы посетили или хорошо описали. Ритуал.",higherLevels:null},
+
+  // ── ЗАКЛИНАНИЯ СЛЕДОПЫТА ──
+  {name:"Опутывающий удар",nameEn:"Ensnaring Strike",level:1,school:"Вызов",castingTime:"1 бонусное действие",range:"На себя",duration:"Концентрация, до 1 минуты",components:"В",concentration:true,ritual:false,classes:["Следопыт"],damage:null,saveType:"Силы",description:"Следующая атака оружием в этот ход, если попадает, выпускает колючие лозы вокруг цели. Спасбросок Силы или цель обездвижена на время концентрации; в конце каждого своего хода повторяет спасбросок.",higherLevels:null},
+  {name:"Молниевая стрела",nameEn:"Lightning Arrow",level:3,school:"Преобразование",castingTime:"1 бонусное действие",range:"На себя",duration:"Концентрация, до 1 минуты",components:"В",concentration:true,ritual:false,classes:["Следопыт"],damage:"4к8 молния (заменяет урон оружия)",saveType:"Ловкость",description:"Заряжаете стрелы или болты молнией. Следующее попадание дальнобойным оружием заменяет обычный урон на 4к8 молнии цели и 1к8 всем остальным в 10 футах от неё (спасбросок Ловкости на половину урона для остальных).",higherLevels:"Урон по основной цели +1к8 за каждый слот выше 3-го."},
+  {name:"Быстрый колчан",nameEn:"Swift Quiver",level:5,school:"Преобразование",castingTime:"1 бонусное действие",range:"Касание",duration:"Концентрация, до 1 минуты",components:"В, С, М (колчан с минимум двумя стрелами)",concentration:true,ritual:false,classes:["Следопыт"],damage:null,saveType:null,description:"Заколдованный колчан бесконечно создаёт боеприпасы. Пока концентрируетесь, бонусным действием можно совершить две дополнительные атаки дальнобойным оружием.",higherLevels:null},
+
+  // ── ЗАКЛИНАНИЯ ПАЛАДИНА ──
+  {name:"Поиск скакуна",nameEn:"Find Steed",level:2,school:"Вызов",castingTime:"10 минут",range:"30 футов",duration:"Мгновенная",components:"В, С",concentration:false,ritual:false,classes:["Паладин"],damage:null,saveType:null,description:"Призываете духа в облике необычайно умного, преданного скакуна (лошадь, боевой пони, северный олень и др.). Скакун появляется в свободном пространстве и служит верховым животным.",higherLevels:null},
+  {name:"Аура жизненной силы",nameEn:"Aura of Vitality",level:3,school:"Воплощение",castingTime:"1 действие",range:"На себя (30-футовый радиус)",duration:"Концентрация, до 1 минуты",components:"В",concentration:true,ritual:false,classes:["Паладин"],damage:null,saveType:null,description:"Аура целительной энергии окружает вас. Бонусным действием можно исцелить существо в ауре на 2к6 хитов (можно использовать каждый ход до конца действия заклинания).",higherLevels:null},
+  {name:"Мантия крестоносца",nameEn:"Crusader's Mantle",level:3,school:"Воплощение",castingTime:"1 действие",range:"На себя (30-футовый радиус)",duration:"Концентрация, до 1 минуты",components:"В",concentration:true,ritual:false,classes:["Паладин"],damage:"+1к4 излучение",saveType:null,description:"Смелая аура окружает вас. Союзники в радиусе 30 футов (не вы) наносят дополнительно 1к4 урона излучением при попадании оружием.",higherLevels:null},
 ];
 
 const DB_WEAPONS = [
@@ -3734,6 +4009,37 @@ const DB_WEAPONS = [
   {name:"Длинный лук",nameEn:"Longbow",type:"weapon",itemType:"Оружие (воинское дальнобойное)",cost:"50 зм",weight:"2 фунта",damage:"1к8 колющий",damageVersatile:null,properties:["Боеприпасы (150/600)","Тяжёлое","Двуручное"],description:"Мощный лук высотой с человека. Требует обеих рук, но обладает огромной дальностью и убойной силой.",rarity:null},
   {name:"Арбалет ручной",nameEn:"Hand Crossbow",type:"weapon",itemType:"Оружие (воинское дальнобойное)",cost:"75 зм",weight:"3 фунта",damage:"1к6 колющий",damageVersatile:null,properties:["Боеприпасы (30/120)","Лёгкое","Перезарядка"],description:"Компактный одноручный арбалет, любимый плутами. Позволяет держать в другой руке второе оружие.",rarity:null},
   {name:"Копьё",nameEn:"Spear",type:"weapon",itemType:"Оружие (простое рукопашное)",cost:"1 зм",weight:"3 фунта",damage:"1к6 колющий",damageVersatile:"1к8 (двуручный)",properties:["Метательное (20/60)","Универсальное"],description:"Древковое оружие с наконечником. Можно метать или использовать в ближнем бою одной или двумя руками.",rarity:null},
+
+  // ── ОСТАЛЬНОЕ ПРОСТОЕ ОРУЖИЕ ──
+  {name:"Дубинка",nameEn:"Club",type:"weapon",itemType:"Оружие (простое рукопашное)",cost:"1 см",weight:"2 фунта",damage:"1к4 дробящий",damageVersatile:null,properties:["Лёгкое"],description:"Грубая деревянная палка. Самое дешёвое оружие в игре, но лучше многих подходит на крайний случай.",rarity:null},
+  {name:"Великая дубина",nameEn:"Greatclub",type:"weapon",itemType:"Оружие (простое рукопашное)",cost:"2 см",weight:"10 фунтов",damage:"1к8 дробящий",damageVersatile:null,properties:["Двуручное"],description:"Массивная деревянная колотушка, требующая обеих рук. Простая, но наносит солидный урон.",rarity:null},
+  {name:"Ручной топор",nameEn:"Handaxe",type:"weapon",itemType:"Оружие (простое рукопашное)",cost:"5 зм",weight:"2 фунта",damage:"1к6 рубящий",damageVersatile:null,properties:["Лёгкое","Метательное (20/60)"],description:"Небольшой топор, удобный для метания и ближнего боя. Хорош для двойного владения.",rarity:null},
+  {name:"Дротик",nameEn:"Javelin",type:"weapon",itemType:"Оружие (простое рукопашное)",cost:"5 см",weight:"2 фунта",damage:"1к6 колющий",damageVersatile:null,properties:["Метательное (30/120)"],description:"Лёгкое копьё, предназначенное для метания. Дёшево и эффективно на средней дистанции.",rarity:null},
+  {name:"Лёгкий молот",nameEn:"Light Hammer",type:"weapon",itemType:"Оружие (простое рукопашное)",cost:"2 зм",weight:"2 фунта",damage:"1к4 дробящий",damageVersatile:null,properties:["Лёгкое","Метательное (20/60)"],description:"Компактный молоток, который можно метать или использовать в ближнем бою.",rarity:null},
+  {name:"Булава",nameEn:"Mace",type:"weapon",itemType:"Оружие (простое рукопашное)",cost:"5 зм",weight:"4 фунта",damage:"1к6 дробящий",damageVersatile:null,properties:[],description:"Тяжёлая дробящая головка на рукояти. Излюбленное оружие клериков, которым запрещено бить лезвием.",rarity:null},
+  {name:"Лёгкий арбалет",nameEn:"Light Crossbow",type:"weapon",itemType:"Оружие (простое дальнобойное)",cost:"25 зм",weight:"5 фунтов",damage:"1к8 колющий",damageVersatile:null,properties:["Боеприпасы (80/320)","Двуручное","Перезарядка"],description:"Базовый арбалет для начинающих стрелков. Требует обеих рук и времени на перезарядку между выстрелами.",rarity:null},
+  {name:"Дротики метательные",nameEn:"Dart",type:"weapon",itemType:"Оружие (простое дальнобойное)",cost:"5 мм",weight:"0.25 фунта",damage:"1к4 колющий",damageVersatile:null,properties:["Метательное (20/60)","Фехтовальное"],description:"Маленькие метательные дротики. Дёшевы, легки, можно носить десятками.",rarity:null},
+  {name:"Короткий лук",nameEn:"Shortbow",type:"weapon",itemType:"Оружие (простое дальнобойное)",cost:"25 зм",weight:"2 фунта",damage:"1к6 колющий",damageVersatile:null,properties:["Боеприпасы (80/320)","Двуручное"],description:"Компактный лук, более доступный новичкам, чем длинный лук. Чуть меньше дальность и урон.",rarity:null},
+  {name:"Праща",nameEn:"Sling",type:"weapon",itemType:"Оружие (простое дальнобойное)",cost:"1 см",weight:"—",damage:"1к4 дробящий",damageVersatile:null,properties:["Боеприпасы (30/120)"],description:"Простейшее метательное оружие — ремень для разгона камня или свинцовой пули. Почти ничего не весит.",rarity:null},
+
+  // ── ВОИНСКОЕ ОРУЖИЕ ──
+  {name:"Кнут (цеп)",nameEn:"Flail",type:"weapon",itemType:"Оружие (воинское рукопашное)",cost:"10 зм",weight:"2 фунта",damage:"1к8 дробящий",damageVersatile:null,properties:[],description:"Цепь с шипастой головкой на рукояти. Сложен в освоении, но непредсказуем для защищающегося противника.",rarity:null},
+  {name:"Глефа",nameEn:"Glaive",type:"weapon",itemType:"Оружие (воинское рукопашное)",cost:"20 зм",weight:"6 фунтов",damage:"1к10 рубящий",damageVersatile:null,properties:["Тяжёлое","Досягаемость","Двуручное"],description:"Древковое оружие с длинным лезвием. Достаёт врагов с 10 футов — атакуй раньше, чем они подойдут.",rarity:null},
+  {name:"Секира",nameEn:"Greataxe",type:"weapon",itemType:"Оружие (воинское рукопашное)",cost:"30 зм",weight:"7 фунтов",damage:"1к12 рубящий",damageVersatile:null,properties:["Тяжёлое","Двуручное"],description:"Огромный двулезвийный топор — оружие варваров. Самый большой стандартный кубик урона среди оружия.",rarity:null},
+  {name:"Двуручный меч",nameEn:"Greatsword",type:"weapon",itemType:"Оружие (воинское рукопашное)",cost:"50 зм",weight:"6 фунтов",damage:"2к6 рубящий",damageVersatile:null,properties:["Тяжёлое","Двуручное"],description:"Массивный клинок, требующий обеих рук. Два кубика урона делают его одним из самых стабильных в плане урона.",rarity:null},
+  {name:"Алебарда",nameEn:"Halberd",type:"weapon",itemType:"Оружие (воинское рукопашное)",cost:"20 зм",weight:"6 фунтов",damage:"1к10 рубящий",damageVersatile:null,properties:["Тяжёлое","Досягаемость","Двуручное"],description:"Комбинация топора и копья на длинном древке. Хороша против конницы и для удержания дистанции.",rarity:null},
+  {name:"Кавалерийское копьё",nameEn:"Lance",type:"weapon",itemType:"Оружие (воинское рукопашное)",cost:"10 зм",weight:"6 фунтов",damage:"1к12 колющий",damageVersatile:null,properties:["Досягаемость","Особое"],description:"Длинное копьё для боя верхом. Требует одну руку при использовании на коне, но с помехой пешком и в ближнем бою.",rarity:null},
+  {name:"Молот (Кистень)",nameEn:"Maul",type:"weapon",itemType:"Оружие (воинское рукопашное)",cost:"10 зм",weight:"10 фунтов",damage:"2к6 дробящий",damageVersatile:null,properties:["Тяжёлое","Двуручное"],description:"Огромная дробящая кувалда. Наносит серьёзный урон, но требует обеих рук.",rarity:null},
+  {name:"Моргенштерн",nameEn:"Morningstar",type:"weapon",itemType:"Оружие (воинское рукопашное)",cost:"15 зм",weight:"4 фунта",damage:"1к8 колющий",damageVersatile:null,properties:[],description:"Шипастая булава, сочетающая дробящий и колющий урон. Надёжное универсальное оружие.",rarity:null},
+  {name:"Длинная пика",nameEn:"Pike",type:"weapon",itemType:"Оружие (воинское рукопашное)",cost:"5 зм",weight:"18 фунтов",damage:"1к10 колющий",damageVersatile:null,properties:["Тяжёлое","Досягаемость","Двуручное"],description:"Очень длинное древковое копьё. Громоздкое, но позволяет атаковать издалека, не подпуская врага.",rarity:null},
+  {name:"Скимитар",nameEn:"Scimitar",type:"weapon",itemType:"Оружие (воинское рукопашное)",cost:"25 зм",weight:"3 фунта",damage:"1к6 рубящий",damageVersatile:null,properties:["Лёгкое","Фехтовальное"],description:"Изогнутый клинок, лёгкий и быстрый. Излюбленное оружие следопытов и плутов, владеющих воинским оружием.",rarity:null},
+  {name:"Трезубец",nameEn:"Trident",type:"weapon",itemType:"Оружие (воинское рукопашное)",cost:"5 зм",weight:"4 фунта",damage:"1к6 колющий",damageVersatile:"1к8 (двуручный)",properties:["Метательное (20/60)","Универсальное"],description:"Древковое оружие с тремя зубцами. Можно метать или сражаться в ближнем бою одной или двумя руками.",rarity:null},
+  {name:"Боевая кирка",nameEn:"War Pick",type:"weapon",itemType:"Оружие (воинское рукопашное)",cost:"5 зм",weight:"2 фунта",damage:"1к8 колющий",damageVersatile:null,properties:[],description:"Кирка, переделанная в оружие. Хорошо пробивает доспехи за счёт узкого острия.",rarity:null},
+  {name:"Боевой молот",nameEn:"Warhammer",type:"weapon",itemType:"Оружие (воинское рукопашное)",cost:"15 зм",weight:"2 фунта",damage:"1к8 дробящий",damageVersatile:"1к10 (двуручный)",properties:["Универсальное"],description:"Тяжёлый дробящий молот на длинной рукояти. Может использоваться одной или двумя руками.",rarity:null},
+  {name:"Хлыст",nameEn:"Whip",type:"weapon",itemType:"Оружие (воинское рукопашное)",cost:"2 зм",weight:"3 фунта",damage:"1к4 рубящий",damageVersatile:null,properties:["Досягаемость","Фехтовальное"],description:"Гибкое плетёное оружие с неожиданной дальностью атаки — 10 футов, при этом весит очень мало.",rarity:null},
+  {name:"Сарбакан",nameEn:"Blowgun",type:"weapon",itemType:"Оружие (воинское дальнобойное)",cost:"10 зм",weight:"1 фунт",damage:"1 колющий",damageVersatile:null,properties:["Боеприпасы (25/100)","Перезарядка","Лёгкое"],description:"Узкая трубка для выдувания маленьких дротиков иглами. Слабый урон, но почти бесшумна.",rarity:null},
+  {name:"Тяжёлый арбалет",nameEn:"Heavy Crossbow",type:"weapon",itemType:"Оружие (воинское дальнобойное)",cost:"50 зм",weight:"18 фунтов",damage:"1к10 колющий",damageVersatile:null,properties:["Боеприпасы (100/400)","Тяжёлое","Двуручное","Перезарядка"],description:"Массивный арбалет с огромной дальностью и убойной силой. Тяжёлый и медленный в перезарядке.",rarity:null},
+  {name:"Сеть",nameEn:"Net",type:"weapon",itemType:"Оружие (воинское дальнобойное)",cost:"1 зм",weight:"3 фунта",damage:null,damageVersatile:null,properties:["Особое","Метательное (5/15)"],description:"Не наносит урона, но при попадании обездвиживает крупное или меньшее существо. Освобождение требует действия и проверки Силы СЛ 10.",rarity:null},
 ];
 
 const DB_ARMOR = [
@@ -3745,6 +4051,13 @@ const DB_ARMOR = [
   {name:"Кираса",nameEn:"Breastplate",type:"armor",itemType:"Средний доспех",cost:"400 зм",weight:"20 фунтов",ac:"14 + мод. Ловкости (макс +2)",stealthDisadvantage:false,minStrength:0,description:"Металлический нагрудник с кожаными ремнями. Хорошая защита без помехи на скрытность.",rarity:null},
   {name:"Полный доспех",nameEn:"Plate Armor",type:"armor",itemType:"Тяжёлый доспех",cost:"1500 зм",weight:"65 фунтов",ac:"18",stealthDisadvantage:true,minStrength:15,description:"Полный латный доспех из перекрывающихся металлических пластин. Лучшая защита в игре, но требует Силы 15.",rarity:null},
   {name:"Щит",nameEn:"Shield",type:"armor",itemType:"Щит",cost:"10 зм",weight:"6 фунтов",ac:"+2 к КД",stealthDisadvantage:false,minStrength:0,description:"Деревянный или металлический щит, удерживаемый одной рукой. Даёт бонус +2 к Классу Доспеха.",rarity:null},
+
+  // ── ОСТАЛЬНЫЕ ДОСПЕХИ ──
+  {name:"Шкуры",nameEn:"Hide Armor",type:"armor",itemType:"Средний доспех",cost:"10 зм",weight:"12 фунтов",ac:"12 + мод. Ловкости (макс +2)",stealthDisadvantage:false,minStrength:0,description:"Грубый доспех из шкур крупных зверей. Дешёвый и доступный, обычно используется варварами и друидами.",rarity:null},
+  {name:"Кольчужная рубаха",nameEn:"Chain Shirt",type:"armor",itemType:"Средний доспех",cost:"50 зм",weight:"20 фунтов",ac:"13 + мод. Ловкости (макс +2)",stealthDisadvantage:false,minStrength:0,description:"Облегчённая версия кольчуги, закрывающая только торс. Хороший баланс защиты и подвижности.",rarity:null},
+  {name:"Полулаты",nameEn:"Half Plate",type:"armor",itemType:"Средний доспех",cost:"750 зм",weight:"40 фунтов",ac:"15 + мод. Ловкости (макс +2)",stealthDisadvantage:true,minStrength:0,description:"Частичные латы, защищающие большую часть тела. Лучшая защита среди средних доспехов, но дорогая.",rarity:null},
+  {name:"Кольчужный доспех",nameEn:"Ring Mail",type:"armor",itemType:"Тяжёлый доспех",cost:"30 зм",weight:"40 фунтов",ac:"14",stealthDisadvantage:true,minStrength:0,description:"Кожаная основа, усиленная металлическими кольцами. Самый дешёвый тяжёлый доспех, но не самый эффективный.",rarity:null},
+  {name:"Наборный доспех",nameEn:"Splint Armor",type:"armor",itemType:"Тяжёлый доспех",cost:"200 зм",weight:"60 фунтов",ac:"17",stealthDisadvantage:true,minStrength:15,description:"Узкие металлические полосы, нашитые на кожаную основу. Почти не хуже полных лат, но дешевле.",rarity:null},
 ];
 
 const DB_MAGIC_ITEMS = [
@@ -3760,6 +4073,19 @@ const DB_MAGIC_ITEMS = [
   {name:"Плащ защиты",nameEn:"Cloak of Protection",type:"magic",itemType:"Чудесный предмет",cost:"—",weight:"1 фунт",attunement:true,rarity:"Необычный",description:"Вы получаете бонус +1 к КД и спасброскам, пока носите этот плащ."},
   {name:"Перчатки огра",nameEn:"Gauntlets of Ogre Power",type:"magic",itemType:"Чудесный предмет",cost:"—",weight:"1 фунт",attunement:true,rarity:"Необычный",description:"Надев перчатки, вы устанавливаете значение Силы на 19, если оно ниже."},
   {name:"Шляпа маскировки",nameEn:"Hat of Disguise",type:"magic",itemType:"Чудесный предмет",cost:"—",weight:"—",attunement:true,rarity:"Необычный",description:"Надев шляпу, вы можете накладывать заклинание Изменение облика по желанию. Заклинание заканчивается, если шляпу снять."},
+
+  // ── ДОПОЛНИТЕЛЬНЫЕ МАГИЧЕСКИЕ ПРЕДМЕТЫ ──
+  {name:"Сумка хранения",nameEn:"Bag of Holding",type:"magic",itemType:"Чудесный предмет",cost:"—",weight:"15 фунтов (всегда)",attunement:false,rarity:"Необычный",description:"Открывает измерение внутреннего пространства: вмещает до 500 фунтов веса (объёмом до 64 кубических футов), но всегда весит 15 фунтов снаружи. Существо внутри задыхается через 10 минут."},
+  {name:"Свиток заклинания",nameEn:"Spell Scroll",type:"magic",itemType:"Свиток",cost:"варьируется",weight:"—",attunement:false,rarity:"Зависит от уровня заклинания",description:"Содержит одно заклинание, записанное в виде рунической формулы. Прочитав свиток, можно наложить записанное заклинание без подготовки и без траты ячейки, если уровень заклинания доступен вашему классу."},
+  {name:"Зелье невидимости",nameEn:"Potion of Invisibility",type:"magic",itemType:"Зелье",cost:"—",weight:"0.5 фунта",attunement:false,rarity:"Очень редкий",description:"Выпив это зелье, вы становитесь невидимым на 1 час. Всё, что вы несёте, тоже невидимо. Эффект заканчивается раньше, если вы атакуете или накладываете заклинание."},
+  {name:"Жезл волшебных снарядов",nameEn:"Wand of Magic Missiles",type:"magic",itemType:"Жезл",cost:"—",weight:"1 фунт",attunement:false,rarity:"Необычный",description:"Жезл с 7 зарядами. Действием можно потратить 1–3 заряда, чтобы наложить заклинание Волшебная стрела (1 заряд = базовый уровень, +1 заряд за каждый уровень выше). Восстанавливает 1к6+1 заряд ежедневно на рассвете."},
+  {name:"Браслеты защиты",nameEn:"Bracers of Defense",type:"magic",itemType:"Чудесный предмет",cost:"—",weight:"—",attunement:true,rarity:"Редкий",description:"Пока ничем не защищены руки и торс (без доспеха и щита), вы получаете +2 к КД и +2 к спасброскам Ловкости от заклинаний и эффектов, требующих такого спасброска."},
+  {name:"Сапоги быстрого шага и прыжка",nameEn:"Boots of Striding and Springing",type:"magic",itemType:"Чудесный предмет",cost:"—",weight:"1 фунт",attunement:true,rarity:"Необычный",description:"Ваша базовая скорость становится 30 футов, если она была ниже. Дальность прыжков (в высоту и длину) утраивается, при этом не тратится больше движения, чем обычно."},
+  {name:"Оружие +1",nameEn:"+1 Weapon",type:"magic",itemType:"Оружие",cost:"—",weight:"как базовое оружие",attunement:false,rarity:"Редкий",description:"Магическое оружие даёт бонус +1 к броскам атаки и урона. Один из самых распространённых и универсально полезных типов магических предметов."},
+  {name:"Доспех +1",nameEn:"+1 Armor",type:"magic",itemType:"Доспех",cost:"—",weight:"как базовый доспех",attunement:false,rarity:"Редкий",description:"Магический доспех даёт дополнительный бонус +1 к Классу Доспеха сверху обычного значения этого типа доспеха."},
+  {name:"Перстень регенерации",nameEn:"Ring of Regeneration",type:"magic",itemType:"Кольцо",cost:"—",weight:"—",attunement:true,rarity:"Очень редкий",description:"Восстанавливаете 1к6 хитов каждые 10 минут, если у вас осталось хотя бы 1 хит. Если конечность была отсечена, она регенерирует за 1 минуту, если кольцо надето всё это время."},
+  {name:"Зелье силы великана",nameEn:"Potion of Giant Strength",type:"magic",itemType:"Зелье",cost:"—",weight:"0.5 фунта",attunement:false,rarity:"Зависит от типа",description:"Выпив зелье, ваша Сила устанавливается на фиксированное значение (от 21 до 29, зависит от типа великана) на 1 час, если оно выше вашего текущего."},
+  {name:"Перла силы",nameEn:"Pearl of Power",type:"magic",itemType:"Чудесный предмет",cost:"—",weight:"—",attunement:true,rarity:"Необычный",description:"Действием можно восстановить одну потраченную ячейку заклинания не выше 3-го уровня. После использования предмет нельзя применять снова до следующего рассвета."},
 ];
 
 const DB_GEAR = [
@@ -3770,6 +4096,30 @@ const DB_GEAR = [
   {name:"Мешок",nameEn:"Backpack",type:"gear",itemType:"Снаряжение",cost:"2 зм",weight:"5 фунтов",description:"Вмещает предметы общим весом до 30 фунтов или объёмом до 1 кубического фута."},
   {name:"Набор учёного",nameEn:"Scholar's Pack",type:"gear",itemType:"Набор",cost:"40 зм",weight:"10 фунтов",description:"Включает: рюкзак, книгу знаний, чернила, перо, 10 листов пергамента, мешочек с песком, маленький нож."},
   {name:"Набор исследователя",nameEn:"Explorer's Pack",type:"gear",itemType:"Набор",cost:"10 зм",weight:"59 фунтов",description:"Включает: рюкзак, спальник, 2 дня рационов, фляга воды, 50 футов верёвки, 10 факелов, кресало, 10 дней рационов."},
+
+  // ── ДОПОЛНИТЕЛЬНОЕ СНАРЯЖЕНИЕ ──
+  {name:"Кресало",nameEn:"Tinderbox",type:"gear",itemType:"Снаряжение",cost:"5 см",weight:"1 фунт",description:"Трутница с кремнем, огнивом и труто́м. Действием можно зажечь огонь — факел, костёр, свечу."},
+  {name:"Бурдюк для воды",nameEn:"Waterskin",type:"gear",itemType:"Снаряжение",cost:"2 см",weight:"5 фунтов (полный)",description:"Кожаный мешок, вмещающий 4 пинты жидкости. Незаменим в путешествиях по безводной местности."},
+  {name:"Рацион питания",nameEn:"Rations (1 day)",type:"gear",itemType:"Снаряжение",cost:"5 см",weight:"2 фунта",description:"Сухой паёк на один день: сушёное мясо, фрукты, хлеб, орехи. Не портится без специального хранения."},
+  {name:"Спальник",nameEn:"Bedroll",type:"gear",itemType:"Снаряжение",cost:"1 зм",weight:"7 фунтов",description:"Скатка из одеяла и подкладки для ночёвки. Делает короткий и долгий отдых на земле комфортнее."},
+  {name:"Святая вода",nameEn:"Holy Water",type:"gear",itemType:"Снаряжение",cost:"25 зм",weight:"1 фунт",description:"Флакон освящённой воды. При попадании по нежити или исчадию наносит 2к6 урона излучением (как брошенный предмет, дальнобойная атака 20/60 футов)."},
+  {name:"Мешочек с компонентами",nameEn:"Component Pouch",type:"gear",itemType:"Снаряжение",cost:"25 зм",weight:"2 фунта",description:"Маленькая непромокаемая сумка с отделениями для всех некостюмных материальных компонентов заклинаний. Заменяет необходимость носить каждый компонент по отдельности."},
+  {name:"Крюк-кошка",nameEn:"Grappling Hook",type:"gear",itemType:"Снаряжение",cost:"2 зм",weight:"4 фунта",description:"Металлический крюк на цепи, бросается, чтобы зацепиться за выступ или край. Используется с верёвкой для подъёма."},
+  {name:"Альпинистское снаряжение",nameEn:"Climber's Kit",type:"gear",itemType:"Снаряжение",cost:"25 зм",weight:"12 фунтов",description:"Крюки, ремни и зажимы для лазания. Используя его, при проверках на удержание/лазание можно дать преимущество себе."},
+  {name:"Лом",nameEn:"Crowbar",type:"gear",itemType:"Снаряжение",cost:"2 зм",weight:"5 фунтов",description:"Стальной рычаг для взлома дверей и ящиков. Даёт преимущество на проверки Силы, где помогает рычаг."},
+  {name:"Кандалы",nameEn:"Manacles",type:"gear",itemType:"Снаряжение",cost:"2 зм",weight:"6 фунтов",description:"Металлические наручники для пленения. ПО существа должна быть 11 или ниже для надёжной фиксации; побег требует проверки Ловкости СЛ 20 или взлома замка (Ловкость рук СЛ 15)."},
+  {name:"Колючки (шарики)",nameEn:"Caltrops",type:"gear",itemType:"Снаряжение",cost:"1 зм",weight:"2 фунта",description:"Мешочек острых металлических шипов. Рассыпанные на площади 5×5 футов, превращают её в опасную зону: проверка Ловкости СЛ 15 или 1 урон колющим и скорость падает до 0 на этот ход."},
+  {name:"Алхимический огонь",nameEn:"Alchemist's Fire",type:"gear",itemType:"Снаряжение",cost:"50 зм",weight:"1 фунт",damage:"1к4 огонь (продолжается)",description:"Липкая горящая жидкость во флаконе. Бросается как оружие (дальнобойная атака 20/60): при попадании — 1к4 урона огнём, который продолжается каждый ход, пока существо действием не потушит огонь."},
+  {name:"Капкан",nameEn:"Hunting Trap",type:"gear",itemType:"Снаряжение",cost:"5 зм",weight:"25 фунтов",damage:"1к4 колющий",description:"Зубчатый железный капкан. Существо, наступившее на него, делает спасбросок Ловкости или получает 1к4 урона и оказывается обездвижено, пока не освободится (проверка Силы СЛ 13)."},
+  {name:"Фонарь (бычий глаз)",nameEn:"Bullseye Lantern",type:"gear",itemType:"Снаряжение",cost:"10 зм",weight:"2 фунта",description:"Масляный фонарь с узким конусом яркого света 60 футов (и тусклым ещё на 60). Горит 6 часов на одной фляге масла."},
+  {name:"Стальное зеркало",nameEn:"Steel Mirror",type:"gear",itemType:"Снаряжение",cost:"5 зм",weight:"0.5 фунта",description:"Полированная стальная пластина. Полезно для осмотра вокруг углов или проверки взгляда медузы без прямого зрительного контакта."},
+  {name:"Палатка",nameEn:"Tent (two-person)",type:"gear",itemType:"Снаряжение",cost:"2 зм",weight:"20 фунтов",description:"Грубая холщовая палатка на двоих. Защищает от непогоды во время долгого отдыха."},
+  {name:"Книга заклинаний",nameEn:"Spellbook",type:"gear",itemType:"Снаряжение",cost:"50 зм",weight:"3 фунта",description:"Пустая книга для записи заклинаний Мага. Необходима для подготовки и накладывания заклинаний из книги заклинаний."},
+  {name:"Колчан",nameEn:"Quiver",type:"gear",itemType:"Снаряжение",cost:"1 зм",weight:"1 фунт",description:"Вмещает до 20 стрел или болтов. Стандартный аксессуар для любого стрелка."},
+  {name:"Подзорная труба",nameEn:"Spyglass",type:"gear",itemType:"Снаряжение",cost:"1000 зм",weight:"1 фунт",description:"Приближает удалённые объекты вдвое. Дорогой, но крайне полезный инструмент разведчика."},
+  {name:"Сигнальный свисток",nameEn:"Signal Whistle",type:"gear",itemType:"Снаряжение",cost:"5 мм",weight:"—",description:"Маленький свисток для подачи сигналов на расстоянии. Звук слышен значительно дальше, чем крик."},
+  {name:"Масло (фляга)",nameEn:"Oil Flask",type:"gear",itemType:"Снаряжение",cost:"1 см",weight:"1 фунт",damage:"5 огонь",description:"Фляга горючего масла. Можно использовать для заправки ламп или, разлив и зажжённое, нанести 5 урона огнём существам в области 5×5 футов."},
+  {name:"Антитоксин",nameEn:"Antitoxin",type:"gear",itemType:"Снаряжение",cost:"50 зм",weight:"—",description:"Один флакон даёт преимущество на спасброски Телосложения против ядов в течение 1 часа после выпития."},
 ];
 
 // Combine all databases
