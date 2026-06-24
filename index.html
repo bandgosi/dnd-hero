@@ -1627,7 +1627,7 @@
               <span style="font-size:20px">🎲</span>
               <div style="flex:1">
                 <div style="font-family:Cinzel,serif;font-size:11px;color:var(--gold);letter-spacing:1px">КОСТИ ХИТОВ</div>
-                <div id="hit-dice-display" style="font-family:Cinzel,serif;font-size:18px;color:var(--parchment)">1/1 (к8)</div>
+                <div id="hit-dice-display" style="font-family:Cinzel,serif;font-size:18px;color:var(--ink)">1/1 (к8)</div>
               </div>
               <button onclick="spendHitDie()" style="padding:8px 12px;background:rgba(30,140,30,0.3);border:1px solid #308030;border-radius:8px;color:#80c080;font-family:Cinzel,serif;font-size:12px;cursor:pointer;letter-spacing:0.5px">Потратить</button>
             </div>
@@ -3281,10 +3281,10 @@ function renderClassGuide() {
         const spells = classSpells.filter(sp => sp.level === l).map(sp => sp.name);
         if (!spells.length) continue;
         var spellBtns = spells.map(function(s) {
-          return '<button onclick="quickSearchFromGuide(this)" data-spell="' + s + '" style="padding:5px 10px;background:rgba(100,70,200,0.2);border:1px solid rgba(100,70,200,0.4);border-radius:12px;color:#c0a0ff;font-size:12px;cursor:pointer;font-family:Crimson Text,serif">' + s + '</button>';
+          return '<button onclick="quickSearchFromGuide(this)" data-spell="' + s + '" style="padding:5px 10px;background:rgba(100,70,200,0.18);border:1px solid rgba(100,70,200,0.5);border-radius:12px;color:#3a1f70;font-size:12px;cursor:pointer;font-family:Crimson Text,serif">' + s + '</button>';
         }).join('');
         spellsHTML += '<div style="margin-bottom:10px">'
-          + '<div style="font-family:Cinzel,serif;font-size:11px;color:#8060c0;letter-spacing:1px;margin-bottom:6px">' + (l===0?'ЗАГОВОРЫ':l+' УРОВЕНЬ') + '</div>'
+          + '<div style="font-family:Cinzel,serif;font-size:11px;color:#5a2da0;letter-spacing:1px;margin-bottom:6px">' + (l===0?'ЗАГОВОРЫ':l+' УРОВЕНЬ') + '</div>'
           + '<div style="display:flex;flex-wrap:wrap;gap:6px">' + spellBtns + '</div>'
           + '</div>';
       }
