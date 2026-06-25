@@ -193,7 +193,7 @@
   .meta-label { font-size: 10px; color: var(--ink-light); letter-spacing: 1px; text-transform: uppercase; }
   .meta-select, .meta-input {
     font-family: 'Crimson Text', serif;
-    font-size: 14px;
+    font-size: 16px;
     color: var(--ink);
     background: transparent;
     border: none;
@@ -557,7 +557,7 @@
   .add-input {
     flex: 1;
     font-family: 'Crimson Text', serif;
-    font-size: 15px;
+    font-size: 16px;
     padding: 8px 12px;
     background: rgba(240,220,180,0.3);
     border: 1px solid var(--parchment-dark);
@@ -2581,22 +2581,44 @@ function addSpell() {
   // Handled by AI search
 }
 
+function findSpellDetails(spellObj) {
+  // Use stored full detail if present, otherwise look it up in the local DB by name
+  if (spellObj.description) return spellObj;
+  const found = DB_SPELLS.find(sp => sp.name.toLowerCase() === (spellObj.name||'').toLowerCase());
+  return found || spellObj;
+}
+
 function renderSpellList() {
   const list = document.getElementById('spell-list');
   if(!state.spells.length) { list.innerHTML='<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:20px">Заклинания не добавлены</div>'; return; }
   const sorted = [...state.spells].sort((a,b)=>a.level-b.level);
-  list.innerHTML = sorted.map((sp,i)=>`
-    <div class="spell-card">
+  window._mySpellCache = sorted;
+
+  list.innerHTML = sorted.map((sp,i)=>{
+    const d = findSpellDetails(sp);
+    const conc = d.concentration ? '🎯 ' : '';
+    const ritual = d.ritual ? '📿 ' : '';
+    const higher = d.higherLevels ? `<br><br><em>На высоких уровнях:</em> ${esc(d.higherLevels)}` : '';
+    const metaParts = [esc(d.school||sp.school||'')];
+    if (d.castingTime || sp.cast) metaParts.push(esc(d.castingTime||sp.cast));
+    if (d.range) metaParts.push(esc(d.range));
+    const hasDetails = !!d.description;
+    return `
+    <div class="spell-browser-card" id="myspell-${i}" onclick="${hasDetails ? `toggleMySpellCard(${i})` : ''}" style="${hasDetails ? 'cursor:pointer' : ''}">
       <div class="spell-level-badge">${sp.level===0?'З':sp.level}</div>
-      <div class="spell-info">
-        <div class="spell-name">${esc(sp.name)}</div>
-        <div class="spell-meta">${esc(sp.cast)}</div>
+      <div class="spell-browser-info">
+        <div class="spell-browser-name">${esc(sp.name)}</div>
+        <div class="spell-browser-meta">${conc}${ritual}${metaParts.join(' · ')}</div>
+        ${hasDetails ? `<div class="spell-browser-desc">${esc(d.description)}${higher}</div>` : ''}
       </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        <div class="spell-school-tag">${esc(sp.school)}</div>
-        <button onclick="removeSpell(${state.spells.indexOf(sp)})" style="background:none;border:none;color:#a05050;font-size:16px;cursor:pointer;padding:2px">✕</button>
-      </div>
-    </div>`).join('');
+      <button onclick="event.stopPropagation();removeSpell(${state.spells.indexOf(sp)})" style="background:none;border:none;color:#a05050;font-size:16px;cursor:pointer;padding:2px;flex-shrink:0">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function toggleMySpellCard(i) {
+  const card = document.getElementById('myspell-'+i);
+  if (card) card.classList.toggle('expanded');
 }
 
 function removeSpell(i) { state.spells.splice(i,1); renderSpellList(); saveAll(); }
@@ -4595,7 +4617,12 @@ function toggleAiKCard(i) {
 function addKnowledgeSpell(i) {
   var sp = _knowledgeCache[i];
   if (!sp) return;
-  state.spells.push({ name: sp.name, level: sp.level||0, school: sp.school||'', cast: sp.castingTime||'1 действие' });
+  state.spells.push({
+    name: sp.name, level: sp.level||0, school: sp.school||'', cast: sp.castingTime||'1 действие',
+    castingTime: sp.castingTime, range: sp.range, duration: sp.duration, components: sp.components,
+    concentration: sp.concentration, ritual: sp.ritual, damage: sp.damage, saveType: sp.saveType,
+    description: sp.description, higherLevels: sp.higherLevels
+  });
   renderSpellList();
   saveAll();
   showToast('✨ ' + sp.name + ' добавлено!');
