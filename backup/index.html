@@ -16,35 +16,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
 <link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120.png">
 <style>
-  /* Локальные шрифты — приложение полностью офлайн, без запросов к Google Fonts */
-  @font-face {
-    font-family: 'Cinzel';
-    font-style: normal;
-    font-weight: 400 700;
-    font-display: swap;
-    src: url('fonts/cinzel-latin.woff2') format('woff2');
-  }
-  @font-face {
-    font-family: 'Crimson Text';
-    font-style: normal;
-    font-weight: 400;
-    font-display: swap;
-    src: url('fonts/crimson-text-latin.woff2') format('woff2');
-  }
-  @font-face {
-    font-family: 'Crimson Text';
-    font-style: normal;
-    font-weight: 600;
-    font-display: swap;
-    src: url('fonts/crimson-text-600-latin.woff2') format('woff2');
-  }
-  @font-face {
-    font-family: 'Crimson Text';
-    font-style: italic;
-    font-weight: 400;
-    font-display: swap;
-    src: url('fonts/crimson-text-italic-latin.woff2') format('woff2');
-  }
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
 
   :root {
     --parchment: #f5ead6;
@@ -90,18 +62,6 @@
     height: 100dvh;
   }
 
-  /* На планшете/десктопе не растягиваемся на всю ширину — лист по центру */
-  @media (min-width: 700px) {
-    body { background: radial-gradient(ellipse at 50% 0%, #2a1a06 0%, #1a0f00 55%, #120a00 100%); }
-    .app {
-      max-width: 640px;
-      margin: 0 auto;
-      border-left: 1px solid rgba(201,150,42,0.35);
-      border-right: 1px solid rgba(201,150,42,0.35);
-      box-shadow: 0 0 80px rgba(0,0,0,0.7);
-    }
-  }
-
   .screen { display: none; flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .screen.active { display: flex; flex-direction: column; min-height: 0; }
 
@@ -129,7 +89,7 @@
     border: none;
     color: #c8a878;
     font-family: 'Cinzel', serif;
-    font-size: 10px;
+    font-size: 9px;
     letter-spacing: 0.5px;
     cursor: pointer;
     transition: color 0.2s;
@@ -401,39 +361,6 @@
     font-weight: 600;
   }
 
-  /* ---- БЛОКИ «ХАРАКТЕРИСТИКА → СПАСБРОСОК + НАВЫКИ» ---- */
-  .abl-block { margin-bottom: 16px; scroll-margin-top: 10px; }
-  .abl-block-title {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    font-family: 'Cinzel', serif;
-    font-size: 13px;
-    color: var(--crimson);
-    letter-spacing: 1.5px;
-    border-bottom: 2px solid rgba(139,26,26,0.35);
-    padding-bottom: 4px;
-    margin-bottom: 2px;
-  }
-  .abl-block-mod { color: var(--ink-light); font-size: 12px; letter-spacing: 0.5px; }
-  .abl-block-score { color: var(--ink-light); font-size: 12px; }
-  .skill-row.save-row { background: rgba(200,150,42,0.08); border-radius: 6px; padding-left: 4px; padding-right: 4px; }
-  .skill-row.save-row .skill-name { font-style: italic; }
-
-  /* Кликабельные (бросаемые) значения должны выглядеть кликабельными */
-  .skill-row[onclick] { cursor: pointer; border-radius: 6px; transition: background 0.15s; }
-  .skill-row[onclick]:active { background: rgba(200,150,42,0.18); }
-  @media (hover: hover) { .skill-row[onclick]:hover { background: rgba(200,150,42,0.10); } }
-  .skill-row[onclick] .skill-bonus {
-    border: 1px dashed rgba(139,26,26,0.5);
-    border-radius: 8px;
-    padding: 2px 9px;
-    text-align: center;
-  }
-  .roll-val { cursor: pointer; border-bottom: 1px dashed rgba(240,192,64,0.55); transition: color 0.15s, text-shadow 0.15s; }
-  .roll-val:active { color: var(--gold-light); text-shadow: 0 0 12px rgba(240,192,64,0.8); }
-  .ability-mod.roll-val { display: inline-block; border-bottom-color: rgba(139,26,26,0.45); }
-
   /* ---- DICE ROLLER ---- */
   .dice-grid {
     display: grid;
@@ -454,30 +381,8 @@
 
   .dice-btn:active { transform: scale(0.92); border-color: var(--gold-light); }
 
-  .dice-icon { font-size: 28px; display: block; height: 30px; }
-  .dice-icon svg { width: 30px; height: 30px; display: block; margin: 0 auto; fill: none; stroke: var(--gold-light); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
-  .dice-icon svg .die-inner { stroke-width: 1; opacity: 0.55; }
-  .dice-icon svg text { fill: var(--gold-light); stroke: none; font-family: 'Cinzel', serif; font-weight: 700; }
+  .dice-icon { font-size: 28px; display: block; }
   .dice-label { font-family: 'Cinzel', serif; font-size: 11px; color: var(--gold); margin-top: 2px; letter-spacing: 1px; }
-
-  .advdis-btn {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 12px;
-    border-radius: 10px;
-    font-family: 'Cinzel', serif;
-    font-size: 12px;
-    cursor: pointer;
-    letter-spacing: 0.5px;
-    transition: all 0.15s;
-  }
-  .advdis-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
-  .advdis-btn:active { transform: scale(0.96); }
-  .advdis-adv { background: rgba(30,100,30,0.3); border: 1px solid #308030; color: #8fd08f; }
-  .advdis-dis { background: rgba(100,30,30,0.3); border: 1px solid #803030; color: #d09090; }
 
   .dice-result-area {
     background: linear-gradient(135deg, var(--stone), #1a1208);
@@ -510,24 +415,6 @@
     40% { transform: rotate(10deg) scale(0.9); }
     60% { transform: rotate(-5deg) scale(1.1); }
     80% { transform: rotate(5deg) scale(1.05); }
-  }
-
-  /* Натуральные 20 и 1 */
-  .dice-result-number.crit-flash { color: #ffe27a; animation: critPop 0.9s ease; }
-  .dice-result-number.fail-flash { color: #e05050; animation: failShake 0.7s ease; }
-  .dice-result-area.crit-area { border-color: var(--gold-light); box-shadow: 0 0 34px rgba(240,192,64,0.55), inset 0 0 24px rgba(240,192,64,0.15); }
-  .dice-result-area.fail-area { border-color: #a03030; box-shadow: 0 0 30px rgba(200,40,40,0.5), inset 0 0 24px rgba(200,40,40,0.12); }
-
-  @keyframes critPop {
-    0% { transform: scale(1); text-shadow: 0 0 30px rgba(240,192,64,0.6); }
-    30% { transform: scale(1.45); text-shadow: 0 0 60px rgba(255,226,122,1), 0 0 100px rgba(240,192,64,0.8); }
-    60% { transform: scale(1.15); }
-    100% { transform: scale(1); }
-  }
-  @keyframes failShake {
-    0%,100% { transform: translateX(0); }
-    15%,45%,75% { transform: translateX(-7px); }
-    30%,60%,90% { transform: translateX(7px); }
   }
 
   .dice-result-label { font-family: 'Cinzel', serif; font-size: 13px; color: var(--gold); letter-spacing: 2px; margin-top: 6px; }
@@ -585,33 +472,8 @@
     transition: all 0.2s;
   }
 
-  /* ---- РЕСУРСЫ КЛАССА ---- */
-  .resource-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(180,140,80,0.2); }
-  .resource-name { font-family: 'Cinzel', serif; font-size: 13px; color: var(--ink); }
-  .resource-meta { font-size: 11px; color: var(--ink-light); font-style: italic; }
-  .resource-row .slot-dots { justify-content: flex-end; max-width: 45%; }
-  .res-dot { border-color: rgba(139,26,26,0.5); }
-  .res-dot.available { background: var(--crimson-light); box-shadow: 0 0 6px rgba(192,57,43,0.45); border-color: var(--crimson); }
-  .res-dot.used { background: transparent; }
-
   .slot-dot.used { background: transparent; border-color: #3a2060; }
   .slot-dot.available { background: #8060e0; box-shadow: 0 0 8px rgba(128,96,224,0.6); }
-  /* Дополнительные ячейки (предметы/черты) — золотые */
-  .slot-dot.bonus { border-color: var(--gold); }
-  .slot-dot.bonus.available { background: var(--gold-light); box-shadow: 0 0 8px rgba(240,192,64,0.6); }
-  .slot-dot.bonus.used { background: transparent; border-color: rgba(201,150,42,0.45); }
-
-  .add-slot-card {
-    background: transparent !important;
-    border: 1px dashed rgba(100,70,200,0.5) !important;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-  .add-slot-card .slot-level { color: #8878b0; }
-  .add-slot-card:active { border-color: #8060e0 !important; background: rgba(96,64,192,0.08) !important; }
 
   .spell-list { display: flex; flex-direction: column; gap: 8px; }
 
@@ -682,7 +544,7 @@
   }
 
   .inv-icon { font-size: 20px; width: 32px; text-align: center; }
-  .inv-name { flex: 1; font-size: 15px; color: var(--ink); cursor: pointer; text-decoration: underline dotted rgba(90,58,26,0.35); text-underline-offset: 3px; }
+  .inv-name { flex: 1; font-size: 15px; color: var(--ink); }
   .inv-qty { font-family: 'Cinzel', serif; font-size: 14px; color: var(--crimson); min-width: 24px; text-align: right; }
   .inv-delete { background: none; border: none; color: #c05050; font-size: 18px; padding: 4px 8px; cursor: pointer; opacity: 0.6; }
 
@@ -846,9 +708,8 @@
   .inspiration-bar.active { background: rgba(200,150,42,0.3); }
   .insp-star { font-size: 28px; transition: transform 0.3s; }
   .inspiration-bar.active .insp-star { transform: scale(1.3); }
-  .insp-text { font-family: 'Cinzel', serif; font-size: 14px; color: #8a6410; letter-spacing: 1px; }
-  .insp-status { font-size: 12px; color: #7a5c2e; font-style: italic; }
-  .inspiration-bar.active .insp-text { color: var(--crimson); }
+  .insp-text { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold); letter-spacing: 1px; }
+  .insp-status { font-size: 12px; color: #a08040; font-style: italic; }
 
   /* ---- MODAL ---- */
   .modal-overlay {
@@ -918,26 +779,11 @@
     padding-bottom: calc(var(--safe-bottom) + 40px);
   }
 
-  .welcome-art {
-    width: 148px;
-    height: 148px;
-    border-radius: 30px;
-    border: 2px solid var(--gold);
-    box-shadow: 0 0 50px rgba(240,192,64,0.25), 0 8px 30px rgba(0,0,0,0.6);
-    margin-bottom: 26px;
-    animation: breathe 3s ease-in-out infinite;
-  }
+  .welcome-dragon { font-size: 80px; margin-bottom: 20px; animation: breathe 3s ease-in-out infinite; }
   @keyframes breathe { 0%,100% { filter: drop-shadow(0 0 8px rgba(200,100,0,0.4)); } 50% { filter: drop-shadow(0 0 20px rgba(200,100,0,0.8)); } }
 
-  .welcome-title { font-family: 'Cinzel', serif; font-size: 32px; color: var(--gold-light); letter-spacing: 3px; text-align: center; margin-bottom: 12px; text-shadow: 0 0 30px rgba(240,192,64,0.5); }
-
-  .welcome-divider { display: flex; align-items: center; gap: 10px; width: 220px; margin-bottom: 12px; color: var(--gold); }
-  .welcome-divider span { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gold)); }
-  .welcome-divider span:last-child { background: linear-gradient(90deg, var(--gold), transparent); }
-  .welcome-divider i { font-style: normal; font-size: 10px; }
-
+  .welcome-title { font-family: 'Cinzel', serif; font-size: 32px; color: var(--gold-light); letter-spacing: 3px; text-align: center; margin-bottom: 8px; text-shadow: 0 0 30px rgba(240,192,64,0.5); }
   .welcome-sub { font-family: 'Crimson Text', serif; font-style: italic; font-size: 16px; color: #a08060; text-align: center; margin-bottom: 40px; }
-  .welcome-version { margin-top: 28px; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 1px; color: #6a5238; }
 
   .welcome-btn {
     background: linear-gradient(135deg, var(--crimson), #6b0f0f);
@@ -1377,18 +1223,6 @@
   .spell-browser-name { font-family: 'Cinzel', serif; font-size: 14px; color: var(--parchment); }
   .spell-browser-meta { font-size: 11px; color: #b9a6e6; margin-top: 3px; line-height: 1.4; }
   .spell-browser-desc { font-size: 13px; color: #a090b0; margin-top: 6px; line-height: 1.5; display: none; }
-
-  .spell-browser-card.concentrating { border-color: #6080c0 !important; box-shadow: 0 0 10px rgba(96,128,192,0.35); }
-
-  /* Тот же класс карточки на пергаментном листе («Список заклинаний») — светлый вариант */
-  #spell-list .spell-browser-card {
-    background: rgba(96,64,192,0.06);
-    border: 1px solid rgba(100,70,200,0.35);
-    border-left: 3px solid #6040c0;
-  }
-  #spell-list .spell-browser-name { color: var(--ink); }
-  #spell-list .spell-browser-meta { color: #6a4aa0; }
-  #spell-list .spell-browser-desc { color: var(--ink-light); }
   .spell-browser-card.expanded .spell-browser-desc { display: block; }
 
   .add-spell-mini {
@@ -1568,17 +1402,6 @@
     flex-shrink: 0;
   }
   .subtabs::-webkit-scrollbar { display: none; }
-  /* Градиентная «шторка» справа — намёк, что вкладки листаются */
-  .subtabs::after {
-    content: '';
-    position: sticky;
-    right: 0;
-    flex: 0 0 28px;
-    margin-left: -28px;
-    align-self: stretch;
-    background: linear-gradient(90deg, transparent, rgba(15,10,3,0.85));
-    pointer-events: none;
-  }
   .subtab-btn {
     padding: 10px 16px;
     background: none;
@@ -1618,12 +1441,10 @@
   <!-- WELCOME SCREEN -->
   <div class="screen active" id="screen-welcome">
     <div class="welcome-bg">
-      <img class="welcome-art" src="icons/icon-512.png" alt="D&D Герой">
+      <div class="welcome-dragon">🐉</div>
       <div class="welcome-title">D&D ГЕРОЙ</div>
-      <div class="welcome-divider"><span></span><i>◆</i><span></span></div>
       <div class="welcome-sub">Книга приключений всегда с тобой</div>
       <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-      <div class="welcome-version">версия 17</div>
     </div>
   </div>
 
@@ -1639,7 +1460,8 @@
       <div class="subtabs">
         <button class="subtab-btn active" onclick="switchSubtab('char','main',this)">Основное</button>
         <button class="subtab-btn" onclick="switchSubtab('char','combat',this)">Бой</button>
-        <button class="subtab-btn" onclick="switchSubtab('char','abilities',this)">Характеристики и навыки</button>
+        <button class="subtab-btn" onclick="switchSubtab('char','abilities',this)">Характеристики</button>
+        <button class="subtab-btn" onclick="switchSubtab('char','skills',this)">Навыки</button>
       </div>
       <div class="content" id="char-content">
 
@@ -1692,14 +1514,6 @@
               <span style="font-size:13px;color:var(--ink-light)" id="xp-next">/ 300 XP до ур.2</span>
             </div>
             <div class="xp-bar-track"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
-            <div id="levelup-banner" style="display:none;margin-top:10px;padding:12px 14px;background:linear-gradient(135deg,rgba(200,150,42,0.18),rgba(139,26,26,0.12));border:1px solid var(--gold);border-radius:10px;align-items:center;gap:10px">
-              <span style="font-size:22px">🏆</span>
-              <div style="flex:1">
-                <div style="font-family:Cinzel,serif;font-size:13px;color:var(--crimson);letter-spacing:0.5px" id="levelup-text">Достигнут новый уровень!</div>
-                <div style="font-size:12px;color:var(--ink-light)" id="levelup-hint"></div>
-              </div>
-              <button onclick="applyLevelUp()" style="padding:8px 14px;background:linear-gradient(135deg,var(--crimson),#6b0f0f);border:1px solid var(--gold);border-radius:8px;color:var(--gold-light);font-family:Cinzel,serif;font-size:12px;cursor:pointer;letter-spacing:0.5px">ПРИНЯТЬ</button>
-            </div>
           </div>
 
           <!-- BACKGROUND -->
@@ -1781,7 +1595,7 @@
                 <div class="combat-stat-label">БРОНЯ</div>
               </div>
               <div class="combat-stat">
-                <div class="combat-stat-val roll-val" id="stat-init" onclick="rollInitiative()">+0</div>
+                <div class="combat-stat-val" id="stat-init" style="cursor:pointer" onclick="rollInitiative()">+0</div>
                 <div class="combat-stat-label">ИНИЦИАТИВА</div>
               </div>
               <div class="combat-stat">
@@ -1818,21 +1632,6 @@
             </div>
           </div>
 
-          <!-- CLASS RESOURCES -->
-          <div class="section" style="padding-top:0">
-            <div class="section-title">Ресурсы класса</div>
-            <div id="resources-list"></div>
-            <div class="add-item-row" style="flex-wrap:wrap;gap:6px;margin-top:10px">
-              <input class="add-input" id="res-name" type="text" placeholder="Ки, Ярость, Очки чародейства..." style="flex:2 1 150px">
-              <input class="add-input" id="res-max" type="number" min="1" max="20" placeholder="Макс." style="flex:1 1 60px">
-              <select class="add-input" id="res-recover" style="flex:1 1 120px">
-                <option value="short">Короткий отдых</option>
-                <option value="long" selected>Длинный отдых</option>
-              </select>
-              <button class="add-btn" onclick="addResource()">+</button>
-            </div>
-          </div>
-
           <!-- REST / HIT DICE -->
           <div class="section" style="padding-top:0">
             <div class="section-title">🛌 Отдых</div>
@@ -1861,13 +1660,20 @@
               <!-- Rendered by JS -->
             </div>
           </div>
-          <div class="section" style="padding-top:0">
+          <div class="section">
+            <div class="section-title">Спасброски</div>
+            <div id="saving-throws-list" class="skills-list"></div>
+          </div>
+        </div>
+
+        <!-- SKILLS TAB -->
+        <div class="tab-content" id="char-skills">
+          <div class="section">
             <div class="section-title">Пассивные значения</div>
             <div class="combat-stats-grid" id="passive-block"></div>
           </div>
           <div class="section" style="padding-top:0">
-            <div class="section-title">Спасброски и навыки</div>
-            <div id="ability-blocks"></div>
+            <div class="skills-list" id="skills-list"></div>
           </div>
         </div>
 
@@ -1913,14 +1719,14 @@
             <div class="dice-result-history" id="dice-history"></div>
           </div>
           <div class="dice-grid">
-            <div class="dice-btn" onclick="rollDice(4)"><span class="dice-icon"><svg viewBox="0 0 32 32"><path d="M16 4 L28 27 L4 27 Z"/><path class="die-inner" d="M16 4 L16 27"/></svg></span><span class="dice-label">d4</span></div>
-            <div class="dice-btn" onclick="rollDice(6)"><span class="dice-icon"><svg viewBox="0 0 32 32"><rect x="6" y="6" width="20" height="20" rx="3"/><path class="die-inner" d="M6 12 L26 12"/></svg></span><span class="dice-label">d6</span></div>
-            <div class="dice-btn" onclick="rollDice(8)"><span class="dice-icon"><svg viewBox="0 0 32 32"><path d="M16 3 L29 16 L16 29 L3 16 Z"/><path class="die-inner" d="M16 3 L16 29"/></svg></span><span class="dice-label">d8</span></div>
-            <div class="dice-btn" onclick="rollDice(10)"><span class="dice-icon"><svg viewBox="0 0 32 32"><path d="M16 3 L27 13 L16 29 L5 13 Z"/><path class="die-inner" d="M5 13 L16 18 L27 13 M16 18 L16 29"/></svg></span><span class="dice-label">d10</span></div>
-            <div class="dice-btn" onclick="rollDice(12)"><span class="dice-icon"><svg viewBox="0 0 32 32"><path d="M16 3 L28.4 12 L23.7 26.6 L8.3 26.6 L3.6 12 Z"/><path class="die-inner" d="M16 9 L22.7 13.9 L20.1 21.8 L11.9 21.8 L9.3 13.9 Z"/></svg></span><span class="dice-label">d12</span></div>
-            <div class="dice-btn" onclick="rollDice(20)"><span class="dice-icon"><svg viewBox="0 0 32 32"><path d="M16 2 L28 9 L28 23 L16 30 L4 23 L4 9 Z"/><path class="die-inner" d="M16 8.5 L24 21.5 L8 21.5 Z M16 2 L16 8.5 M28 9 L24 21.5 M4 9 L8 21.5 M16 30 L16 21.5"/></svg></span><span class="dice-label">d20</span></div>
-            <div class="dice-btn" onclick="rollDice(100)"><span class="dice-icon"><svg viewBox="0 0 32 32"><path d="M10 5 L18 13 L10 27 L2 13 Z"/><path d="M22 5 L30 13 L22 27 L14 13 Z" class="die-inner"/></svg></span><span class="dice-label">d100</span></div>
-            <div class="dice-btn" onclick="rollDice(0)"><span class="dice-icon"><svg viewBox="0 0 32 32"><rect x="5" y="5" width="22" height="22" rx="4"/><text x="16" y="22" text-anchor="middle" font-size="15">?</text></svg></span><span class="dice-label">Своя</span></div>
+            <div class="dice-btn" onclick="rollDice(4)"><span class="dice-icon">🔺</span><span class="dice-label">d4</span></div>
+            <div class="dice-btn" onclick="rollDice(6)"><span class="dice-icon">🎲</span><span class="dice-label">d6</span></div>
+            <div class="dice-btn" onclick="rollDice(8)"><span class="dice-icon">💎</span><span class="dice-label">d8</span></div>
+            <div class="dice-btn" onclick="rollDice(10)"><span class="dice-icon">🔷</span><span class="dice-label">d10</span></div>
+            <div class="dice-btn" onclick="rollDice(12)"><span class="dice-icon">⬡</span><span class="dice-label">d12</span></div>
+            <div class="dice-btn" onclick="rollDice(20)"><span class="dice-icon">🌟</span><span class="dice-label">d20</span></div>
+            <div class="dice-btn" onclick="rollDice(100)"><span class="dice-icon">💯</span><span class="dice-label">d100</span></div>
+            <div class="dice-btn" onclick="rollDice(0)"><span class="dice-icon">🎯</span><span class="dice-label">Своя</span></div>
           </div>
           <div class="modifier-row">
             <span class="mod-label">🎲 КОЛИЧЕСТВО</span>
@@ -1935,8 +1741,8 @@
             <input class="mod-input" type="number" id="dice-modifier" value="0">
           </div>
           <div style="display:flex;gap:8px;margin-top:4px">
-            <button onclick="rollAdvantage()" class="advdis-btn advdis-adv"><svg viewBox="0 0 16 16"><path d="M8 3 L13 11 L3 11 Z" fill="currentColor" stroke="none"/></svg> ПРЕИМУЩЕСТВО</button>
-            <button onclick="rollDisadvantage()" class="advdis-btn advdis-dis"><svg viewBox="0 0 16 16"><path d="M8 13 L13 5 L3 5 Z" fill="currentColor" stroke="none"/></svg> ПОМЕХА</button>
+            <button onclick="rollAdvantage()" style="flex:1;padding:12px;background:rgba(30,100,30,0.3);border:1px solid #308030;border-radius:10px;color:#80c080;font-family:Cinzel,serif;font-size:12px;cursor:pointer;letter-spacing:0.5px">✅ ПРЕИМУЩЕСТВО</button>
+            <button onclick="rollDisadvantage()" style="flex:1;padding:12px;background:rgba(100,30,30,0.3);border:1px solid #803030;border-radius:10px;color:#c08080;font-family:Cinzel,serif;font-size:12px;cursor:pointer;letter-spacing:0.5px">❌ ПОМЕХА</button>
           </div>
         </div>
         <div class="section" style="padding-top:0">
@@ -2296,28 +2102,6 @@
   </div>
 </div>
 
-<!-- BONUS SPELL SLOTS -->
-<div class="modal-overlay" id="modal-bonus-slots" onclick="if(event.target===this)closeBonusSlots()">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Дополнительные ячейки</div>
-    <div style="font-size:13px;color:var(--ink-light);margin-bottom:10px;line-height:1.5">Бонусные ячейки от магических предметов, черт или решения Мастера. Прибавляются к ячейкам класса и показываются золотым цветом.</div>
-    <div id="bonus-slots-list" style="margin-bottom:12px"></div>
-    <button class="primary-btn" onclick="closeBonusSlots()">Готово</button>
-  </div>
-</div>
-
-<!-- ITEM INFO (справка из базы знаний по предмету инвентаря) -->
-<div class="modal-overlay" id="modal-item-info" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="item-info-title"></div>
-    <div style="font-size:12px;color:var(--ink-light);font-style:italic;margin-bottom:10px" id="item-info-meta"></div>
-    <div style="font-size:15px;color:var(--ink);line-height:1.6;max-height:45vh;overflow-y:auto" id="item-info-desc"></div>
-    <button class="primary-btn" style="margin-top:14px" onclick="document.getElementById('modal-item-info').classList.remove('open')">Закрыть</button>
-  </div>
-</div>
-
 <!-- CHARACTER MANAGER -->
 <div class="modal-overlay" id="modal-chars">
   <div class="modal-sheet">
@@ -2367,9 +2151,6 @@ let state = {
   inspiration: false,
   tempHP: 0,
   attacks: [],
-  resources: [],
-  concentrationSpell: null,
-  bonusSlots: [0,0,0,0,0,0,0,0,0],
   hitDice: { total: 1, used: 0, die: 8 }
 };
 
@@ -2390,7 +2171,6 @@ function startApp() {
   initSpellSlots();
   loadData();
   setInterval(saveAll, 5000);
-  setTimeout(maybeShowBackupReminder, 4000);
 }
 
 // loadDefaultCharacter defined below
@@ -2422,7 +2202,7 @@ function renderSpellcasting() {
   const atk = pb + m;
   el.innerHTML =
     `<div class="combat-stat"><div class="combat-stat-val" style="font-size:26px">${dc}</div><div class="combat-stat-label">СЛ СПАСБРОСКА</div></div>`
-   +`<div class="combat-stat"><div class="combat-stat-val roll-val" style="font-size:26px" onclick="rollCheck('Атака заклинанием', ${atk})">${atk>=0?'+':''}${atk}</div><div class="combat-stat-label">БОНУС АТАКИ</div></div>`
+   +`<div class="combat-stat"><div class="combat-stat-val" style="font-size:26px;cursor:pointer" onclick="rollCheck('Атака заклинанием', ${atk})">${atk>=0?'+':''}${atk}</div><div class="combat-stat-label">БОНУС АТАКИ</div></div>`
    +`<div class="combat-stat"><div class="combat-stat-val" style="font-size:26px">${ABILITIES[ai]}</div><div class="combat-stat-label">ХАРАКТЕРИСТИКА</div></div>`;
 }
 
@@ -2466,9 +2246,9 @@ function renderAbilities() {
     const m = modStr(score);
     grid.innerHTML += `
       <div class="ability-card">
-        <div class="ability-name" title="К навыкам" onclick="scrollToAbilityBlock(${i})" style="cursor:pointer">${ABILITY_FULL[i]}</div>
+        <div class="ability-name">${ABILITY_FULL[i]}</div>
         <input class="ability-score" type="number" min="1" max="30" value="${score}" onchange="updateAbility(${i},this.value)">
-        <div class="ability-mod roll-val" title="Бросить проверку" onclick="rollCheck('Проверка: ${ABILITY_FULL[i]}', ${mod(score)})">${m}</div>
+        <div class="ability-mod">${m}</div>
       </div>`;
   });
 }
@@ -2484,61 +2264,48 @@ function updateAbility(i, val) {
   saveAll();
 }
 
-// ============ SKILLS & SAVES (сгруппированы по характеристикам) ============
-// Навык и спасбросок — производные от характеристики, поэтому показываем их
-// единым блоком под каждой характеристикой.
-function renderAbilityBlocks() {
-  const el = document.getElementById('ability-blocks'); if(!el) return;
+// ============ SKILLS ============
+function renderSkills() {
   const pb = profBonus();
-  el.innerHTML = ABILITIES.map((ab,ai)=>{
-    const m = mod(state.abilities[ai]);
-    const saveBonus = m + (state.saveProfs[ai] ? pb : 0);
-    const sStr = (saveBonus>=0?'+':'')+saveBonus;
-    const saveRow = `<div class="skill-row save-row" onclick="rollCheck('Спас ${ABILITY_FULL[ai]}', ${saveBonus})">
-      <div class="skill-prof ${state.saveProfs[ai]?'proficient':''}" onclick="event.stopPropagation();toggleSaveProf(${ai})"></div>
-      <div class="skill-name">🛡 Спасбросок</div>
-      <div class="skill-bonus">${sStr}</div>
-    </div>`;
-    const skillRows = SKILLS_DATA.map((sk,i)=>({sk,i}))
-      .filter(x=>x.sk.attr===ab)
-      .sort((a,b)=>a.sk.name.localeCompare(b.sk.name,'ru'))
-      .map(({sk,i})=>{
-        const bonus = m + (state.skillProfs[i] ? pb : 0);
-        const bStr = (bonus>=0?'+':'')+bonus;
-        return `<div class="skill-row" onclick="rollCheck('${sk.name}', ${bonus})">
-          <div class="skill-prof ${state.skillProfs[i]?'proficient':''}" onclick="event.stopPropagation();toggleSkillProf(${i})"></div>
-          <div class="skill-name">${sk.name}</div>
-          <div class="skill-bonus">${bStr}</div>
-        </div>`;
-      }).join('');
-    return `<div class="abl-block" id="abl-block-${ai}">
-      <div class="abl-block-title"><span>${ABILITY_FULL[ai].toUpperCase()} <span class="abl-block-mod">${modStr(state.abilities[ai])}</span></span><span class="abl-block-score">${state.abilities[ai]}</span></div>
-      ${saveRow}${skillRows}
+  document.getElementById('skills-list').innerHTML = SKILLS_DATA.map((sk,i)=>{
+    const attrIdx = ABILITIES.indexOf(sk.attr);
+    const base = mod(state.abilities[attrIdx]);
+    const bonus = base + (state.skillProfs[i] ? pb : 0);
+    const bStr = (bonus>=0?'+':'')+bonus;
+    return `<div class="skill-row" onclick="rollCheck('${sk.name}', ${bonus})" style="cursor:pointer">
+      <div class="skill-prof ${state.skillProfs[i]?'proficient':''}" onclick="event.stopPropagation();toggleSkillProf(${i})"></div>
+      <div class="skill-name">${sk.name} <span class="skill-attr">(${sk.attr})</span></div>
+      <div class="skill-bonus">${bStr}</div>
     </div>`;
   }).join('');
 }
 
-// Старые имена сохранены — их зовут из многих мест
-function renderSkills() { renderAbilityBlocks(); }
-function renderSavingThrows() { renderAbilityBlocks(); }
-
 function toggleSkillProf(i) {
   state.skillProfs[i] = !state.skillProfs[i];
-  renderAbilityBlocks();
+  renderSkills();
   renderPassives();
   saveAll();
 }
 
-function toggleSaveProf(i) {
-  state.saveProfs[i] = !state.saveProfs[i];
-  renderAbilityBlocks();
-  saveAll();
+// ============ SAVING THROWS ============
+function renderSavingThrows() {
+  const pb = profBonus();
+  document.getElementById('saving-throws-list').innerHTML = ABILITIES.map((ab,i)=>{
+    const base = mod(state.abilities[i]);
+    const bonus = base + (state.saveProfs[i] ? pb : 0);
+    const bStr = (bonus>=0?'+':'')+bonus;
+    return `<div class="skill-row" onclick="rollCheck('Спас ${ABILITY_FULL[i]}', ${bonus})" style="cursor:pointer">
+      <div class="skill-prof ${state.saveProfs[i]?'proficient':''}" onclick="event.stopPropagation();toggleSaveProf(${i})"></div>
+      <div class="skill-name">${ABILITY_FULL[i]}</div>
+      <div class="skill-bonus">${bStr}</div>
+    </div>`;
+  }).join('');
 }
 
-// Тап по названию характеристики в карточке — скролл к её блоку навыков
-function scrollToAbilityBlock(i) {
-  const el = document.getElementById('abl-block-'+i);
-  if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+function toggleSaveProf(i) {
+  state.saveProfs[i] = !state.saveProfs[i];
+  renderSavingThrows();
+  saveAll();
 }
 
 // ============ HP ============
@@ -2589,11 +2356,6 @@ function removeCondition(cond) {
   state.conditions = state.conditions.filter(c=>c!==cond);
   const chip = document.querySelector('.condition-chip[data-cond="'+cond+'"]');
   if(chip) chip.classList.remove('active');
-  if(cond==='Концентрация') {
-    state.concentrationSpell = null;
-    updateConcentrationChip();
-    renderSpellList();
-  }
 }
 
 // #4 — спасбросок Телосложения на удержание концентрации при получении урона
@@ -2635,63 +2397,6 @@ function applyHPChange() {
   saveAll();
 }
 
-// ============ РЕСУРСЫ КЛАССА (ки, ярость, очки чародейства...) ============
-function renderResources() {
-  const el = document.getElementById('resources-list'); if(!el) return;
-  const rs = state.resources || [];
-  if(!rs.length) {
-    el.innerHTML = '<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:8px 0;font-size:13px">Добавь счётчик: ки, ярость, очки чародейства, заряды предмета...</div>';
-    return;
-  }
-  el.innerHTML = rs.map((r,i)=>{
-    let dots='';
-    for(let d=0; d<r.max; d++){
-      const avail = d < r.max - r.used;
-      dots += `<div class="slot-dot res-dot ${avail?'available':'used'}" onclick="toggleResource(${i},${d})"></div>`;
-    }
-    return `<div class="resource-row">
-      <div style="flex:1;min-width:0">
-        <div class="resource-name">${esc(r.name)}</div>
-        <div class="resource-meta">${r.max-r.used}/${r.max} · ${r.recover==='short'?'короткий отдых':'длинный отдых'}</div>
-      </div>
-      <div class="slot-dots">${dots}</div>
-      <button class="inv-delete" onclick="removeResource(${i})">✕</button>
-    </div>`;
-  }).join('');
-}
-
-function addResource() {
-  const name = document.getElementById('res-name').value.trim();
-  if(!name) return;
-  const max = Math.max(1, Math.min(20, parseInt(document.getElementById('res-max').value)||1));
-  const recover = document.getElementById('res-recover').value;
-  if(!state.resources) state.resources = [];
-  state.resources.push({ name, max, used: 0, recover });
-  document.getElementById('res-name').value='';
-  document.getElementById('res-max').value='';
-  renderResources(); saveAll();
-}
-
-function removeResource(i) { state.resources.splice(i,1); renderResources(); saveAll(); }
-
-function toggleResource(i,d) {
-  const r = state.resources[i];
-  const avail = d < r.max - r.used;
-  if(avail) r.used = Math.min(r.max, r.used+1);
-  else r.used = Math.max(0, r.used-1);
-  renderResources(); saveAll();
-}
-
-// Восстановление ресурсов на отдыхе
-function recoverResources(restType) {
-  let n = 0;
-  (state.resources||[]).forEach(r => {
-    if(restType==='long' || r.recover==='short') { if(r.used>0) n++; r.used = 0; }
-  });
-  if(n) renderResources();
-  return n;
-}
-
 // ============ ОТДЫХ И КОСТИ ХИТОВ ============
 function renderHitDice() {
   const el=document.getElementById('hit-dice-display'); if(!el) return;
@@ -2717,7 +2422,6 @@ function shortRest() {
   const cls=document.getElementById('char-class')?.value;
   if(cls==='Колдун') { state.spellSlots.forEach(s=>s.used=0); renderSpellSlots(); msg+=': ячейки Договора восстановлены'; }
   else { msg+=': трать Кости Хитов для лечения'; }
-  recoverResources('short');
   saveAll();
   showToast(msg);
 }
@@ -2731,9 +2435,8 @@ function longRest() {
   hd.used=Math.max(0, hd.used-Math.max(1,Math.floor(hd.total/2)));
   state.dsSuccess=[false,false,false];
   state.dsFailure=[false,false,false];
-  recoverResources('long');
   updateHPDisplay(); renderSpellSlots(); renderDeathSaves(); renderHitDice(); saveAll();
-  showToast('🌙 Длинный отдых: HP, ячейки и ресурсы восстановлены');
+  showToast('🌙 Длинный отдых: HP и ячейки восстановлены');
 }
 // сохраняем старое имя для совместимости
 function fullHeal() { longRest(); }
@@ -2836,136 +2539,30 @@ function toggleCondition(btn) {
   btn.classList.toggle('active');
   const cond = btn.dataset.cond;
   if(btn.classList.contains('active')) { if(!state.conditions.includes(cond)) state.conditions.push(cond); }
-  else {
-    state.conditions = state.conditions.filter(c=>c!==cond);
-    if(cond==='Концентрация') { state.concentrationSpell = null; renderSpellList(); }
-  }
-  updateConcentrationChip();
+  else { state.conditions = state.conditions.filter(c=>c!==cond); }
   saveAll();
-}
-
-// Пометить заклинание, на котором держится концентрация
-function setConcentrationSpell(name) {
-  if(state.concentrationSpell === name) {
-    // повторный тап — снять концентрацию
-    state.concentrationSpell = null;
-    removeCondition('Концентрация');
-    showToast('🧿 Концентрация снята');
-  } else {
-    state.concentrationSpell = name;
-    if(!state.conditions.includes('Концентрация')) state.conditions.push('Концентрация');
-    const chip = document.querySelector('.condition-chip[data-cond="Концентрация"]');
-    if(chip) chip.classList.add('active');
-    showToast(`🧿 Концентрация: ${name}`);
-  }
-  updateConcentrationChip();
-  renderSpellList();
-  saveAll();
-}
-
-// Показать имя заклинания прямо на чипе состояния
-function updateConcentrationChip() {
-  const chip = document.querySelector('.condition-chip[data-cond="Концентрация"]');
-  if(!chip) return;
-  chip.textContent = state.concentrationSpell ? `🧿 ${state.concentrationSpell}` : '🧿 Концентрация';
 }
 
 // ============ SPELLS ============
-// Таблицы ячеек по уровню персонажа (SRD). totals[i] = ячейки уровня i+1.
-const FULL_CASTERS = ['Маг','Клерик','Друид','Бард','Чародей'];
-const HALF_CASTERS = ['Паладин','Следопыт'];
-const FULL_CASTER_SLOTS = [
-  [2],[3],[4,2],[4,3],[4,3,2],[4,3,3],[4,3,3,1],[4,3,3,2],[4,3,3,3,1],[4,3,3,3,2],
-  [4,3,3,3,2,1],[4,3,3,3,2,1],[4,3,3,3,2,1,1],[4,3,3,3,2,1,1],[4,3,3,3,2,1,1,1],[4,3,3,3,2,1,1,1],
-  [4,3,3,3,2,1,1,1,1],[4,3,3,3,3,1,1,1,1],[4,3,3,3,3,2,1,1,1],[4,3,3,3,3,2,2,1,1]
-];
-const HALF_CASTER_SLOTS = [
-  [],[2],[3],[3],[4,2],[4,2],[4,3],[4,3],[4,3,2],[4,3,2],
-  [4,3,3],[4,3,3],[4,3,3,1],[4,3,3,1],[4,3,3,2],[4,3,3,2],[4,3,3,3,1],[4,3,3,3,1],[4,3,3,3,2],[4,3,3,3,2]
-];
-// Колдун (Магия Договора): [сколько ячеек, какого уровня]
-const PACT_SLOTS = [
-  [1,1],[2,1],[2,2],[2,2],[2,3],[2,3],[2,4],[2,4],[2,5],[2,5],
-  [3,5],[3,5],[3,5],[3,5],[3,5],[3,5],[4,5],[4,5],[4,5],[4,5]
-];
-
-function slotTotalsFor(cls, lvl) {
-  lvl = Math.min(20, Math.max(1, lvl));
-  const totals = new Array(9).fill(0);
-  if(FULL_CASTERS.includes(cls)) FULL_CASTER_SLOTS[lvl-1].forEach((n,i)=>totals[i]=n);
-  else if(HALF_CASTERS.includes(cls)) HALF_CASTER_SLOTS[lvl-1].forEach((n,i)=>totals[i]=n);
-  else if(cls==='Колдун') { const p=PACT_SLOTS[lvl-1]; totals[p[1]-1]=p[0]; }
-  return totals;
-}
-
 function initSpellSlots() {
-  state.spellSlots = Array.from({length:9},(_,i)=>({level:i+1,total:0,used:0}));
-}
-
-// Пересчитать тоталы ячеек по классу/уровню из полей формы, сохранив потраченные.
-// К базовым ячейкам класса прибавляются дополнительные (state.bonusSlots) —
-// от магических предметов, черт или решения Мастера.
-function syncSpellSlots() {
-  const cls = document.getElementById('char-class')?.value;
-  const lvl = parseInt(document.getElementById('char-level')?.value)||1;
-  if(!state.spellSlots || state.spellSlots.length!==9) initSpellSlots();
-  if(!state.bonusSlots || state.bonusSlots.length!==9) state.bonusSlots = new Array(9).fill(0);
-  const totals = slotTotalsFor(cls, lvl);
-  state.spellSlots.forEach((s,i)=>{
-    s.level=i+1;
-    s.base=totals[i];
-    s.total=totals[i] + (state.bonusSlots[i]||0);
-    s.used=Math.min(s.used, s.total);
-  });
+  state.spellSlots = [
+    {level:1,total:4,used:0},{level:2,total:3,used:0},{level:3,total:3,used:0},
+    {level:4,total:3,used:0},{level:5,total:2,used:0},{level:6,total:1,used:0},
+    {level:7,total:1,used:0},{level:8,total:1,used:0},{level:9,total:1,used:0}
+  ];
 }
 
 function renderSpellSlots() {
   const grid = document.getElementById('spell-slots-grid');
   grid.innerHTML = '';
-  const cls = document.getElementById('char-class')?.value;
-  const isPact = cls==='Колдун';
-  let any = false;
   state.spellSlots.forEach((slot,si)=>{
-    if(!slot.total) return;
-    any = true;
-    const base = slot.base!==undefined ? slot.base : slot.total;
     let dots='';
     for(let i=0;i<slot.total;i++){
       const avail = i < slot.total - slot.used;
-      const isBonus = i >= base; // дополнительные ячейки рисуем золотыми
-      dots+=`<div class="slot-dot ${avail?'available':'used'} ${isBonus?'bonus':''}" onclick="toggleSlot(${si},${i})"></div>`;
+      dots+=`<div class="slot-dot ${avail?'available':'used'}" onclick="toggleSlot(${si},${i})"></div>`;
     }
-    grid.innerHTML+=`<div class="spell-slot-card"><div class="slot-level">${slot.level} УРОВЕНЬ${isPact && base>0?' · ДОГОВОР':''}</div><div class="slot-dots">${dots}</div></div>`;
+    grid.innerHTML+=`<div class="spell-slot-card"><div class="slot-level">${slot.level} УРОВЕНЬ</div><div class="slot-dots">${dots}</div></div>`;
   });
-  if(!any) grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--ink-light);font-style:italic;padding:8px 0;font-size:13px">${esc(cls||'Этот класс')} не использует ячейки заклинаний${isPact?'':' по базовым правилам'}</div>`;
-  grid.innerHTML += `<div class="spell-slot-card add-slot-card" onclick="openBonusSlots()"><div class="slot-level">＋ ДОП. ЯЧЕЙКИ</div><div style="font-size:11px;color:#8878b0;margin-top:4px">предметы, черты</div></div>`;
-}
-
-// ============ ДОПОЛНИТЕЛЬНЫЕ ЯЧЕЙКИ ============
-function openBonusSlots() {
-  renderBonusSlotsEditor();
-  document.getElementById('modal-bonus-slots').classList.add('open');
-}
-function closeBonusSlots() { document.getElementById('modal-bonus-slots').classList.remove('open'); }
-
-function renderBonusSlotsEditor() {
-  if(!state.bonusSlots || state.bonusSlots.length!==9) state.bonusSlots = new Array(9).fill(0);
-  const el = document.getElementById('bonus-slots-list');
-  el.innerHTML = state.bonusSlots.map((n,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(180,140,80,0.2)">
-      <div style="flex:1;font-family:Cinzel,serif;font-size:13px;color:var(--ink)">${i+1} уровень</div>
-      <button class="count-btn" onclick="changeBonusSlot(${i},-1)">−</button>
-      <span style="font-family:Cinzel,serif;font-size:16px;color:${n>0?'var(--crimson)':'var(--ink-light)'};min-width:22px;text-align:center">${n}</span>
-      <button class="count-btn" onclick="changeBonusSlot(${i},+1)">+</button>
-    </div>`).join('');
-}
-
-function changeBonusSlot(i, delta) {
-  state.bonusSlots[i] = Math.max(0, Math.min(8, (state.bonusSlots[i]||0)+delta));
-  syncSpellSlots();
-  renderSpellSlots();
-  renderBonusSlotsEditor();
-  saveAll();
 }
 
 function toggleSlot(si,di) {
@@ -3006,19 +2603,14 @@ function renderSpellList() {
     if (d.castingTime || sp.cast) metaParts.push(esc(d.castingTime||sp.cast));
     if (d.range) metaParts.push(esc(d.range));
     const hasDetails = !!d.description;
-    const isConc = state.concentrationSpell === sp.name;
-    const concBtn = d.concentration
-      ? `<button onclick="event.stopPropagation();setConcentrationSpell('${esc(sp.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"))}')" title="Концентрация" style="background:${isConc?'#1a2a50':'none'};border:1px solid ${isConc?'#6080c0':'rgba(100,70,200,0.35)'};border-radius:6px;color:${isConc?'#9ab8f0':'#8878b0'};font-size:13px;cursor:pointer;padding:3px 6px;flex-shrink:0">🧿</button>`
-      : '';
     return `
-    <div class="spell-browser-card ${isConc?'concentrating':''}" id="myspell-${i}" onclick="${hasDetails ? `toggleMySpellCard(${i})` : ''}" style="${hasDetails ? 'cursor:pointer' : ''}">
+    <div class="spell-browser-card" id="myspell-${i}" onclick="${hasDetails ? `toggleMySpellCard(${i})` : ''}" style="${hasDetails ? 'cursor:pointer' : ''}">
       <div class="spell-level-badge">${sp.level===0?'З':sp.level}</div>
       <div class="spell-browser-info">
         <div class="spell-browser-name">${esc(sp.name)}</div>
         <div class="spell-browser-meta">${conc}${ritual}${metaParts.join(' · ')}</div>
         ${hasDetails ? `<div class="spell-browser-desc">${esc(d.description)}${higher}</div>` : ''}
       </div>
-      ${concBtn}
       <button onclick="event.stopPropagation();removeSpell(${state.spells.indexOf(sp)})" style="background:none;border:none;color:#a05050;font-size:16px;cursor:pointer;padding:2px;flex-shrink:0">✕</button>
     </div>`;
   }).join('');
@@ -3032,29 +2624,6 @@ function toggleMySpellCard(i) {
 function removeSpell(i) { state.spells.splice(i,1); renderSpellList(); saveAll(); }
 
 // ============ DICE ============
-// Анимация результата: короткий перебор случайных чисел, затем финал.
-// На натуральные 20/1 (один d20) — золотая/красная вспышка.
-let _diceAnimTimer = null;
-function animateDiceResult(el, finalTotal, sides, opts) {
-  opts = opts || {};
-  if(_diceAnimTimer) clearInterval(_diceAnimTimer);
-  const area = el.closest('.dice-result-area');
-  el.classList.remove('crit-flash','fail-flash');
-  if(area) area.classList.remove('crit-area','fail-area');
-  el.classList.add('rolling');
-  let ticks = 0;
-  _diceAnimTimer = setInterval(()=>{
-    ticks++;
-    if(ticks < 8) { el.textContent = Math.ceil(Math.random()*Math.max(2,sides)); return; }
-    clearInterval(_diceAnimTimer); _diceAnimTimer = null;
-    el.textContent = finalTotal;
-    el.classList.remove('rolling');
-    if(opts.crit) { el.classList.add('crit-flash'); if(area) area.classList.add('crit-area'); }
-    else if(opts.fail) { el.classList.add('fail-flash'); if(area) area.classList.add('fail-area'); }
-    setTimeout(()=>{ el.classList.remove('crit-flash','fail-flash'); if(area) area.classList.remove('crit-area','fail-area'); }, 1000);
-  }, 45);
-}
-
 function rollDice(sides) {
   if(sides===0) { document.getElementById('modal-custom-dice').classList.add('open'); return; }
   currentDiceSides = sides;
@@ -3064,9 +2633,11 @@ function rollDice(sides) {
   for(let i=0;i<count;i++){const r=Math.ceil(Math.random()*sides);rolls.push(r);total+=r;}
   total += modVal;
   const el = document.getElementById('dice-result');
-  const isCrit = sides===20 && count===1 && rolls[0]===20;
-  const isFail = sides===20 && count===1 && rolls[0]===1;
-  animateDiceResult(el, total, sides, {crit:isCrit, fail:isFail});
+  el.classList.add('rolling');
+  setTimeout(()=>{
+    el.textContent=total;
+    el.classList.remove('rolling');
+  },120);
   const label = count>1?`${count}d${sides}${modVal?(' + '+modVal):''}`:`d${sides}${modVal?(' + '+modVal):''}`;
   document.getElementById('dice-label').textContent=label.toUpperCase();
   const detail = rolls.length>1?` (${rolls.join(' + ')}${modVal?(' + '+modVal):''})`:'';
@@ -3084,22 +2655,24 @@ function rollCustomDice() {
 function rollAdvantage() {
   const sides=20,modVal=parseInt(document.getElementById('dice-modifier').value)||0;
   const r1=Math.ceil(Math.random()*sides),r2=Math.ceil(Math.random()*sides);
-  const kept=Math.max(r1,r2);
-  const best=kept+modVal;
-  animateDiceResult(document.getElementById('dice-result'), best, sides, {crit:kept===20, fail:kept===1});
+  const best=Math.max(r1,r2)+modVal;
+  const el=document.getElementById('dice-result');
+  el.classList.add('rolling');
+  setTimeout(()=>{el.textContent=best;el.classList.remove('rolling');},120);
   document.getElementById('dice-label').textContent='d20 ПРЕИМУЩЕСТВО';
-  document.getElementById('dice-history').textContent=`(${r1}, ${r2} → ${kept}${modVal?' + '+modVal:''})`;
+  document.getElementById('dice-history').textContent=`(${r1}, ${r2} → ${Math.max(r1,r2)}${modVal?' + '+modVal:''})`;
   addRollHistory('d20 Преим.', best,[r1,r2],modVal,20);
 }
 
 function rollDisadvantage() {
   const sides=20,modVal=parseInt(document.getElementById('dice-modifier').value)||0;
   const r1=Math.ceil(Math.random()*sides),r2=Math.ceil(Math.random()*sides);
-  const kept=Math.min(r1,r2);
-  const worst=kept+modVal;
-  animateDiceResult(document.getElementById('dice-result'), worst, sides, {crit:kept===20, fail:kept===1});
+  const worst=Math.min(r1,r2)+modVal;
+  const el=document.getElementById('dice-result');
+  el.classList.add('rolling');
+  setTimeout(()=>{el.textContent=worst;el.classList.remove('rolling');},120);
   document.getElementById('dice-label').textContent='d20 ПОМЕХА';
-  document.getElementById('dice-history').textContent=`(${r1}, ${r2} → ${kept}${modVal?' + '+modVal:''})`;
+  document.getElementById('dice-history').textContent=`(${r1}, ${r2} → ${Math.min(r1,r2)}${modVal?' + '+modVal:''})`;
   addRollHistory('d20 Помеха', worst,[r1,r2],modVal,20);
 }
 
@@ -3113,10 +2686,6 @@ function addRollHistory(label, total, rolls, modVal, sides) {
 
 function renderRollHistory() {
   const div=document.getElementById('roll-history');
-  if(!state.rollHistory.length) {
-    div.innerHTML = '<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:16px 0">Здесь появятся твои броски — брось первый кубик!</div>';
-    return;
-  }
   div.innerHTML = state.rollHistory.slice(0,10).map(r=>`
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(180,140,80,0.15)">
       <div style="font-family:Cinzel,serif;font-size:22px;color:${r.isCrit?'#f0c040':r.isFail?'#c03030':'var(--ink)'};min-width:36px;text-align:center">${r.total}</div>
@@ -3133,7 +2702,7 @@ function changeCount(delta) {
 }
 
 // ============ INVENTORY ============
-const ITEM_ICONS = {'меч':'⚔️','лук':'🏹','арбалет':'🏹','стрел':'🏹','болт':'🏹','щит':'🛡️','доспех':'🛡️','брон':'🛡️','посох':'🪄','палочка':'🪄','зелье':'🧪','свиток':'📜','еда':'🍖','паёк':'🍖','вино':'🍷','фляга':'🍶','факел':'🕯️','лампа':'🏮','фонарь':'🏮','книга':'📖','кинжал':'🗡️','топор':'🪓','молот':'🔨','монета':'💰','кольцо':'💍','амулет':'🔮','фокусировка':'🔮','шлем':'⛑️','плащ':'🧥','одежда':'🧥','ключ':'🗝️','воровск':'🗝️','инструмент':'🛠️','верёвка':'🪢','спальник':'🛏️','мешок':'🎒','набор':'🎒'};
+const ITEM_ICONS = {'меч':'⚔️','лук':'🏹','щит':'🛡️','посох':'🪄','зелье':'🧪','свиток':'📜','еда':'🍖','факел':'🕯️','книга':'📖','кинжал':'🗡️','монета':'💰','кольцо':'💍','амулет':'🔮','шлем':'⛑️','броня':'🥋','плащ':'🧥','ключ':'🗝️','верёвка':'🪢'};
 
 function getItemIcon(name) {
   const lower = name.toLowerCase();
@@ -3152,23 +2721,6 @@ function addItem() {
 
 function removeItem(i) { state.inventory.splice(i,1); renderInventory(); saveAll(); }
 
-// Тап по названию предмета — карточка из локальной базы знаний
-function showItemInfo(i) {
-  const item = state.inventory[i]; if(!item) return;
-  const all = [].concat(DB_WEAPONS, DB_ARMOR, DB_MAGIC_ITEMS, DB_GEAR);
-  const q = item.name.toLowerCase().replace(/\s*\(.*\)$/,''); // «Книга (оккультные знания)» → «книга»
-  const entry = all.find(e => e.name.toLowerCase() === q)
-    || all.find(e => q.includes(e.name.toLowerCase()) || e.name.toLowerCase().includes(q));
-  if(!entry) { showToast('В справочнике нет описания этого предмета'); return; }
-  document.getElementById('item-info-title').textContent = `${item.icon} ${entry.name}`;
-  const meta = [entry.itemType, entry.cost, entry.weight, entry.damage, entry.ac ? 'КД ' + entry.ac : null]
-    .filter(Boolean).join(' · ');
-  const props = (entry.properties && entry.properties.length) ? entry.properties.join(', ') : '';
-  document.getElementById('item-info-meta').textContent = meta + (props ? ' · ' + props : '');
-  document.getElementById('item-info-desc').textContent = entry.description || '';
-  document.getElementById('modal-item-info').classList.add('open');
-}
-
 function changeQty(i,delta) {
   state.inventory[i].qty = Math.max(1, state.inventory[i].qty+delta);
   renderInventory(); saveAll();
@@ -3180,7 +2732,7 @@ function renderInventory() {
   list.innerHTML = state.inventory.map((it,i)=>`
     <div class="inv-item">
       <span class="inv-icon">${it.icon}</span>
-      <span class="inv-name" onclick="showItemInfo(${i})" title="Открыть справку">${esc(it.name)}</span>
+      <span class="inv-name">${esc(it.name)}</span>
       <div style="display:flex;align-items:center;gap:6px">
         <button onclick="changeQty(${i},-1)" style="background:none;border:1px solid var(--parchment-dark);border-radius:4px;width:24px;height:24px;color:var(--ink-light);font-size:14px;cursor:pointer">−</button>
         <span class="inv-qty">${it.qty}</span>
@@ -3208,7 +2760,6 @@ function onLevelChange() {
   renderHitDice();
   renderPassives();
   renderSpellcasting();
-  syncSpellSlots(); renderSpellSlots();
   updateXP(); saveAll();
 }
 
@@ -3216,7 +2767,6 @@ function onClassChange() {
   state.hitDice.die=CLASS_HIT_DIE[document.getElementById('char-class').value]||8;
   renderHitDice();
   renderSpellcasting();
-  syncSpellSlots(); renderSpellSlots();
   saveAll();
 }
 
@@ -3233,41 +2783,6 @@ function updateXP() {
     document.getElementById('xp-bar').style.width='100%';
     document.getElementById('xp-next').textContent='Максимальный уровень';
   }
-  updateLevelUpBanner(xp, lvl);
-}
-
-// ============ ПОВЫШЕНИЕ УРОВНЯ ============
-// Уровень, положенный по опыту (XP_TABLE[i] — порог уровня i+1)
-function levelForXP(xp) {
-  let lvl = 1;
-  for(let i=1;i<XP_TABLE.length;i++) { if(xp>=XP_TABLE[i]) lvl=i+1; }
-  return lvl;
-}
-
-function updateLevelUpBanner(xp, lvl) {
-  const banner = document.getElementById('levelup-banner'); if(!banner) return;
-  const earned = levelForXP(xp);
-  if(earned > lvl) {
-    const cls = document.getElementById('char-class')?.value;
-    const die = CLASS_HIT_DIE[cls]||8;
-    const newPB = Math.ceil(earned/4)+1, oldPB = Math.ceil(lvl/4)+1;
-    let hint = `+1к${die} к хитам`;
-    if(newPB>oldPB) hint += `, бонус мастерства +${newPB}`;
-    hint += ' — проверь умения в Гиде';
-    document.getElementById('levelup-text').textContent = `Опыта хватает на уровень ${earned}!`;
-    document.getElementById('levelup-hint').textContent = hint;
-    banner.style.display = 'flex';
-  } else {
-    banner.style.display = 'none';
-  }
-}
-
-function applyLevelUp() {
-  const xp = parseInt(document.getElementById('char-xp').value)||0;
-  const earned = levelForXP(xp);
-  document.getElementById('char-level').value = earned;
-  onLevelChange();
-  showToast(`🏆 Уровень ${earned}! Не забудь поднять максимум HP`);
 }
 
 // ============ PORTRAIT ============
@@ -3316,9 +2831,6 @@ function applyCharacter(data) {
   state.inspiration = !!d.inspiration;
   state.tempHP = d.tempHP || 0;
   state.attacks = d.attacks || [];
-  state.resources = d.resources || [];
-  state.concentrationSpell = d.concentrationSpell || null;
-  state.bonusSlots = (d.bonusSlots && d.bonusSlots.length===9) ? d.bonusSlots : new Array(9).fill(0);
   const fields = (data && data.fields) || {};
   FIELD_IDS.forEach(id => { const el=document.getElementById(id); if(el && fields[id]!==undefined) el.value=fields[id]; });
   // Кости Хитов: берём из сейва или вычисляем по классу/уровню
@@ -3327,7 +2839,6 @@ function applyCharacter(data) {
     const lvl = parseInt(fields['char-level']||1);
     state.hitDice = { total: lvl, used: 0, die: CLASS_HIT_DIE[fields['char-class']]||8 };
   }
-  syncSpellSlots(); // тоталы ячеек всегда считаются из класса/уровня
   renderAll();
 }
 
@@ -3353,8 +2864,7 @@ function blankCharacterData() {
       spells:[], spellSlots:[], inventory:[], conditions:[],
       dsSuccess:[false,false,false], dsFailure:[false,false,false],
       rollHistory:[], diceCount:1, portrait:'⚔️', inspiration:false,
-      attacks:[], resources:[], concentrationSpell:null,
-      bonusSlots:[0,0,0,0,0,0,0,0,0], hitDice:{total:1,used:0,die:10}
+      attacks:[], hitDice:{total:1,used:0,die:10}
     },
     fields: {
       'char-name':'Новый герой','char-class':'Воин','char-level':'1',
@@ -3449,31 +2959,7 @@ function exportCharacters() {
   a.href = url; a.download = 'dnd-герои.json';
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
-  try { localStorage.setItem('dnd_last_export', String(Date.now())); } catch(e){}
-  const rt = document.getElementById('backup-toast'); if(rt) rt.remove();
   showToast('⬇ Файл сохранён');
-}
-
-// ============ НАПОМИНАНИЕ О РЕЗЕРВНОЙ КОПИИ ============
-// iOS может стереть localStorage у долго не открывавшихся PWA — мягко напоминаем об экспорте
-function maybeShowBackupReminder() {
-  const DAY = 24*60*60*1000;
-  let firstRun = 0, lastExport = 0;
-  try {
-    firstRun = parseInt(localStorage.getItem('dnd_first_run'))||0;
-    if(!firstRun) { firstRun = Date.now(); localStorage.setItem('dnd_first_run', String(firstRun)); }
-    lastExport = parseInt(localStorage.getItem('dnd_last_export'))||0;
-  } catch(e) { return; }
-  const store = getStore();
-  if(!store || !store.list.length) return;
-  const due = lastExport ? (Date.now()-lastExport > 21*DAY) : (Date.now()-firstRun > 14*DAY);
-  if(!due || document.getElementById('backup-toast')) return;
-  const t = document.createElement('div');
-  t.id = 'backup-toast';
-  t.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--stone);color:#e8d5b0;border:1px solid var(--gold);border-radius:14px;padding:12px 16px;font-size:14px;z-index:500;display:flex;align-items:center;gap:12px;animation:fadeInUp 0.3s ease;max-width:92vw';
-  t.innerHTML = '<span>💾 Давно не было резервной копии героев</span><button onclick="openCharMenu();this.parentElement.remove()" style="background:rgba(200,150,42,0.2);border:1px solid var(--gold);border-radius:8px;color:var(--gold-light);font-family:Cinzel,serif;font-size:12px;padding:7px 12px;cursor:pointer;white-space:nowrap">ЭКСПОРТ</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#c8a878;font-size:16px;cursor:pointer;padding:2px">✕</button>';
-  document.body.appendChild(t);
-  setTimeout(()=>{ if(t.parentElement) t.remove(); }, 15000);
 }
 
 function importCharacters(file) {
@@ -3512,7 +2998,6 @@ function renderAll() {
   renderPassives();
   renderInventory();
   renderAttacks();
-  renderResources();
   renderHitDice();
   renderRollHistory();
   updateXP();
@@ -3528,7 +3013,6 @@ function renderAll() {
   document.querySelectorAll('.condition-chip').forEach(btn=>{
     btn.classList.toggle('active', state.conditions.includes(btn.dataset.cond));
   });
-  updateConcentrationChip();
 }
 
 function loadDefaultCharacter() {
@@ -3550,17 +3034,18 @@ function loadDefaultCharacter() {
     { name: 'Сглаз', level: 1, school: 'Очарование', cast: '1 д.' },
     { name: 'Сотня настоек', level: 2, school: 'Преобразование', cast: '1 д.' },
   ];
-  // Ячейки считаются автоматически из класса/уровня (syncSpellSlots)
+  state.spellSlots[0] = { level:1, total:2, used:0 };
+  state.spellSlots[1] = { level:2, total:2, used:0 };
   state.inventory = [
-    { name: 'Кожаный доспех', qty: 1, icon: '🛡️' },
+    { name: 'Кожаный доспех', qty: 1, icon: '🥋' },
     { name: 'Серп', qty: 1, icon: '⚔️' },
     { name: 'Кинжал', qty: 3, icon: '🗡️' },
     { name: 'Магическая фокусировка (сфера)', qty: 1, icon: '🔮' },
     { name: 'Книга (оккультные знания)', qty: 1, icon: '📖' },
     { name: 'Набор учёного', qty: 1, icon: '🎒' },
-    { name: 'Воровские инструменты', qty: 1, icon: '🗝️' },
+    { name: 'Воровские инструменты', qty: 1, icon: '🔧' },
     { name: 'Игральные кости', qty: 1, icon: '🎲' },
-    { name: 'Спальник', qty: 1, icon: '🛏️' },
+    { name: 'Спальник', qty: 1, icon: '🎒' },
     { name: 'Одежда путешественника', qty: 1, icon: '🧥' },
     { name: 'Хрустальная дверная ручка', qty: 1, icon: '💎' },
     { name: 'Зелье', qty: 1, icon: '🧪' },
@@ -5180,26 +4665,8 @@ document.querySelectorAll('.modal-overlay').forEach(m=>{
 // Register Service Worker for offline support
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').then(reg => {
-      // Новая версия установилась поверх работающей — предложить перезапуск
-      reg.addEventListener('updatefound', () => {
-        const nw = reg.installing;
-        if(!nw) return;
-        nw.addEventListener('statechange', () => {
-          if(nw.state === 'installed' && navigator.serviceWorker.controller) showUpdateToast();
-        });
-      });
-    }).catch(()=>{});
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
   });
-}
-
-function showUpdateToast() {
-  if(document.getElementById('update-toast')) return;
-  const t = document.createElement('div');
-  t.id = 'update-toast';
-  t.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--stone);color:var(--gold-light);border:1px solid var(--gold);border-radius:14px;padding:12px 16px;font-family:"Cinzel",serif;font-size:13px;z-index:500;display:flex;align-items:center;gap:12px;animation:fadeInUp 0.3s ease;max-width:92vw';
-  t.innerHTML = '<span>Доступно обновление</span><button onclick="location.reload()" style="background:linear-gradient(135deg,var(--crimson),#6b0f0f);border:1px solid var(--gold);border-radius:8px;color:var(--gold-light);font-family:Cinzel,serif;font-size:12px;padding:7px 12px;cursor:pointer;letter-spacing:0.5px">ОБНОВИТЬ</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#c8a878;font-size:16px;cursor:pointer;padding:2px">✕</button>';
-  document.body.appendChild(t);
 }
 </script>
 </body>
