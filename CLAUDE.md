@@ -15,14 +15,16 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-**When changing `index.html`, bump `CACHE_NAME` in `sw.js`** (e.g. `dnd-hero-v15` → `dnd-hero-v16`). The service worker is cache-first; installed PWA clients will not receive changes until the cache version changes.
+**When changing `index.html`, bump `CACHE_NAME` in `sw.js`** (e.g. `dnd-hero-v16` → `dnd-hero-v17`) and the "версия N" label on the welcome screen in `index.html` (kept in sync manually). The service worker is cache-first; installed PWA clients will not receive changes until the cache version changes. The app shows an in-app "Доступно обновление" toast when a new service worker installs.
 
 ## File Layout
 
-- `index.html` — the whole app: `<style>` block (~line 18), HTML body (two screens: `screen-welcome`, `screen-main`; six tabs: character, spells, dice, inventory, notes, guide; modal overlays), and one `<script>` block starting ~line 2120.
-- `sw.js` — cache-first service worker precaching the app shell. It contains a network-only passthrough for `open5e.com`, but the app no longer calls that API — all data is local.
+- `index.html` — the whole app: `<style>` block (~line 18), HTML body (two screens: `screen-welcome`, `screen-main`; six tabs: character, spells, dice, inventory, notes, guide; modal overlays), and one `<script>` block.
+- `sw.js` — cache-first service worker precaching the app shell (including `fonts/`). It contains a network-only passthrough for `open5e.com`, but the app no longer calls that API — all data is local.
 - `manifest.json` — PWA manifest (Russian, portrait, standalone).
 - `icons/` — all icon sizes referenced by the manifest and `<head>`; keep `icons/icon-192.png` and `icons/icon-512.png` in sync with `sw.js`'s `ASSETS` list.
+- `fonts/` — self-hosted Cinzel (variable, 400–700) and Crimson Text woff2 (latin subset; neither font has Cyrillic — Russian text falls back to Georgia by design). Declared via `@font-face` in `index.html`, precached in `sw.js`.
+- `backup/` — snapshot of the pre-v16 version (`index.html`, `sw.js`, `manifest.json`), kept for rollback.
 
 ## JavaScript Architecture
 
@@ -50,9 +52,11 @@ All rules content lives in constants inside `index.html`, in Russian:
 - `QA_DB` — rules Q&A for the "AI helper" (fully local, keyword search; there is no actual AI/API call).
 - `CLASS_GUIDES` — per-class guide tab content.
 - Derived-stat logic uses `CLASS_HIT_DIE`, `CASTING_ABILITY`, `SKILLS_DATA`, `XP_TABLE`; class names are Russian strings ('Воин', 'Маг', 'Колдун', …) used as lookup keys — keep spelling consistent across all these tables.
+- Spell slot **totals are always computed** from class + level via `syncSpellSlots()` (SRD tables `FULL_CASTER_SLOTS` / `HALF_CASTER_SLOTS` / `PACT_SLOTS` for warlock); only `used` counts are user state. Never hand-edit slot totals in saves.
 
 ## Conventions
 
 - All UI text, data, and most code comments are in Russian; keep new UI strings in Russian.
-- The only external network dependency is the Google Fonts `@import` (Cinzel / Crimson Text) — everything else must stay offline-capable.
+- The app has **zero external network dependencies** (fonts are self-hosted) — keep it that way; everything must work fully offline.
 - Ability order is always СИЛ, ЛОВ, ТЕЛ, ИНТ, МУД, ХАР (indexes 0–5) across `state.abilities`, `saveProfs`, and `CASTING_ABILITY`.
+- On tablet/desktop widths (≥700px) the app is constrained to a 640px centered column via a media query; test layout changes at both 390px and wide widths.
