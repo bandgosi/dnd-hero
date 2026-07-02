@@ -401,6 +401,25 @@
     font-weight: 600;
   }
 
+  /* ---- БЛОКИ «ХАРАКТЕРИСТИКА → СПАСБРОСОК + НАВЫКИ» ---- */
+  .abl-block { margin-bottom: 16px; scroll-margin-top: 10px; }
+  .abl-block-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    color: var(--crimson);
+    letter-spacing: 1.5px;
+    border-bottom: 2px solid rgba(139,26,26,0.35);
+    padding-bottom: 4px;
+    margin-bottom: 2px;
+  }
+  .abl-block-mod { color: var(--ink-light); font-size: 12px; letter-spacing: 0.5px; }
+  .abl-block-score { color: var(--ink-light); font-size: 12px; }
+  .skill-row.save-row { background: rgba(200,150,42,0.08); border-radius: 6px; padding-left: 4px; padding-right: 4px; }
+  .skill-row.save-row .skill-name { font-style: italic; }
+
   /* Кликабельные (бросаемые) значения должны выглядеть кликабельными */
   .skill-row[onclick] { cursor: pointer; border-radius: 6px; transition: background 0.15s; }
   .skill-row[onclick]:active { background: rgba(200,150,42,0.18); }
@@ -577,6 +596,22 @@
 
   .slot-dot.used { background: transparent; border-color: #3a2060; }
   .slot-dot.available { background: #8060e0; box-shadow: 0 0 8px rgba(128,96,224,0.6); }
+  /* Дополнительные ячейки (предметы/черты) — золотые */
+  .slot-dot.bonus { border-color: var(--gold); }
+  .slot-dot.bonus.available { background: var(--gold-light); box-shadow: 0 0 8px rgba(240,192,64,0.6); }
+  .slot-dot.bonus.used { background: transparent; border-color: rgba(201,150,42,0.45); }
+
+  .add-slot-card {
+    background: transparent !important;
+    border: 1px dashed rgba(100,70,200,0.5) !important;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .add-slot-card .slot-level { color: #8878b0; }
+  .add-slot-card:active { border-color: #8060e0 !important; background: rgba(96,64,192,0.08) !important; }
 
   .spell-list { display: flex; flex-direction: column; gap: 8px; }
 
@@ -1588,7 +1623,7 @@
       <div class="welcome-divider"><span></span><i>◆</i><span></span></div>
       <div class="welcome-sub">Книга приключений всегда с тобой</div>
       <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-      <div class="welcome-version">версия 16</div>
+      <div class="welcome-version">версия 17</div>
     </div>
   </div>
 
@@ -1604,8 +1639,7 @@
       <div class="subtabs">
         <button class="subtab-btn active" onclick="switchSubtab('char','main',this)">Основное</button>
         <button class="subtab-btn" onclick="switchSubtab('char','combat',this)">Бой</button>
-        <button class="subtab-btn" onclick="switchSubtab('char','abilities',this)">Характеристики</button>
-        <button class="subtab-btn" onclick="switchSubtab('char','skills',this)">Навыки</button>
+        <button class="subtab-btn" onclick="switchSubtab('char','abilities',this)">Характеристики и навыки</button>
       </div>
       <div class="content" id="char-content">
 
@@ -1827,20 +1861,13 @@
               <!-- Rendered by JS -->
             </div>
           </div>
-          <div class="section">
-            <div class="section-title">Спасброски</div>
-            <div id="saving-throws-list" class="skills-list"></div>
-          </div>
-        </div>
-
-        <!-- SKILLS TAB -->
-        <div class="tab-content" id="char-skills">
-          <div class="section">
+          <div class="section" style="padding-top:0">
             <div class="section-title">Пассивные значения</div>
             <div class="combat-stats-grid" id="passive-block"></div>
           </div>
           <div class="section" style="padding-top:0">
-            <div class="skills-list" id="skills-list"></div>
+            <div class="section-title">Спасброски и навыки</div>
+            <div id="ability-blocks"></div>
           </div>
         </div>
 
@@ -2269,6 +2296,17 @@
   </div>
 </div>
 
+<!-- BONUS SPELL SLOTS -->
+<div class="modal-overlay" id="modal-bonus-slots" onclick="if(event.target===this)closeBonusSlots()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Дополнительные ячейки</div>
+    <div style="font-size:13px;color:var(--ink-light);margin-bottom:10px;line-height:1.5">Бонусные ячейки от магических предметов, черт или решения Мастера. Прибавляются к ячейкам класса и показываются золотым цветом.</div>
+    <div id="bonus-slots-list" style="margin-bottom:12px"></div>
+    <button class="primary-btn" onclick="closeBonusSlots()">Готово</button>
+  </div>
+</div>
+
 <!-- ITEM INFO (справка из базы знаний по предмету инвентаря) -->
 <div class="modal-overlay" id="modal-item-info" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal-sheet">
@@ -2331,6 +2369,7 @@ let state = {
   attacks: [],
   resources: [],
   concentrationSpell: null,
+  bonusSlots: [0,0,0,0,0,0,0,0,0],
   hitDice: { total: 1, used: 0, die: 8 }
 };
 
@@ -2427,7 +2466,7 @@ function renderAbilities() {
     const m = modStr(score);
     grid.innerHTML += `
       <div class="ability-card">
-        <div class="ability-name">${ABILITY_FULL[i]}</div>
+        <div class="ability-name" title="К навыкам" onclick="scrollToAbilityBlock(${i})" style="cursor:pointer">${ABILITY_FULL[i]}</div>
         <input class="ability-score" type="number" min="1" max="30" value="${score}" onchange="updateAbility(${i},this.value)">
         <div class="ability-mod roll-val" title="Бросить проверку" onclick="rollCheck('Проверка: ${ABILITY_FULL[i]}', ${mod(score)})">${m}</div>
       </div>`;
@@ -2445,48 +2484,61 @@ function updateAbility(i, val) {
   saveAll();
 }
 
-// ============ SKILLS ============
-function renderSkills() {
+// ============ SKILLS & SAVES (сгруппированы по характеристикам) ============
+// Навык и спасбросок — производные от характеристики, поэтому показываем их
+// единым блоком под каждой характеристикой.
+function renderAbilityBlocks() {
+  const el = document.getElementById('ability-blocks'); if(!el) return;
   const pb = profBonus();
-  document.getElementById('skills-list').innerHTML = SKILLS_DATA.map((sk,i)=>{
-    const attrIdx = ABILITIES.indexOf(sk.attr);
-    const base = mod(state.abilities[attrIdx]);
-    const bonus = base + (state.skillProfs[i] ? pb : 0);
-    const bStr = (bonus>=0?'+':'')+bonus;
-    return `<div class="skill-row" onclick="rollCheck('${sk.name}', ${bonus})" style="cursor:pointer">
-      <div class="skill-prof ${state.skillProfs[i]?'proficient':''}" onclick="event.stopPropagation();toggleSkillProf(${i})"></div>
-      <div class="skill-name">${sk.name} <span class="skill-attr">(${sk.attr})</span></div>
-      <div class="skill-bonus">${bStr}</div>
+  el.innerHTML = ABILITIES.map((ab,ai)=>{
+    const m = mod(state.abilities[ai]);
+    const saveBonus = m + (state.saveProfs[ai] ? pb : 0);
+    const sStr = (saveBonus>=0?'+':'')+saveBonus;
+    const saveRow = `<div class="skill-row save-row" onclick="rollCheck('Спас ${ABILITY_FULL[ai]}', ${saveBonus})">
+      <div class="skill-prof ${state.saveProfs[ai]?'proficient':''}" onclick="event.stopPropagation();toggleSaveProf(${ai})"></div>
+      <div class="skill-name">🛡 Спасбросок</div>
+      <div class="skill-bonus">${sStr}</div>
+    </div>`;
+    const skillRows = SKILLS_DATA.map((sk,i)=>({sk,i}))
+      .filter(x=>x.sk.attr===ab)
+      .sort((a,b)=>a.sk.name.localeCompare(b.sk.name,'ru'))
+      .map(({sk,i})=>{
+        const bonus = m + (state.skillProfs[i] ? pb : 0);
+        const bStr = (bonus>=0?'+':'')+bonus;
+        return `<div class="skill-row" onclick="rollCheck('${sk.name}', ${bonus})">
+          <div class="skill-prof ${state.skillProfs[i]?'proficient':''}" onclick="event.stopPropagation();toggleSkillProf(${i})"></div>
+          <div class="skill-name">${sk.name}</div>
+          <div class="skill-bonus">${bStr}</div>
+        </div>`;
+      }).join('');
+    return `<div class="abl-block" id="abl-block-${ai}">
+      <div class="abl-block-title"><span>${ABILITY_FULL[ai].toUpperCase()} <span class="abl-block-mod">${modStr(state.abilities[ai])}</span></span><span class="abl-block-score">${state.abilities[ai]}</span></div>
+      ${saveRow}${skillRows}
     </div>`;
   }).join('');
 }
 
+// Старые имена сохранены — их зовут из многих мест
+function renderSkills() { renderAbilityBlocks(); }
+function renderSavingThrows() { renderAbilityBlocks(); }
+
 function toggleSkillProf(i) {
   state.skillProfs[i] = !state.skillProfs[i];
-  renderSkills();
+  renderAbilityBlocks();
   renderPassives();
   saveAll();
 }
 
-// ============ SAVING THROWS ============
-function renderSavingThrows() {
-  const pb = profBonus();
-  document.getElementById('saving-throws-list').innerHTML = ABILITIES.map((ab,i)=>{
-    const base = mod(state.abilities[i]);
-    const bonus = base + (state.saveProfs[i] ? pb : 0);
-    const bStr = (bonus>=0?'+':'')+bonus;
-    return `<div class="skill-row" onclick="rollCheck('Спас ${ABILITY_FULL[i]}', ${bonus})" style="cursor:pointer">
-      <div class="skill-prof ${state.saveProfs[i]?'proficient':''}" onclick="event.stopPropagation();toggleSaveProf(${i})"></div>
-      <div class="skill-name">${ABILITY_FULL[i]}</div>
-      <div class="skill-bonus">${bStr}</div>
-    </div>`;
-  }).join('');
-}
-
 function toggleSaveProf(i) {
   state.saveProfs[i] = !state.saveProfs[i];
-  renderSavingThrows();
+  renderAbilityBlocks();
   saveAll();
+}
+
+// Тап по названию характеристики в карточке — скролл к её блоку навыков
+function scrollToAbilityBlock(i) {
+  const el = document.getElementById('abl-block-'+i);
+  if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 // ============ HP ============
@@ -2850,13 +2902,21 @@ function initSpellSlots() {
   state.spellSlots = Array.from({length:9},(_,i)=>({level:i+1,total:0,used:0}));
 }
 
-// Пересчитать тоталы ячеек по классу/уровню из полей формы, сохранив потраченные
+// Пересчитать тоталы ячеек по классу/уровню из полей формы, сохранив потраченные.
+// К базовым ячейкам класса прибавляются дополнительные (state.bonusSlots) —
+// от магических предметов, черт или решения Мастера.
 function syncSpellSlots() {
   const cls = document.getElementById('char-class')?.value;
   const lvl = parseInt(document.getElementById('char-level')?.value)||1;
   if(!state.spellSlots || state.spellSlots.length!==9) initSpellSlots();
+  if(!state.bonusSlots || state.bonusSlots.length!==9) state.bonusSlots = new Array(9).fill(0);
   const totals = slotTotalsFor(cls, lvl);
-  state.spellSlots.forEach((s,i)=>{ s.level=i+1; s.total=totals[i]; s.used=Math.min(s.used, s.total); });
+  state.spellSlots.forEach((s,i)=>{
+    s.level=i+1;
+    s.base=totals[i];
+    s.total=totals[i] + (state.bonusSlots[i]||0);
+    s.used=Math.min(s.used, s.total);
+  });
 }
 
 function renderSpellSlots() {
@@ -2868,14 +2928,44 @@ function renderSpellSlots() {
   state.spellSlots.forEach((slot,si)=>{
     if(!slot.total) return;
     any = true;
+    const base = slot.base!==undefined ? slot.base : slot.total;
     let dots='';
     for(let i=0;i<slot.total;i++){
       const avail = i < slot.total - slot.used;
-      dots+=`<div class="slot-dot ${avail?'available':'used'}" onclick="toggleSlot(${si},${i})"></div>`;
+      const isBonus = i >= base; // дополнительные ячейки рисуем золотыми
+      dots+=`<div class="slot-dot ${avail?'available':'used'} ${isBonus?'bonus':''}" onclick="toggleSlot(${si},${i})"></div>`;
     }
-    grid.innerHTML+=`<div class="spell-slot-card"><div class="slot-level">${slot.level} УРОВЕНЬ${isPact?' · ДОГОВОР':''}</div><div class="slot-dots">${dots}</div></div>`;
+    grid.innerHTML+=`<div class="spell-slot-card"><div class="slot-level">${slot.level} УРОВЕНЬ${isPact && base>0?' · ДОГОВОР':''}</div><div class="slot-dots">${dots}</div></div>`;
   });
   if(!any) grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--ink-light);font-style:italic;padding:8px 0;font-size:13px">${esc(cls||'Этот класс')} не использует ячейки заклинаний${isPact?'':' по базовым правилам'}</div>`;
+  grid.innerHTML += `<div class="spell-slot-card add-slot-card" onclick="openBonusSlots()"><div class="slot-level">＋ ДОП. ЯЧЕЙКИ</div><div style="font-size:11px;color:#8878b0;margin-top:4px">предметы, черты</div></div>`;
+}
+
+// ============ ДОПОЛНИТЕЛЬНЫЕ ЯЧЕЙКИ ============
+function openBonusSlots() {
+  renderBonusSlotsEditor();
+  document.getElementById('modal-bonus-slots').classList.add('open');
+}
+function closeBonusSlots() { document.getElementById('modal-bonus-slots').classList.remove('open'); }
+
+function renderBonusSlotsEditor() {
+  if(!state.bonusSlots || state.bonusSlots.length!==9) state.bonusSlots = new Array(9).fill(0);
+  const el = document.getElementById('bonus-slots-list');
+  el.innerHTML = state.bonusSlots.map((n,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(180,140,80,0.2)">
+      <div style="flex:1;font-family:Cinzel,serif;font-size:13px;color:var(--ink)">${i+1} уровень</div>
+      <button class="count-btn" onclick="changeBonusSlot(${i},-1)">−</button>
+      <span style="font-family:Cinzel,serif;font-size:16px;color:${n>0?'var(--crimson)':'var(--ink-light)'};min-width:22px;text-align:center">${n}</span>
+      <button class="count-btn" onclick="changeBonusSlot(${i},+1)">+</button>
+    </div>`).join('');
+}
+
+function changeBonusSlot(i, delta) {
+  state.bonusSlots[i] = Math.max(0, Math.min(8, (state.bonusSlots[i]||0)+delta));
+  syncSpellSlots();
+  renderSpellSlots();
+  renderBonusSlotsEditor();
+  saveAll();
 }
 
 function toggleSlot(si,di) {
@@ -3228,6 +3318,7 @@ function applyCharacter(data) {
   state.attacks = d.attacks || [];
   state.resources = d.resources || [];
   state.concentrationSpell = d.concentrationSpell || null;
+  state.bonusSlots = (d.bonusSlots && d.bonusSlots.length===9) ? d.bonusSlots : new Array(9).fill(0);
   const fields = (data && data.fields) || {};
   FIELD_IDS.forEach(id => { const el=document.getElementById(id); if(el && fields[id]!==undefined) el.value=fields[id]; });
   // Кости Хитов: берём из сейва или вычисляем по классу/уровню
@@ -3262,7 +3353,8 @@ function blankCharacterData() {
       spells:[], spellSlots:[], inventory:[], conditions:[],
       dsSuccess:[false,false,false], dsFailure:[false,false,false],
       rollHistory:[], diceCount:1, portrait:'⚔️', inspiration:false,
-      attacks:[], resources:[], concentrationSpell:null, hitDice:{total:1,used:0,die:10}
+      attacks:[], resources:[], concentrationSpell:null,
+      bonusSlots:[0,0,0,0,0,0,0,0,0], hitDice:{total:1,used:0,die:10}
     },
     fields: {
       'char-name':'Новый герой','char-class':'Воин','char-level':'1',

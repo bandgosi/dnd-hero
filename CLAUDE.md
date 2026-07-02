@@ -52,7 +52,8 @@ All rules content lives in constants inside `index.html`, in Russian:
 - `QA_DB` — rules Q&A for the "AI helper" (fully local, keyword search; there is no actual AI/API call).
 - `CLASS_GUIDES` — per-class guide tab content.
 - Derived-stat logic uses `CLASS_HIT_DIE`, `CASTING_ABILITY`, `SKILLS_DATA`, `XP_TABLE`; class names are Russian strings ('Воин', 'Маг', 'Колдун', …) used as lookup keys — keep spelling consistent across all these tables.
-- Spell slot **totals are always computed** from class + level via `syncSpellSlots()` (SRD tables `FULL_CASTER_SLOTS` / `HALF_CASTER_SLOTS` / `PACT_SLOTS` for warlock); only `used` counts are user state. Never hand-edit slot totals in saves.
+- Spell slot **totals are always computed** from class + level via `syncSpellSlots()` (SRD tables `FULL_CASTER_SLOTS` / `HALF_CASTER_SLOTS` / `PACT_SLOTS` for warlock) plus user-managed `state.bonusSlots` (9 ints, extra slots from items/feats, rendered as gold dots); only `used` and `bonusSlots` are user state. Never hand-edit computed slot totals in saves.
+- Skills and saving throws render as one grouped list (`renderAbilityBlocks()`, container `#ability-blocks`): one block per ability with its save first, then its skills. `renderSkills()`/`renderSavingThrows()` are thin aliases kept for call-site compatibility.
 
 ## Conventions
 
