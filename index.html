@@ -1610,6 +1610,100 @@
     color: var(--gold);
     letter-spacing: 0.5px;
   }
+
+  /* ============ ГЛУБИНА И ОРНАМЕНТ (полировка в духе DDB) ============ */
+
+  /* Лёгкое зерно + красное свечение сверху вместо плоской заливки */
+  .content {
+    background:
+      radial-gradient(ellipse 130% 50% at 50% -8%, rgba(224,67,67,0.06), transparent 60%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='linear' slope='0.04'/></feComponentTransfer></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
+      var(--surface);
+  }
+
+  /* Карточки: вертикальный градиент + подсвеченная верхняя кромка + тень */
+  .combat-stat, .dice-btn, .coin-card, .spell-slot-card, .dice-result-area,
+  .ability-card, .inspiration-bar, .modal-sheet, .modifier-row {
+    background: linear-gradient(180deg, #242b35 0%, #1a2027 100%);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-top-color: rgba(255,255,255,0.18);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .hp-section {
+    background: linear-gradient(180deg, #33161a 0%, #1d0c0e 100%);
+    border: 1px solid rgba(224,67,67,0.45);
+    border-top-color: rgba(255,120,120,0.5);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.45), 0 0 30px rgba(224,67,67,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .modal-sheet { border-radius: 20px 20px 0 0; }
+
+  /* Фирменные срезанные углы DDB на статовых плитках */
+  .combat-stat, .spell-slot-card, .dice-btn {
+    border-radius: 4px;
+    clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% calc(100% - 9px), calc(100% - 9px) 100%, 9px 100%, 0 calc(100% - 9px), 0 9px);
+  }
+
+  /* КД в силуэте щита */
+  .combat-stat.ac-shield {
+    clip-path: none;
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 52'><path d='M23 2 L42 8 V21 C42 33 34 42 23 49 C12 42 4 33 4 21 V8 Z' fill='rgba(201,160,58,0.07)' stroke='%23c9a03a' stroke-width='1.6'/></svg>"),
+      linear-gradient(180deg, #242b35 0%, #1a2027 100%);
+    background-repeat: no-repeat, no-repeat;
+    background-position: center 4px, center;
+    background-size: auto 68%, cover;
+  }
+
+  /* Модификатор характеристики — «таблетка», нависающая над нижней кромкой */
+  .ability-card { overflow: visible; }
+  .ability-mod.roll-val {
+    background: var(--card-2);
+    border: 1px solid rgba(224,67,67,0.45);
+    border-radius: 999px;
+    padding: 2px 14px;
+    margin-top: 4px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+  }
+
+  /* Портрет: двойное кольцо со свечением */
+  .char-portrait {
+    border: none;
+    box-shadow: 0 0 0 2px var(--gold), 0 0 0 5px var(--bg), 0 0 0 6px rgba(201,160,58,0.35), 0 8px 24px rgba(0,0,0,0.5), 0 0 30px rgba(201,160,58,0.15);
+  }
+
+  /* Заголовки секций: красный ромб-маркер */
+  .section-title { display: flex; align-items: center; gap: 8px; }
+  .section-title::before { content: ''; width: 6px; height: 6px; background: var(--crimson); transform: rotate(45deg); flex-shrink: 0; }
+
+  /* Шапка: мягкое свечение за заголовком */
+  .page-header { background: radial-gradient(ellipse 70% 130% at 50% 0%, #1b212b 0%, var(--stone) 75%); }
+
+  /* Кнопки: градиент + светлая кромка + нажатие */
+  .primary-btn {
+    background: linear-gradient(180deg, #e85050 0%, #c02b2b 100%);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(224,67,67,0.25), inset 0 1px 0 rgba(255,255,255,0.25);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .primary-btn:active { transform: translateY(1px) scale(0.99); box-shadow: 0 2px 6px rgba(224,67,67,0.2), inset 0 1px 0 rgba(255,255,255,0.15); }
+  .welcome-btn { box-shadow: 0 6px 24px rgba(224,67,67,0.35), inset 0 1px 0 rgba(255,255,255,0.3); }
+
+  /* Область результата броска: внутренняя виньетка */
+  .dice-result-area { box-shadow: 0 6px 16px rgba(0,0,0,0.35), inset 0 0 46px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05); }
+  .dice-btn:active { border-color: var(--gold); box-shadow: 0 0 14px rgba(201,160,58,0.35), inset 0 1px 0 rgba(255,255,255,0.05); }
+
+  /* Навигация: активная вкладка с точкой-самоцветом */
+  .nav-btn { position: relative; }
+  .nav-btn.active::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    width: 4px;
+    height: 4px;
+    background: var(--crimson-light);
+    transform: rotate(45deg);
+    box-shadow: 0 0 8px rgba(255,92,92,0.9);
+  }
 </style>
 </head>
 <body>
@@ -1776,7 +1870,7 @@
           <div class="section" style="padding-top:0">
             <div class="section-title">Боевые характеристики</div>
             <div class="combat-stats-grid">
-              <div class="combat-stat">
+              <div class="combat-stat ac-shield">
                 <input class="combat-stat-val" type="number" id="stat-ac" value="10" onchange="saveAll()">
                 <div class="combat-stat-label">БРОНЯ</div>
               </div>
