@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="D&D Герой">
-<meta name="theme-color" content="#1a0f00">
+<meta name="theme-color" content="#0c0f13">
 <title>D&D Герой</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
@@ -47,22 +47,31 @@
   }
 
   :root {
-    --parchment: #f5ead6;
-    --parchment-dark: #e8d5b0;
-    --ink: #2c1a08;
-    --ink-light: #5a3a1a;
-    --crimson: #8b1a1a;
-    --crimson-light: #c0392b;
-    --gold: #c9962a;
-    --gold-light: #f0c040;
-    --stone: #3a3028;
-    --stone-light: #5a4a38;
-    --shadow: rgba(0,0,0,0.4);
+    /* Тёмная палитра в духе D&D Beyond: графит + красный + приглушённое золото.
+       Имена переменных исторические: --parchment теперь СВЕТЛЫЙ ТЕКСТ на тёмном,
+       --ink тоже светлый текст (бывший «чернильный» на пергаменте). */
+    --bg: #0c0f13;            /* фон приложения / хром */
+    --surface: #14181e;       /* фон контента */
+    --card: #1d232b;          /* карточки */
+    --card-2: #252c36;        /* приподнятые элементы */
+    --line: rgba(255,255,255,0.09);   /* тонкие границы */
+    --parchment: #e9ecf1;
+    --parchment-dark: rgba(255,255,255,0.16);
+    --ink: #e9ecf1;
+    --ink-light: #97a1ad;
+    --crimson: #e04343;
+    --crimson-light: #ff5c5c;
+    --gold: #c9a03a;
+    --gold-light: #f0c657;
+    --stone: #12161c;
+    --stone-light: #2a313c;
+    --shadow: rgba(0,0,0,0.5);
     --safe-top: env(safe-area-inset-top);
     --safe-bottom: env(safe-area-inset-bottom);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  input, select, textarea, button { font-family: inherit; }
 
   html {
     height: 100%;
@@ -70,8 +79,8 @@
   }
 
   body {
-    font-family: 'Crimson Text', Georgia, serif;
-    background: #1a0f00;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg);
     color: var(--ink);
     min-height: 100vh;
     min-height: -webkit-fill-available;
@@ -92,7 +101,7 @@
 
   /* На планшете/десктопе не растягиваемся на всю ширину — лист по центру */
   @media (min-width: 700px) {
-    body { background: radial-gradient(ellipse at 50% 0%, #2a1a06 0%, #1a0f00 55%, #120a00 100%); }
+    body { background: radial-gradient(ellipse at 50% 0%, #1a2028 0%, #0c0f13 60%); }
     .app {
       max-width: 640px;
       margin: 0 auto;
@@ -108,7 +117,7 @@
   /* ---- NAV BAR ---- */
   .nav-bar {
     background: var(--stone);
-    border-top: 2px solid var(--gold);
+    border-top: 1px solid var(--line);
     display: flex;
     justify-content: space-around;
     padding-bottom: var(--safe-bottom);
@@ -127,7 +136,7 @@
     padding: 8px 4px;
     background: none;
     border: none;
-    color: #c8a878;
+    color: #8a94a1;
     font-family: 'Cinzel', serif;
     font-size: 10px;
     letter-spacing: 0.5px;
@@ -135,14 +144,15 @@
     transition: color 0.2s;
   }
 
-  .nav-btn.active { color: var(--gold-light); }
+  .nav-btn.active { color: var(--crimson-light); }
   .nav-btn svg { width: 22px; height: 22px; }
 
   /* ---- PAGE HEADER ---- */
   .page-header {
-    background: linear-gradient(135deg, var(--stone) 0%, #2a1f10 100%);
-    border-bottom: 2px solid var(--gold);
-    padding: calc(var(--safe-top) + 12px) 16px 12px;
+    background: var(--stone);
+    border-bottom: 1px solid var(--line);
+    box-shadow: inset 0 3px 0 var(--crimson); /* красная акцентная полоса сверху, как у DDB */
+    padding: calc(var(--safe-top) + 15px) 16px 12px;
     text-align: center;
     flex-shrink: 0;
   }
@@ -152,14 +162,12 @@
     font-size: 20px;
     color: #ffffff;
     letter-spacing: 2px;
-    text-shadow: 0 1px 12px rgba(240,192,64,0.6);
   }
 
   .page-header p {
     font-size: 12px;
-    color: #d4b896;
+    color: #8a94a1;
     margin-top: 2px;
-    font-style: italic;
   }
 
   /* ---- CONTENT AREA ---- */
@@ -170,10 +178,7 @@
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
     overscroll-behavior-y: contain;
-    background: var(--parchment);
-    background-image:
-      radial-gradient(ellipse at 20% 50%, rgba(180,140,80,0.08) 0%, transparent 60%),
-      repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(180,140,80,0.08) 29px);
+    background: var(--surface);
   }
 
   .section { padding: 16px; }
@@ -181,12 +186,12 @@
 
   .section-title {
     font-family: 'Cinzel', serif;
-    font-size: 13px;
-    color: var(--crimson);
+    font-size: 12px;
+    color: #8a94a1;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    border-bottom: 1px solid var(--crimson);
-    padding-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 6px;
     margin-bottom: 12px;
   }
 
@@ -232,7 +237,6 @@
   .meta-field { text-align: center; }
   .meta-label { font-size: 10px; color: var(--ink-light); letter-spacing: 1px; text-transform: uppercase; }
   .meta-select, .meta-input {
-    font-family: 'Crimson Text', serif;
     font-size: 16px;
     color: var(--ink);
     background: transparent;
@@ -297,7 +301,7 @@
     height: 44px;
     border-radius: 50%;
     border: 2px solid var(--crimson);
-    background: rgba(139,26,26,0.3);
+    background: rgba(224,67,67,0.25);
     color: #e08080;
     font-size: 22px;
     font-weight: bold;
@@ -308,7 +312,7 @@
     transition: all 0.15s;
     -webkit-user-select: none;
   }
-  .icon-btn:active { transform: scale(0.9); background: rgba(139,26,26,0.6); }
+  .icon-btn:active { transform: scale(0.9); background: rgba(224,67,67,0.45); }
 
   /* ---- ABILITY SCORES ---- */
   .abilities-grid {
@@ -318,9 +322,9 @@
   }
 
   .ability-card {
-    background: linear-gradient(135deg, var(--stone), var(--stone-light));
-    border: 1px solid var(--gold);
-    border-radius: 8px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
     padding: 10px 8px;
     text-align: center;
     position: relative;
@@ -366,7 +370,7 @@
     align-items: center;
     gap: 10px;
     padding: 8px 0;
-    border-bottom: 1px solid rgba(180,140,80,0.2);
+    border-bottom: 1px solid rgba(255,255,255,0.11);
   }
 
   .skill-prof {
@@ -411,13 +415,13 @@
     font-size: 13px;
     color: var(--crimson);
     letter-spacing: 1.5px;
-    border-bottom: 2px solid rgba(139,26,26,0.35);
+    border-bottom: 2px solid rgba(224,67,67,0.4);
     padding-bottom: 4px;
     margin-bottom: 2px;
   }
   .abl-block-mod { color: var(--ink-light); font-size: 12px; letter-spacing: 0.5px; }
   .abl-block-score { color: var(--ink-light); font-size: 12px; }
-  .skill-row.save-row { background: rgba(200,150,42,0.08); border-radius: 6px; padding-left: 4px; padding-right: 4px; }
+  .skill-row.save-row { background: rgba(255,255,255,0.04); border-radius: 6px; padding-left: 4px; padding-right: 4px; }
   .skill-row.save-row .skill-name { font-style: italic; }
 
   /* Кликабельные (бросаемые) значения должны выглядеть кликабельными */
@@ -425,14 +429,14 @@
   .skill-row[onclick]:active { background: rgba(200,150,42,0.18); }
   @media (hover: hover) { .skill-row[onclick]:hover { background: rgba(200,150,42,0.10); } }
   .skill-row[onclick] .skill-bonus {
-    border: 1px dashed rgba(139,26,26,0.5);
+    border: 1px dashed rgba(224,67,67,0.5);
     border-radius: 8px;
     padding: 2px 9px;
     text-align: center;
   }
   .roll-val { cursor: pointer; border-bottom: 1px dashed rgba(240,192,64,0.55); transition: color 0.15s, text-shadow 0.15s; }
   .roll-val:active { color: var(--gold-light); text-shadow: 0 0 12px rgba(240,192,64,0.8); }
-  .ability-mod.roll-val { display: inline-block; border-bottom-color: rgba(139,26,26,0.45); }
+  .ability-mod.roll-val { display: inline-block; border-bottom-color: rgba(224,67,67,0.45); }
 
   /* ---- DICE ROLLER ---- */
   .dice-grid {
@@ -443,8 +447,8 @@
   }
 
   .dice-btn {
-    background: linear-gradient(135deg, var(--stone), #1a1208);
-    border: 2px solid var(--gold);
+    background: var(--card);
+    border: 1px solid var(--line);
     border-radius: 10px;
     padding: 12px 8px;
     text-align: center;
@@ -480,8 +484,8 @@
   .advdis-dis { background: rgba(100,30,30,0.3); border: 1px solid #803030; color: #d09090; }
 
   .dice-result-area {
-    background: linear-gradient(135deg, var(--stone), #1a1208);
-    border: 2px solid var(--gold);
+    background: var(--card);
+    border: 1px solid var(--line);
     border-radius: 16px;
     padding: 20px;
     text-align: center;
@@ -531,7 +535,7 @@
   }
 
   .dice-result-label { font-family: 'Cinzel', serif; font-size: 13px; color: var(--gold); letter-spacing: 2px; margin-top: 6px; }
-  .dice-result-history { font-size: 12px; color: #a08060; margin-top: 4px; font-style: italic; }
+  .dice-result-history { font-size: 12px; color: #8d97a3; margin-top: 4px; font-style: italic; }
 
   .modifier-row {
     display: flex;
@@ -586,11 +590,11 @@
   }
 
   /* ---- РЕСУРСЫ КЛАССА ---- */
-  .resource-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(180,140,80,0.2); }
+  .resource-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.11); }
   .resource-name { font-family: 'Cinzel', serif; font-size: 13px; color: var(--ink); }
   .resource-meta { font-size: 11px; color: var(--ink-light); font-style: italic; }
   .resource-row .slot-dots { justify-content: flex-end; max-width: 45%; }
-  .res-dot { border-color: rgba(139,26,26,0.5); }
+  .res-dot { border-color: rgba(224,67,67,0.5); }
   .res-dot.available { background: var(--crimson-light); box-shadow: 0 0 6px rgba(192,57,43,0.45); border-color: var(--crimson); }
   .res-dot.used { background: transparent; }
 
@@ -658,11 +662,10 @@
   .notes-textarea {
     width: 100%;
     min-height: 200px;
-    background: rgba(240,220,180,0.3);
+    background: rgba(255,255,255,0.076);
     border: 1px solid var(--parchment-dark);
     border-radius: 8px;
     padding: 12px;
-    font-family: 'Crimson Text', serif;
     font-size: 16px;
     color: var(--ink);
     resize: vertical;
@@ -678,7 +681,7 @@
     align-items: center;
     gap: 10px;
     padding: 10px 0;
-    border-bottom: 1px solid rgba(180,140,80,0.2);
+    border-bottom: 1px solid rgba(255,255,255,0.11);
   }
 
   .inv-icon { font-size: 20px; width: 32px; text-align: center; }
@@ -694,10 +697,9 @@
 
   .add-input {
     flex: 1;
-    font-family: 'Crimson Text', serif;
     font-size: 16px;
     padding: 8px 12px;
-    background: rgba(240,220,180,0.3);
+    background: rgba(255,255,255,0.076);
     border: 1px solid var(--parchment-dark);
     border-radius: 8px;
     color: var(--ink);
@@ -728,7 +730,7 @@
   }
 
   .coin-card {
-    background: linear-gradient(135deg, #2a2010, #1a1408);
+    background: var(--card);
     border-radius: 10px;
     padding: 10px 6px;
     text-align: center;
@@ -742,7 +744,7 @@
   .coin-card.pp { border-color: #E5E4E2; }
 
   .coin-symbol { font-size: 20px; display: block; }
-  .coin-name { font-size: 9px; color: #a08060; letter-spacing: 0.5px; font-family: 'Cinzel', serif; }
+  .coin-name { font-size: 9px; color: #8d97a3; letter-spacing: 0.5px; font-family: 'Cinzel', serif; }
   .coin-input {
     font-family: 'Cinzel', serif;
     font-size: 18px;
@@ -759,8 +761,8 @@
   .combat-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
 
   .combat-stat {
-    background: linear-gradient(135deg, var(--stone), #1a1208);
-    border: 2px solid var(--gold);
+    background: var(--card);
+    border: 1px solid var(--line);
     border-radius: 10px;
     padding: 10px;
     text-align: center;
@@ -846,8 +848,8 @@
   .inspiration-bar.active { background: rgba(200,150,42,0.3); }
   .insp-star { font-size: 28px; transition: transform 0.3s; }
   .inspiration-bar.active .insp-star { transform: scale(1.3); }
-  .insp-text { font-family: 'Cinzel', serif; font-size: 14px; color: #8a6410; letter-spacing: 1px; }
-  .insp-status { font-size: 12px; color: #7a5c2e; font-style: italic; }
+  .insp-text { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold-light); letter-spacing: 1px; }
+  .insp-status { font-size: 12px; color: #9aa3ad; font-style: italic; }
   .inspiration-bar.active .insp-text { color: var(--crimson); }
 
   /* ---- MODAL ---- */
@@ -864,8 +866,8 @@
   .modal-overlay.open { display: flex; }
 
   .modal-sheet {
-    background: var(--parchment);
-    background-image: radial-gradient(ellipse at 30% 50%, rgba(180,140,80,0.1), transparent 60%);
+    background: var(--card);
+    border-top: 1px solid var(--line);
     border-radius: 20px 20px 0 0;
     padding: 20px 16px calc(var(--safe-bottom) + 20px);
     width: 100%;
@@ -877,10 +879,9 @@
   .modal-title { font-family: 'Cinzel', serif; font-size: 18px; color: var(--crimson); margin-bottom: 16px; text-align: center; letter-spacing: 1px; }
 
   .input-field {
-    font-family: 'Crimson Text', serif;
     font-size: 16px;
     color: var(--ink);
-    background: rgba(240,220,180,0.4);
+    background: rgba(255,255,255,0.088);
     border: 1px solid var(--parchment-dark);
     border-radius: 8px;
     width: 100%;
@@ -907,7 +908,7 @@
 
   /* ---- WELCOME SCREEN ---- */
   .welcome-bg {
-    background: linear-gradient(160deg, #1a0f00 0%, #0d0820 50%, #1a0f00 100%);
+    background: radial-gradient(ellipse at 50% 30%, #1b2029 0%, #0c0f13 70%);
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -936,20 +937,20 @@
   .welcome-divider span:last-child { background: linear-gradient(90deg, var(--gold), transparent); }
   .welcome-divider i { font-style: normal; font-size: 10px; }
 
-  .welcome-sub { font-family: 'Crimson Text', serif; font-style: italic; font-size: 16px; color: #a08060; text-align: center; margin-bottom: 40px; }
-  .welcome-version { margin-top: 28px; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 1px; color: #6a5238; }
+  .welcome-sub { font-family: 'Crimson Text', serif; font-style: italic; font-size: 16px; color: #8d97a3; text-align: center; margin-bottom: 40px; }
+  .welcome-version { margin-top: 28px; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 1px; color: #5b6572; }
 
   .welcome-btn {
-    background: linear-gradient(135deg, var(--crimson), #6b0f0f);
-    border: 2px solid var(--gold);
+    background: linear-gradient(135deg, #e04343, #b32424);
+    border: none;
     border-radius: 14px;
     padding: 18px 48px;
     font-family: 'Cinzel', serif;
     font-size: 16px;
     letter-spacing: 2px;
-    color: var(--gold-light);
+    color: #ffffff;
     cursor: pointer;
-    box-shadow: 0 4px 30px rgba(139,26,26,0.5);
+    box-shadow: 0 4px 30px rgba(224,67,67,0.5);
     transition: all 0.3s;
   }
 
@@ -960,7 +961,7 @@
   .ai-overlay {
     position: fixed;
     inset: 0;
-    background: linear-gradient(160deg, #0d0820 0%, #1a0f00 100%);
+    background: linear-gradient(160deg, #171c24 0%, #0c0f13 100%);
     z-index: 300;
     display: none;
     flex-direction: column;
@@ -1020,7 +1021,7 @@
     background: transparent;
     font-family: 'Cinzel', serif;
     font-size: 10px;
-    color: #a08060;
+    color: #8d97a3;
     letter-spacing: 0.5px;
     white-space: nowrap;
     cursor: pointer;
@@ -1040,11 +1041,10 @@
 
   .ai-search-input {
     flex: 1;
-    background: rgba(240,220,180,0.08);
+    background: rgba(255,255,255,0.05);
     border: 1px solid rgba(200,150,42,0.4);
     border-radius: 10px;
     padding: 10px 14px;
-    font-family: 'Crimson Text', serif;
     font-size: 16px;
     color: var(--parchment);
     -webkit-appearance: none;
@@ -1116,7 +1116,7 @@
   }
 
   .ai-result-card {
-    background: rgba(240,220,180,0.05);
+    background: rgba(255,255,255,0.046);
     border: 1px solid rgba(200,150,42,0.3);
     border-radius: 14px;
     overflow: hidden;
@@ -1217,12 +1217,12 @@
 
   .ai-suggestion {
     padding: 10px 14px;
-    background: rgba(240,220,180,0.05);
+    background: rgba(255,255,255,0.046);
     border: 1px solid rgba(200,150,42,0.2);
     border-radius: 8px;
     font-family: 'Cinzel', serif;
     font-size: 12px;
-    color: #a08060;
+    color: #8d97a3;
     cursor: pointer;
     text-align: left;
     letter-spacing: 0.5px;
@@ -1233,8 +1233,8 @@
 
   /* ---- GUIDE / СПРАВОЧНИК ---- */
   .guide-card {
-    background: rgba(240,220,180,0.15);
-    border: 1px solid rgba(180,140,80,0.3);
+    background: rgba(255,255,255,0.058);
+    border: 1px solid rgba(255,255,255,0.14);
     border-radius: 12px;
     padding: 12px 14px;
     margin-bottom: 16px;
@@ -1273,7 +1273,7 @@
     align-items: center;
     gap: 10px;
     padding: 6px 0;
-    border-bottom: 1px solid rgba(180,140,80,0.15);
+    border-bottom: 1px solid rgba(255,255,255,0.095);
     font-size: 13px;
     color: var(--ink-light);
     line-height: 1.4;
@@ -1285,17 +1285,17 @@
     font-size: 10px;
     padding: 3px 8px;
     border-radius: 8px;
-    background: rgba(139,26,26,0.15);
+    background: rgba(224,67,67,0.14);
     color: var(--crimson);
-    border: 1px solid rgba(139,26,26,0.3);
+    border: 1px solid rgba(224,67,67,0.25);
     white-space: nowrap;
     flex-shrink: 0;
     letter-spacing: 0.5px;
   }
 
   .tip-card {
-    background: rgba(240,220,180,0.12);
-    border: 1px solid rgba(180,140,80,0.25);
+    background: rgba(255,255,255,0.054);
+    border: 1px solid rgba(255,255,255,0.125);
     border-left: 4px solid var(--gold);
     border-radius: 10px;
     padding: 14px;
@@ -1410,11 +1410,11 @@
   .level-filter-btn {
     padding: 6px 12px;
     border-radius: 16px;
-    border: 1px solid rgba(180,140,80,0.3);
+    border: 1px solid rgba(255,255,255,0.14);
     background: transparent;
     font-family: 'Cinzel', serif;
     font-size: 10px;
-    color: #a08060;
+    color: #8d97a3;
     cursor: pointer;
     letter-spacing: 0.5px;
     transition: all 0.2s;
@@ -1442,11 +1442,11 @@
   .helper-cat {
     padding: 6px 12px;
     border-radius: 16px;
-    border: 1px solid rgba(180,140,80,0.3);
+    border: 1px solid rgba(255,255,255,0.14);
     background: transparent;
     font-family: Cinzel, serif;
     font-size: 10px;
-    color: #a08060;
+    color: #8d97a3;
     cursor: pointer;
     letter-spacing: 0.5px;
     transition: all 0.2s;
@@ -1530,14 +1530,14 @@
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
-    background: rgba(240,220,180,0.04);
-    border: 1px solid rgba(180,140,80,0.15);
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.095);
     border-radius: 10px;
     margin-bottom: 6px;
     cursor: pointer;
     transition: all 0.15s;
   }
-  .helper-q-item:active { background: rgba(240,220,180,0.1); border-color: var(--gold); }
+  .helper-q-item:active { background: rgba(255,255,255,0.052); border-color: var(--gold); }
   .helper-q-icon { font-size: 18px; flex-shrink: 0; }
   .helper-q-text { font-size: 14px; color: var(--ink-light); line-height: 1.4; }
 
@@ -1561,7 +1561,7 @@
   .subtabs {
     display: flex;
     background: rgba(0,0,0,0.15);
-    border-bottom: 1px solid rgba(180,140,80,0.3);
+    border-bottom: 1px solid rgba(255,255,255,0.14);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -1576,7 +1576,7 @@
     flex: 0 0 28px;
     margin-left: -28px;
     align-self: stretch;
-    background: linear-gradient(90deg, transparent, rgba(15,10,3,0.85));
+    background: linear-gradient(90deg, transparent, rgba(10,13,17,0.9));
     pointer-events: none;
   }
   .subtab-btn {
@@ -1586,7 +1586,7 @@
     border-bottom: 2px solid transparent;
     font-family: 'Cinzel', serif;
     font-size: 11px;
-    color: #d4b896;
+    color: #98a2ae;
     letter-spacing: 1px;
     white-space: nowrap;
     cursor: pointer;
@@ -1610,6 +1610,134 @@
     color: var(--gold);
     letter-spacing: 0.5px;
   }
+
+  /* ============ ГЛУБИНА И ОРНАМЕНТ (полировка в духе DDB) ============ */
+
+  /* Лёгкое зерно + красное свечение сверху вместо плоской заливки */
+  .content {
+    background:
+      radial-gradient(ellipse 130% 50% at 50% -8%, rgba(224,67,67,0.06), transparent 60%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='linear' slope='0.04'/></feComponentTransfer></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
+      var(--surface);
+  }
+
+  /* Карточки: вертикальный градиент + подсвеченная верхняя кромка + тень */
+  .combat-stat, .dice-btn, .coin-card, .spell-slot-card, .dice-result-area,
+  .ability-card, .inspiration-bar, .modal-sheet, .modifier-row {
+    background: linear-gradient(180deg, #242b35 0%, #1a2027 100%);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-top-color: rgba(255,255,255,0.18);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .hp-section {
+    background: linear-gradient(180deg, #33161a 0%, #1d0c0e 100%);
+    border: 1px solid rgba(224,67,67,0.45);
+    border-top-color: rgba(255,120,120,0.5);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.45), 0 0 30px rgba(224,67,67,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .modal-sheet { border-radius: 20px 20px 0 0; }
+
+  /* Фирменные срезанные углы DDB на статовых плитках */
+  .combat-stat, .spell-slot-card, .dice-btn {
+    border-radius: 4px;
+    clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% calc(100% - 9px), calc(100% - 9px) 100%, 9px 100%, 0 calc(100% - 9px), 0 9px);
+  }
+
+  /* КД в силуэте щита */
+  .combat-stat.ac-shield {
+    clip-path: none;
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 52'><path d='M23 2 L42 8 V21 C42 33 34 42 23 49 C12 42 4 33 4 21 V8 Z' fill='rgba(201,160,58,0.07)' stroke='%23c9a03a' stroke-width='1.6'/></svg>"),
+      linear-gradient(180deg, #242b35 0%, #1a2027 100%);
+    background-repeat: no-repeat, no-repeat;
+    background-position: center 4px, center;
+    background-size: auto 68%, cover;
+  }
+
+  /* Модификатор характеристики — «таблетка», нависающая над нижней кромкой */
+  .ability-card { overflow: visible; }
+  .ability-mod.roll-val {
+    background: var(--card-2);
+    border: 1px solid rgba(224,67,67,0.45);
+    border-radius: 999px;
+    padding: 2px 14px;
+    margin-top: 4px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+  }
+
+  /* Портрет: двойное кольцо со свечением */
+  .char-portrait {
+    border: none;
+    box-shadow: 0 0 0 2px var(--gold), 0 0 0 5px var(--bg), 0 0 0 6px rgba(201,160,58,0.35), 0 8px 24px rgba(0,0,0,0.5), 0 0 30px rgba(201,160,58,0.15);
+  }
+
+  /* Заголовки секций: красный ромб-маркер */
+  .section-title { display: flex; align-items: center; gap: 8px; }
+  .section-title::before { content: ''; width: 6px; height: 6px; background: var(--crimson); transform: rotate(45deg); flex-shrink: 0; }
+
+  /* Шапка: мягкое свечение за заголовком */
+  .page-header { background: radial-gradient(ellipse 70% 130% at 50% 0%, #1b212b 0%, var(--stone) 75%); }
+
+  /* Кнопки: градиент + светлая кромка + нажатие */
+  .primary-btn {
+    background: linear-gradient(180deg, #e85050 0%, #c02b2b 100%);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(224,67,67,0.25), inset 0 1px 0 rgba(255,255,255,0.25);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .primary-btn:active { transform: translateY(1px) scale(0.99); box-shadow: 0 2px 6px rgba(224,67,67,0.2), inset 0 1px 0 rgba(255,255,255,0.15); }
+  .welcome-btn { box-shadow: 0 6px 24px rgba(224,67,67,0.35), inset 0 1px 0 rgba(255,255,255,0.3); }
+
+  /* Область результата броска: внутренняя виньетка */
+  .dice-result-area { box-shadow: 0 6px 16px rgba(0,0,0,0.35), inset 0 0 46px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05); }
+  .dice-btn:active { border-color: var(--gold); box-shadow: 0 0 14px rgba(201,160,58,0.35), inset 0 1px 0 rgba(255,255,255,0.05); }
+
+  /* Классовый баннер-обложка на «Основном» */
+  .hero-banner {
+    position: relative;
+    padding: 22px 16px 14px;
+    border-bottom: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .hero-crest {
+    position: absolute;
+    right: -18px;
+    top: -10px;
+    width: 160px;
+    height: 160px;
+    opacity: 0.14;
+    transform: rotate(10deg);
+    pointer-events: none;
+  }
+  .hero-crest svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .crest-watermark { position: absolute; right: -16px; top: -10px; width: 130px; height: 130px; opacity: 0.16; transform: rotate(10deg); pointer-events: none; }
+  .crest-watermark svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .hero-banner .char-name-input { border-bottom-color: rgba(255,255,255,0.25); }
+
+  /* Сетка эмодзи в выборе портрета */
+  .emoji-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 14px; }
+  .emoji-grid button {
+    font-size: 26px;
+    padding: 8px 0;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .emoji-grid button.picked { background: rgba(224,67,67,0.2); border-color: var(--crimson); }
+
+  /* Навигация: активная вкладка с точкой-самоцветом */
+  .nav-btn { position: relative; }
+  .nav-btn.active::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    width: 4px;
+    height: 4px;
+    background: var(--crimson-light);
+    transform: rotate(45deg);
+    box-shadow: 0 0 8px rgba(255,92,92,0.9);
+  }
 </style>
 </head>
 <body>
@@ -1623,7 +1751,7 @@
       <div class="welcome-divider"><span></span><i>◆</i><span></span></div>
       <div class="welcome-sub">Книга приключений всегда с тобой</div>
       <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-      <div class="welcome-version">версия 17</div>
+      <div class="welcome-version">версия 19</div>
     </div>
   </div>
 
@@ -1645,11 +1773,16 @@
 
         <!-- MAIN TAB -->
         <div class="tab-content active" id="char-main">
-          <div class="section">
-            <div class="char-portrait" onclick="changeEmoji()">
+          <!-- Классовый баннер-обложка: цвет и герб зависят от класса -->
+          <div class="hero-banner" id="hero-banner">
+            <div class="hero-crest" id="hero-crest"></div>
+            <div class="char-portrait" onclick="openPortraitPicker()" title="Сменить портрет">
               <span id="portrait-emoji">⚔️</span>
+              <img id="portrait-img" alt="" style="display:none">
             </div>
             <input class="char-name-input" id="char-name" type="text" value="Игрок" placeholder="Имя персонажа">
+          </div>
+          <div class="section">
             <div class="char-meta">
               <div class="meta-field">
                 <div class="meta-label">Класс</div>
@@ -1692,7 +1825,7 @@
               <span style="font-size:13px;color:var(--ink-light)" id="xp-next">/ 300 XP до ур.2</span>
             </div>
             <div class="xp-bar-track"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
-            <div id="levelup-banner" style="display:none;margin-top:10px;padding:12px 14px;background:linear-gradient(135deg,rgba(200,150,42,0.18),rgba(139,26,26,0.12));border:1px solid var(--gold);border-radius:10px;align-items:center;gap:10px">
+            <div id="levelup-banner" style="display:none;margin-top:10px;padding:12px 14px;background:linear-gradient(135deg,rgba(200,150,42,0.18),rgba(224,67,67,0.1));border:1px solid var(--gold);border-radius:10px;align-items:center;gap:10px">
               <span style="font-size:22px">🏆</span>
               <div style="flex:1">
                 <div style="font-family:Cinzel,serif;font-size:13px;color:var(--crimson);letter-spacing:0.5px" id="levelup-text">Достигнут новый уровень!</div>
@@ -1776,7 +1909,7 @@
           <div class="section" style="padding-top:0">
             <div class="section-title">Боевые характеристики</div>
             <div class="combat-stats-grid">
-              <div class="combat-stat">
+              <div class="combat-stat ac-shield">
                 <input class="combat-stat-val" type="number" id="stat-ac" value="10" onchange="saveAll()">
                 <div class="combat-stat-label">БРОНЯ</div>
               </div>
@@ -2029,7 +2162,7 @@
           <div class="section">
             <div class="section-title">Поиск заклинаний по классу</div>
             <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
-              <select id="browser-class" onchange="browseSpells()" class="meta-select" style="font-size:15px;padding:8px;background:rgba(240,220,180,0.3);border:1px solid var(--parchment-dark);border-radius:8px;-webkit-appearance:none">
+              <select id="browser-class" onchange="browseSpells()" class="meta-select" style="font-size:15px;padding:8px;background:rgba(255,255,255,0.076);border:1px solid var(--parchment-dark);border-radius:8px;-webkit-appearance:none">
                 <option value="warlock">Колдун (Warlock)</option>
                 <option value="wizard">Маг (Wizard)</option>
                 <option value="sorcerer">Чародей (Sorcerer)</option>
@@ -2195,7 +2328,7 @@
             </div>
 
             <div style="display:flex;gap:8px;margin-bottom:12px">
-              <input id="ai-helper-input" type="text" placeholder="Например: как работает концентрация?" style="flex:1;background:rgba(240,220,180,0.08);border:1px solid rgba(200,150,42,0.4);border-radius:10px;padding:12px 14px;font-family:Crimson Text,serif;font-size:16px;color:var(--parchment);-webkit-appearance:none" onkeydown="if(event.key==='Enter')askHelper()">
+              <input id="ai-helper-input" type="text" placeholder="Например: как работает концентрация?" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(200,150,42,0.4);border-radius:10px;padding:12px 14px;font-size:16px;color:var(--parchment);-webkit-appearance:none" onkeydown="if(event.key==='Enter')askHelper()">
               <button onclick="askHelper()" style="background:linear-gradient(135deg,var(--crimson),#6b0f0f);border:1px solid var(--gold);border-radius:10px;padding:12px 18px;font-family:Cinzel,serif;font-size:13px;color:var(--gold-light);cursor:pointer;letter-spacing:0.5px;white-space:nowrap">Спросить</button>
             </div>
 
@@ -2267,7 +2400,7 @@
 
   <div class="ai-search-wrap">
     <div id="ai-class-row" style="margin-bottom:10px;display:none">
-      <select id="ai-class-select" onchange="onAiClassChange()" style="width:100%;font-family:Crimson Text,serif;font-size:15px;padding:8px 10px;background:rgba(240,220,180,0.08);border:1px solid rgba(200,150,42,0.4);border-radius:8px;color:var(--parchment);-webkit-appearance:none">
+      <select id="ai-class-select" onchange="onAiClassChange()" style="width:100%;font-size:15px;padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(200,150,42,0.4);border-radius:8px;color:var(--parchment);-webkit-appearance:none">
         <option value="Колдун">Колдун (Warlock)</option>
         <option value="Маг">Маг (Wizard)</option>
         <option value="Чародей">Чародей (Sorcerer)</option>
@@ -2293,6 +2426,18 @@
     <div class="modal-title">Свой кубик</div>
     <input class="input-field" id="custom-dice-val" type="number" placeholder="Количество граней..." min="2">
     <button class="primary-btn" onclick="rollCustomDice()">Бросить!</button>
+  </div>
+</div>
+
+<!-- PORTRAIT PICKER -->
+<div class="modal-overlay" id="modal-portrait" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Портрет героя</div>
+    <div class="emoji-grid" id="emoji-grid"></div>
+    <button class="primary-btn" style="margin-bottom:8px" onclick="document.getElementById('portrait-file').click()">📷 Загрузить фото</button>
+    <button class="primary-btn" id="portrait-remove-btn" style="background:var(--stone);box-shadow:none;display:none" onclick="removePortraitImage()">Убрать фото</button>
+    <input type="file" id="portrait-file" accept="image/*" style="display:none" onchange="if(this.files[0])setPortraitImage(this.files[0]); this.value='';">
   </div>
 </div>
 
@@ -2364,6 +2509,7 @@ let state = {
   rollHistory: [],
   diceCount: 1,
   portrait: '⚔️',
+  portraitImg: null,
   inspiration: false,
   tempHP: 0,
   attacks: [],
@@ -2377,6 +2523,44 @@ let hpModalMode = 'damage';
 let currentDiceSides = 6;
 
 const CLASS_HIT_DIE = {'Воин':10,'Маг':6,'Плут':8,'Клерик':8,'Паладин':10,'Следопыт':10,'Варвар':12,'Бард':8,'Монах':8,'Чародей':6,'Колдун':8,'Друид':8};
+
+// Фирменный цвет каждого класса (в духе D&D Beyond)
+const CLASS_THEMES = {
+  'Варвар':'#e7623e','Бард':'#ab6dac','Клерик':'#91a1b2','Друид':'#7a9a3b',
+  'Воин':'#c25c33','Монах':'#51a5c5','Паладин':'#b59e54','Следопыт':'#4f9a6c',
+  'Плут':'#8a93a0','Чародей':'#c33e3e','Колдун':'#8a4fb5','Маг':'#3b64c9'
+};
+
+// Векторные гербы классов (штриховые, наследуют цвет через currentColor)
+const CLASS_CRESTS = {
+  'Воин':'<svg viewBox="0 0 48 48"><path d="M10 38 L38 10 M30 10 L38 18 M14 10 L38 34 M14 18 L22 10 M10 38 l-3 3 M38 34 l3 3"/></svg>',
+  'Маг':'<svg viewBox="0 0 48 48"><path d="M24 6 L27.5 20.5 L42 24 L27.5 27.5 L24 42 L20.5 27.5 L6 24 L20.5 20.5 Z M37 9 l.01 0 M11 37 l.01 0"/></svg>',
+  'Плут':'<svg viewBox="0 0 48 48"><path d="M24 5 L29 20 L24 33 L19 20 Z M14 22 H34 M24 33 v8 M19 42 h10"/></svg>',
+  'Клерик':'<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="9"/><path d="M24 5 v7 M24 36 v7 M5 24 h7 M36 24 h7 M11 11 l5 5 M37 11 l-5 5 M11 37 l5-5 M37 37 l-5-5"/></svg>',
+  'Паладин':'<svg viewBox="0 0 48 48"><path d="M24 5 L40 10 V22 C40 32 33 39 24 44 C15 39 8 32 8 22 V10 Z M24 13 v16 M16 19 h16"/></svg>',
+  'Следопыт':'<svg viewBox="0 0 48 48"><path d="M13 7 C29 15 29 33 13 41 M13 7 V41 M13 24 H41 M41 24 l-6-4 M41 24 l-6 4"/></svg>',
+  'Варвар':'<svg viewBox="0 0 48 48"><path d="M29 7 C39 11 41 21 33 26 M29 7 L33 26 M31 16 L11 41 M26 12 l-4-3"/></svg>',
+  'Бард':'<svg viewBox="0 0 48 48"><path d="M14 7 C14 23 17 28 24 28 C31 28 34 23 34 7 M10 7 h8 M30 7 h8 M24 28 v9 M17 40 h14 M19 11 v13 M24 11 v14 M29 11 v13"/></svg>',
+  'Монах':'<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="17"/><path d="M24 7 C14 14 14 26 24 24 C34 22 34 34 24 41"/></svg>',
+  'Чародей':'<svg viewBox="0 0 48 48"><path d="M24 5 C29 13 36 17 34 27 C33 36 29 42 24 42 C19 42 15 36 14 27 C13 19 18 14 20 8 C22 13 27 13 24 5 Z M24 42 C21 37 22 32 24 28 C26 32 27 37 24 42 Z"/></svg>',
+  'Колдун':'<svg viewBox="0 0 48 48"><path d="M5 24 C13 11 35 11 43 24 C35 37 13 37 5 24 Z"/><circle cx="24" cy="24" r="6.5"/><circle cx="24" cy="24" r="1.6"/></svg>',
+  'Друид':'<svg viewBox="0 0 48 48"><path d="M24 43 C9 34 8 17 24 5 C40 17 39 34 24 43 Z M24 13 V39 M24 21 l-7-5 M24 21 l7-5 M24 30 l-8-6 M24 30 l8-6"/></svg>'
+};
+
+function hexToRgba(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+}
+
+// Перекрасить баннер и герб под текущий класс
+function applyClassTheme() {
+  const cls = document.getElementById('char-class')?.value;
+  const color = CLASS_THEMES[cls] || '#e04343';
+  const banner = document.getElementById('hero-banner');
+  if(banner) banner.style.background = `linear-gradient(165deg, ${hexToRgba(color,0.35)} 0%, ${hexToRgba(color,0.1)} 45%, rgba(20,24,30,0) 80%)`;
+  const crest = document.getElementById('hero-crest');
+  if(crest) { crest.innerHTML = CLASS_CRESTS[cls] || ''; crest.style.color = color; }
+}
 
 // HTML-escape для пользовательского ввода, вставляемого через innerHTML
 function esc(s) {
@@ -2798,7 +2982,7 @@ function renderAttacks() {
   if(!state.attacks.length) { el.innerHTML='<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:14px;font-size:13px">Атак нет. Добавь оружие ниже.</div>'; return; }
   el.innerHTML = state.attacks.map((a,i)=>`
     <div class="skill-row" style="gap:8px">
-      <button onclick="rollAttack(${i})" style="width:34px;height:34px;border-radius:8px;border:1px solid var(--crimson);background:rgba(139,26,26,0.25);color:#e08080;font-size:16px;cursor:pointer;flex-shrink:0">🎯</button>
+      <button onclick="rollAttack(${i})" style="width:34px;height:34px;border-radius:8px;border:1px solid var(--crimson);background:rgba(224,67,67,0.2);color:#e08080;font-size:16px;cursor:pointer;flex-shrink:0">🎯</button>
       <div class="skill-name">${esc(a.name)} ${a.damage?`<span class="skill-attr">${esc(a.damage)}</span>`:''}</div>
       <div class="skill-bonus">${a.bonus>=0?'+':''}${a.bonus}</div>
       <button class="inv-delete" onclick="removeAttack(${i})">✕</button>
@@ -2952,7 +3136,7 @@ function renderBonusSlotsEditor() {
   if(!state.bonusSlots || state.bonusSlots.length!==9) state.bonusSlots = new Array(9).fill(0);
   const el = document.getElementById('bonus-slots-list');
   el.innerHTML = state.bonusSlots.map((n,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(180,140,80,0.2)">
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.11)">
       <div style="flex:1;font-family:Cinzel,serif;font-size:13px;color:var(--ink)">${i+1} уровень</div>
       <button class="count-btn" onclick="changeBonusSlot(${i},-1)">−</button>
       <span style="font-family:Cinzel,serif;font-size:16px;color:${n>0?'var(--crimson)':'var(--ink-light)'};min-width:22px;text-align:center">${n}</span>
@@ -3118,12 +3302,12 @@ function renderRollHistory() {
     return;
   }
   div.innerHTML = state.rollHistory.slice(0,10).map(r=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(180,140,80,0.15)">
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.095)">
       <div style="font-family:Cinzel,serif;font-size:22px;color:${r.isCrit?'#f0c040':r.isFail?'#c03030':'var(--ink)'};min-width:36px;text-align:center">${r.total}</div>
       <div style="flex:1">
         <div style="font-size:13px;color:var(--ink-light)">${r.label}${r.isCrit?' ⭐ КРИТ!':r.isFail?' 💀 ПРОВАЛ':''}</div>
       </div>
-      <div style="font-size:11px;color:#a08060">${r.time}</div>
+      <div style="font-size:11px;color:#8d97a3">${r.time}</div>
     </div>`).join('');
 }
 
@@ -3217,6 +3401,7 @@ function onClassChange() {
   renderHitDice();
   renderSpellcasting();
   syncSpellSlots(); renderSpellSlots();
+  applyClassTheme();
   saveAll();
 }
 
@@ -3272,12 +3457,69 @@ function applyLevelUp() {
 
 // ============ PORTRAIT ============
 let emojiIdx=0;
-function changeEmoji() {
-  emojiIdx=(emojiIdx+1)%EMOJIS.length;
-  state.portrait=EMOJIS[emojiIdx];
-  document.getElementById('portrait-emoji').textContent=state.portrait;
-  saveAll();
+
+function renderPortrait() {
+  const im = document.getElementById('portrait-img');
+  const em = document.getElementById('portrait-emoji');
+  if(!im || !em) return;
+  if(state.portraitImg) {
+    im.src = state.portraitImg;
+    im.style.display = 'block';
+    em.style.display = 'none';
+  } else {
+    im.removeAttribute('src');
+    im.style.display = 'none';
+    em.style.display = 'block';
+    em.textContent = state.portrait || '⚔️';
+  }
 }
+
+function openPortraitPicker() {
+  const grid = document.getElementById('emoji-grid');
+  grid.innerHTML = EMOJIS.map(e =>
+    `<button class="${state.portrait===e && !state.portraitImg ? 'picked' : ''}" onclick="pickPortraitEmoji('${e}')">${e}</button>`
+  ).join('');
+  document.getElementById('portrait-remove-btn').style.display = state.portraitImg ? 'block' : 'none';
+  document.getElementById('modal-portrait').classList.add('open');
+}
+
+function pickPortraitEmoji(e) {
+  state.portrait = e;
+  state.portraitImg = null;
+  renderPortrait(); saveAll();
+  document.getElementById('modal-portrait').classList.remove('open');
+}
+
+// Фото ужимается до 256×256 JPEG (~30 КБ), чтобы не раздувать localStorage
+function setPortraitImage(file) {
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  img.onload = () => {
+    const S = 256;
+    const c = document.createElement('canvas'); c.width = c.height = S;
+    const ctx = c.getContext('2d');
+    const m = Math.min(img.width, img.height);
+    ctx.drawImage(img, (img.width-m)/2, (img.height-m)/2, m, m, 0, 0, S, S);
+    URL.revokeObjectURL(url);
+    try {
+      state.portraitImg = c.toDataURL('image/jpeg', 0.85);
+    } catch(e) { showToast('Не удалось обработать изображение'); return; }
+    renderPortrait(); saveAll();
+    document.getElementById('modal-portrait').classList.remove('open');
+    showToast('📷 Портрет обновлён');
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); showToast('Не удалось прочитать изображение'); };
+  img.src = url;
+}
+
+function removePortraitImage() {
+  state.portraitImg = null;
+  renderPortrait(); saveAll();
+  openPortraitPicker();
+}
+
+// старое имя оставлено на случай внешних ссылок
+function changeEmoji() { openPortraitPicker(); }
 
 // ============ SAVE / LOAD ============
 // ============ ХРАНИЛИЩЕ ПЕРСОНАЖЕЙ ============
@@ -3313,6 +3555,7 @@ function applyCharacter(data) {
   state.rollHistory = d.rollHistory || [];
   state.diceCount = d.diceCount || 1;
   state.portrait = d.portrait || '⚔️';
+  state.portraitImg = d.portraitImg || null;
   state.inspiration = !!d.inspiration;
   state.tempHP = d.tempHP || 0;
   state.attacks = d.attacks || [];
@@ -3352,7 +3595,7 @@ function blankCharacterData() {
       hp:{current:10,max:10}, tempHP:0,
       spells:[], spellSlots:[], inventory:[], conditions:[],
       dsSuccess:[false,false,false], dsFailure:[false,false,false],
-      rollHistory:[], diceCount:1, portrait:'⚔️', inspiration:false,
+      rollHistory:[], diceCount:1, portrait:'⚔️', portraitImg:null, inspiration:false,
       attacks:[], resources:[], concentrationSpell:null,
       bonusSlots:[0,0,0,0,0,0,0,0,0], hitDice:{total:1,used:0,die:10}
     },
@@ -3470,8 +3713,8 @@ function maybeShowBackupReminder() {
   if(!due || document.getElementById('backup-toast')) return;
   const t = document.createElement('div');
   t.id = 'backup-toast';
-  t.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--stone);color:#e8d5b0;border:1px solid var(--gold);border-radius:14px;padding:12px 16px;font-size:14px;z-index:500;display:flex;align-items:center;gap:12px;animation:fadeInUp 0.3s ease;max-width:92vw';
-  t.innerHTML = '<span>💾 Давно не было резервной копии героев</span><button onclick="openCharMenu();this.parentElement.remove()" style="background:rgba(200,150,42,0.2);border:1px solid var(--gold);border-radius:8px;color:var(--gold-light);font-family:Cinzel,serif;font-size:12px;padding:7px 12px;cursor:pointer;white-space:nowrap">ЭКСПОРТ</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#c8a878;font-size:16px;cursor:pointer;padding:2px">✕</button>';
+  t.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--stone);color:#cfd5db;border:1px solid var(--gold);border-radius:14px;padding:12px 16px;font-size:14px;z-index:500;display:flex;align-items:center;gap:12px;animation:fadeInUp 0.3s ease;max-width:92vw';
+  t.innerHTML = '<span>💾 Давно не было резервной копии героев</span><button onclick="openCharMenu();this.parentElement.remove()" style="background:rgba(200,150,42,0.2);border:1px solid var(--gold);border-radius:8px;color:var(--gold-light);font-family:Cinzel,serif;font-size:12px;padding:7px 12px;cursor:pointer;white-space:nowrap">ЭКСПОРТ</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#8a94a1;font-size:16px;cursor:pointer;padding:2px">✕</button>';
   document.body.appendChild(t);
   setTimeout(()=>{ if(t.parentElement) t.remove(); }, 15000);
 }
@@ -3519,8 +3762,8 @@ function renderAll() {
   document.getElementById('prof-bonus-display').textContent='+'+profBonus();
   document.getElementById('dice-count').textContent=state.diceCount;
   const tempEl=document.getElementById('temp-hp'); if(tempEl) tempEl.value=state.tempHP||0;
-  const emojiEl=document.getElementById('portrait-emoji');
-  if(emojiEl&&state.portrait) { emojiEl.textContent=state.portrait; emojiIdx=EMOJIS.indexOf(state.portrait); }
+  renderPortrait();
+  applyClassTheme();
   const inspBar=document.getElementById('insp-bar');
   inspBar.classList.toggle('active', !!state.inspiration);
   document.getElementById('insp-status').textContent = state.inspiration?'Активно!':'Не активно';
@@ -3926,7 +4169,7 @@ function renderClassGuide() {
         const spells = classSpells.filter(sp => sp.level === l).map(sp => sp.name);
         if (!spells.length) continue;
         var spellBtns = spells.map(function(s) {
-          return '<button onclick="quickSearchFromGuide(this)" data-spell="' + s + '" style="padding:5px 10px;background:rgba(100,70,200,0.18);border:1px solid rgba(100,70,200,0.5);border-radius:12px;color:#3a1f70;font-size:12px;cursor:pointer;font-family:Crimson Text,serif">' + s + '</button>';
+          return '<button onclick="quickSearchFromGuide(this)" data-spell="' + s + '" style="padding:5px 10px;background:rgba(100,70,200,0.18);border:1px solid rgba(100,70,200,0.5);border-radius:12px;color:#c9b8f0;font-size:12px;cursor:pointer">' + s + '</button>';
         }).join('');
         spellsHTML += '<div style="margin-bottom:10px">'
           + '<div style="font-family:Cinzel,serif;font-size:11px;color:#5a2da0;letter-spacing:1px;margin-bottom:6px">' + (l===0?'ЗАГОВОРЫ':l+' УРОВЕНЬ') + '</div>'
@@ -3938,12 +4181,14 @@ function renderClassGuide() {
 
   let tipsHTML = '';
   if (guide.tips) {
-    tipsHTML = guide.tips.map(t => `<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid rgba(180,140,80,0.15);font-size:13px;color:var(--ink-light)"><span>💡</span><span>${t}</span></div>`).join('');
+    tipsHTML = guide.tips.map(t => `<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.095);font-size:13px;color:var(--ink-light)"><span>💡</span><span>${t}</span></div>`).join('');
   }
 
+  const themeColor = CLASS_THEMES[className] || '#6040c0';
   container.innerHTML = `
     <div class="section">
-      <div class="class-hero-card">
+      <div class="class-hero-card" style="border-color:${themeColor};background:linear-gradient(150deg,${hexToRgba(themeColor,0.3)} 0%, #14181e 75%);position:relative;overflow:hidden">
+        <div class="crest-watermark" style="color:${themeColor}">${CLASS_CRESTS[className]||''}</div>
         <div class="class-hero-icon">${guide.icon}</div>
         <div class="class-hero-name">${className}</div>
         <div class="class-hero-sub">${guide.en} · ${level} уровень</div>
@@ -5198,7 +5443,7 @@ function showUpdateToast() {
   const t = document.createElement('div');
   t.id = 'update-toast';
   t.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--stone);color:var(--gold-light);border:1px solid var(--gold);border-radius:14px;padding:12px 16px;font-family:"Cinzel",serif;font-size:13px;z-index:500;display:flex;align-items:center;gap:12px;animation:fadeInUp 0.3s ease;max-width:92vw';
-  t.innerHTML = '<span>Доступно обновление</span><button onclick="location.reload()" style="background:linear-gradient(135deg,var(--crimson),#6b0f0f);border:1px solid var(--gold);border-radius:8px;color:var(--gold-light);font-family:Cinzel,serif;font-size:12px;padding:7px 12px;cursor:pointer;letter-spacing:0.5px">ОБНОВИТЬ</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#c8a878;font-size:16px;cursor:pointer;padding:2px">✕</button>';
+  t.innerHTML = '<span>Доступно обновление</span><button onclick="location.reload()" style="background:linear-gradient(135deg,var(--crimson),#6b0f0f);border:1px solid var(--gold);border-radius:8px;color:var(--gold-light);font-family:Cinzel,serif;font-size:12px;padding:7px 12px;cursor:pointer;letter-spacing:0.5px">ОБНОВИТЬ</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#8a94a1;font-size:16px;cursor:pointer;padding:2px">✕</button>';
   document.body.appendChild(t);
 }
 </script>

@@ -23,7 +23,7 @@ python3 -m http.server 8000
 - `sw.js` — cache-first service worker precaching the app shell (including `fonts/`). It contains a network-only passthrough for `open5e.com`, but the app no longer calls that API — all data is local.
 - `manifest.json` — PWA manifest (Russian, portrait, standalone).
 - `icons/` — all icon sizes referenced by the manifest and `<head>`; keep `icons/icon-192.png` and `icons/icon-512.png` in sync with `sw.js`'s `ASSETS` list.
-- `fonts/` — self-hosted Cinzel (variable, 400–700) and Crimson Text woff2 (latin subset; neither font has Cyrillic — Russian text falls back to Georgia by design). Declared via `@font-face` in `index.html`, precached in `sw.js`.
+- `fonts/` — self-hosted Cinzel (variable, 400–700) and Crimson Text woff2 (latin subset). Body text uses the system sans-serif stack; Cinzel is for headings/numbers (Cyrillic falls back per stack), Crimson Text only for the welcome-screen tagline. Declared via `@font-face` in `index.html`, precached in `sw.js`.
 - `backup/` — snapshot of the pre-v16 version (`index.html`, `sw.js`, `manifest.json`), kept for rollback.
 
 ## JavaScript Architecture
@@ -58,6 +58,7 @@ All rules content lives in constants inside `index.html`, in Russian:
 ## Conventions
 
 - All UI text, data, and most code comments are in Russian; keep new UI strings in Russian.
+- The theme is dark, D&D Beyond-inspired (graphite surfaces, red accents, muted gold): palette lives in `:root`. **Variable names are historical** — `--parchment` and `--ink` are now LIGHT text colors on dark surfaces; backgrounds use `--bg`/`--surface`/`--card`; thin borders use `--line`. Do not reintroduce light backgrounds under `var(--parchment)`.
 - The app has **zero external network dependencies** (fonts are self-hosted) — keep it that way; everything must work fully offline.
 - Ability order is always СИЛ, ЛОВ, ТЕЛ, ИНТ, МУД, ХАР (indexes 0–5) across `state.abilities`, `saveProfs`, and `CASTING_ABILITY`.
 - On tablet/desktop widths (≥700px) the app is constrained to a 640px centered column via a media query; test layout changes at both 390px and wide widths.
