@@ -1831,6 +1831,28 @@
     cursor: pointer;
   }
   .fx-toggle.on { color: var(--gold-light); border-color: rgba(201,160,58,0.5); background: rgba(201,160,58,0.1); }
+
+  /* ============ ПЕЧАТЬ ЛИСТА ============ */
+  #print-sheet { display: none; }
+  @media print {
+    html, body { height: auto; overflow: visible; background: #fff; }
+    .app, .fab-dice, .quick-roll, .modal-overlay, .ai-overlay { display: none !important; }
+    #print-sheet {
+      display: block !important;
+      color: #111;
+      font-family: Georgia, 'Times New Roman', serif;
+      padding: 12px 18px;
+      font-size: 12pt;
+      line-height: 1.4;
+    }
+    #print-sheet h1 { font-size: 22pt; margin: 0 0 2px; border-bottom: 2px solid #333; }
+    #print-sheet h2 { font-size: 12pt; margin: 12px 0 3px; color: #7c1010; border-bottom: 1px solid #ccc; text-transform: uppercase; letter-spacing: 1px; }
+    #print-sheet .sub { color: #555; margin: 0 0 10px; font-style: italic; }
+    #print-sheet .abil { width: 100%; border-collapse: collapse; margin: 8px 0; text-align: center; }
+    #print-sheet .abil td { border: 1px solid #999; padding: 6px 2px; width: 16.6%; }
+    #print-sheet .small { font-size: 10pt; }
+    #print-sheet .foot { margin-top: 16px; text-align: center; color: #999; font-size: 9pt; }
+  }
 </style>
 </head>
 <body>
@@ -2608,6 +2630,10 @@
     <div class="modal-title">🗂 Мои герои</div>
     <div id="char-list-menu" style="margin-bottom:12px"></div>
     <button class="primary-btn" onclick="newCharacter()" style="margin-bottom:8px">+ Новый герой</button>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="primary-btn" style="flex:1;background:var(--stone)" onclick="shareCharacter()">🔗 Поделиться</button>
+      <button class="primary-btn" style="flex:1;background:var(--stone)" onclick="printCharacter()">🖨 Печать</button>
+    </div>
     <div style="display:flex;gap:8px">
       <button class="primary-btn" style="flex:1;background:var(--stone)" onclick="exportCharacters()">⬇ Экспорт</button>
       <button class="primary-btn" style="flex:1;background:var(--stone)" onclick="document.getElementById('import-file').click()">⬆ Импорт</button>
@@ -2615,6 +2641,27 @@
     <input type="file" id="import-file" accept="application/json" style="display:none" onchange="if(this.files[0])importCharacters(this.files[0]); this.value='';">
   </div>
 </div>
+
+<!-- SHARE / QR -->
+<div class="modal-overlay" id="modal-share" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Поделиться героем</div>
+    <div style="text-align:center;margin-bottom:10px">
+      <canvas id="share-qr" style="width:220px;height:220px;image-rendering:pixelated;border-radius:10px;background:#fff;padding:8px"></canvas>
+      <div id="share-qr-note" style="font-size:12px;color:var(--ink-light);margin-top:8px;line-height:1.4"></div>
+    </div>
+    <div style="font-size:12px;color:var(--ink-light);margin-bottom:4px">Код персонажа (без фото):</div>
+    <textarea id="share-code" readonly style="width:100%;height:56px;background:rgba(255,255,255,0.05);border:1px solid var(--line);border-radius:8px;color:var(--ink-light);font-size:11px;padding:8px;resize:none;-webkit-appearance:none"></textarea>
+    <button class="primary-btn" style="margin:8px 0" onclick="copyShareCode()">📋 Скопировать код</button>
+    <div style="font-size:12px;color:var(--ink-light);margin:10px 0 4px">Вставить код с другого устройства:</div>
+    <textarea id="import-code" placeholder="Вставь сюда код героя..." style="width:100%;height:56px;background:rgba(255,255,255,0.05);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-size:11px;padding:8px;resize:none;-webkit-appearance:none"></textarea>
+    <button class="primary-btn" style="margin-top:8px" onclick="importFromCode()">📥 Добавить из кода</button>
+  </div>
+</div>
+
+<!-- Печатная версия листа -->
+<div id="print-sheet"></div>
 
 <script>
 // ============ STATE ============
@@ -2705,6 +2752,143 @@ function applyClassTheme() {
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+
+// ============ QR-ЭНКОДЕР (встроенный, без зависимостей) ============
+// Компактный QR-энкодер: байтовый режим, уровень коррекции L, версии 1..25.
+// Возвращает 2D-массив 0/1 (модули) или null, если данные не влезают.
+// Автономный, без зависимостей — встраивается в приложение.
+var QR = (function(){
+  // EC-L: [ecPerBlock, blocks1, data1, blocks2, data2] для версий 1..25
+  var ECL = [
+    [7,1,19,0,0],[10,1,34,0,0],[15,1,55,0,0],[20,1,80,0,0],[26,1,108,0,0],
+    [18,2,68,0,0],[20,2,78,0,0],[24,2,97,0,0],[30,2,116,0,0],[18,2,68,2,69],
+    [20,4,81,0,0],[24,2,92,2,93],[26,4,107,0,0],[30,3,115,1,116],[22,5,87,1,88],
+    [24,5,98,1,99],[28,1,107,5,108],[30,5,120,1,121],[28,3,113,4,114],[28,3,107,5,108],
+    [28,4,116,4,117],[28,2,111,7,112],[30,4,121,5,122],[30,6,117,4,118],[26,8,106,4,107]
+  ];
+  // Позиции центров выравнивающих шаблонов по версиям (1..25)
+  var ALIGN = [
+    [],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],
+    [6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],
+    [6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],
+    [6,28,54,80,106],[6,32,58,84,110]
+  ];
+
+  // --- GF(256) ---
+  var EXP=new Array(512), LOG=new Array(256);
+  (function(){ var x=1; for(var i=0;i<255;i++){ EXP[i]=x; LOG[x]=i; x<<=1; if(x&0x100) x^=0x11d; } for(var i2=255;i2<512;i2++) EXP[i2]=EXP[i2-255]; })();
+  function gmul(a,b){ if(a===0||b===0) return 0; return EXP[LOG[a]+LOG[b]]; }
+  function genPoly(n){ var p=[1]; for(var i=0;i<n;i++){ var np=new Array(p.length+1).fill(0); for(var j=0;j<p.length;j++){ np[j]^=p[j]; np[j+1]^=gmul(p[j], EXP[i]); } p=np; } return p; }
+  function ecBytes(data, n){ var gen=genPoly(n); var res=data.concat(new Array(n).fill(0)); for(var i=0;i<data.length;i++){ var c=res[i]; if(c!==0){ for(var j=0;j<gen.length;j++) res[i+j]^=gmul(gen[j], c); } } return res.slice(data.length); }
+
+  function bch(fmt){ var g=0x537, d=fmt<<10; for(var i=4;i>=0;i--){ if(d & (1<<(i+10))) d^=g<<i; } return ((fmt<<10)|d)^0x5412; }
+  function bchVer(v){ var g=0x1f25, d=v<<12; for(var i=5;i>=0;i--){ if(d&(1<<(i+12))) d^=g<<i; } return (v<<12)|d; }
+
+  function build(text){
+    var bytes=[]; for(var i=0;i<text.length;i++){ var c=text.charCodeAt(i); if(c<128) bytes.push(c); else if(c<2048){ bytes.push(192|(c>>6)); bytes.push(128|(c&63)); } else { bytes.push(224|(c>>12)); bytes.push(128|((c>>6)&63)); bytes.push(128|(c&63)); } }
+    // выбор версии
+    var ver=-1, cap, spec;
+    for(var v=1; v<=25; v++){ spec=ECL[v-1]; var totalData=spec[1]*spec[2]+spec[3]*spec[4]; var lenBits=(v<10)?8:16; var need=Math.ceil((4+lenBits+bytes.length*8)/8); if(need<=totalData){ ver=v; cap=totalData; break; } }
+    if(ver<0) return null;
+    spec=ECL[ver-1];
+    var lenBits=(ver<10)?8:16;
+    // битовый поток
+    var bits=[];
+    function push(val,len){ for(var b=len-1;b>=0;b--) bits.push((val>>b)&1); }
+    push(4,4); push(bytes.length, lenBits);
+    for(var k=0;k<bytes.length;k++) push(bytes[k],8);
+    // терминатор
+    var termCap=cap*8; var pad=Math.min(4, termCap-bits.length); for(var t=0;t<pad;t++) bits.push(0);
+    while(bits.length%8!==0) bits.push(0);
+    var dataCw=[]; for(var b2=0;b2<bits.length;b2+=8){ var by=0; for(var q=0;q<8;q++) by=(by<<1)|bits[b2+q]; dataCw.push(by); }
+    var padBytes=[0xEC,0x11], pi=0; while(dataCw.length<cap){ dataCw.push(padBytes[pi&1]); pi++; }
+    // разбивка на блоки
+    var blocks=[], idx=0;
+    for(var gg=0; gg<2; gg++){ var nb=(gg===0)?spec[1]:spec[3]; var dc=(gg===0)?spec[2]:spec[4]; for(var bb=0;bb<nb;bb++){ var d=dataCw.slice(idx, idx+dc); idx+=dc; blocks.push({d:d, e:ecBytes(d, spec[0])}); } }
+    // чередование
+    var maxD=0, maxE=spec[0]; blocks.forEach(function(bl){ if(bl.d.length>maxD) maxD=bl.d.length; });
+    var out=[];
+    for(var c1=0;c1<maxD;c1++) blocks.forEach(function(bl){ if(c1<bl.d.length) out.push(bl.d[c1]); });
+    for(var c2=0;c2<maxE;c2++) blocks.forEach(function(bl){ if(c2<bl.e.length) out.push(bl.e[c2]); });
+    return { ver:ver, cw:out };
+  }
+
+  function place(ver, cw){
+    var n=17+4*ver;
+    var m=[], reserved=[];
+    for(var i=0;i<n;i++){ m.push(new Array(n).fill(null)); reserved.push(new Array(n).fill(false)); }
+    function finder(r,c){ for(var dr=-1;dr<=7;dr++) for(var dc=-1;dc<=7;dc++){ var rr=r+dr, cc=c+dc; if(rr<0||rr>=n||cc<0||cc>=n) continue; var inr=(dr>=0&&dr<=6&&(dc===0||dc===6))||(dc>=0&&dc<=6&&(dr===0||dr===6))||(dr>=2&&dr<=4&&dc>=2&&dc<=4); m[rr][cc]=inr?1:0; reserved[rr][cc]=true; } }
+    finder(0,0); finder(0,n-7); finder(n-7,0);
+    // тайминги
+    for(var t=8;t<n-8;t++){ if(!reserved[6][t]){ m[6][t]=(t%2===0)?1:0; reserved[6][t]=true; } if(!reserved[t][6]){ m[t][6]=(t%2===0)?1:0; reserved[t][6]=true; } }
+    // dark module
+    m[n-8][8]=1; reserved[n-8][8]=true;
+    // выравнивающие
+    var ac=ALIGN[ver-1];
+    for(var ai=0;ai<ac.length;ai++) for(var aj=0;aj<ac.length;aj++){ var r=ac[ai], c=ac[aj]; if((r<=8&&c<=8)||(r<=8&&c>=n-9)||(r>=n-9&&c<=8)) continue; for(var dr=-2;dr<=2;dr++) for(var dc=-2;dc<=2;dc++){ var v=(Math.max(Math.abs(dr),Math.abs(dc))!==1)?1:0; m[r+dr][c+dc]=v; reserved[r+dr][c+dc]=true; } }
+    // резерв формата
+    for(var f=0;f<=8;f++){ if(f!==6){ reserved[8][f]=true; reserved[f][8]=true; } }
+    for(var f2=0;f2<8;f2++){ reserved[8][n-1-f2]=true; reserved[n-1-f2][8]=true; }
+    reserved[8][n-8]=true;
+    // резерв версии
+    if(ver>=7){ for(var vi=0;vi<6;vi++) for(var vj=0;vj<3;vj++){ reserved[vi][n-11+vj]=true; reserved[n-11+vj][vi]=true; } }
+    // размещение данных зигзагом
+    var bitIdx=0, dirUp=true;
+    for(var col=n-1; col>0; col-=2){ if(col===6) col=5; for(var rowi=0; rowi<n; rowi++){ var row=dirUp?(n-1-rowi):rowi; for(var s=0;s<2;s++){ var cc=col-s; if(reserved[row][cc]) continue; var bit=0; if(bitIdx<cw.length*8){ var byte=cw[bitIdx>>3]; bit=(byte>>(7-(bitIdx&7)))&1; } m[row][cc]=bit; bitIdx++; } } dirUp=!dirUp; }
+    return { m:m, reserved:reserved, n:n };
+  }
+
+  function maskFn(k){ return [
+    function(r,c){return (r+c)%2===0;},
+    function(r,c){return r%2===0;},
+    function(r,c){return c%3===0;},
+    function(r,c){return (r+c)%3===0;},
+    function(r,c){return (Math.floor(r/2)+Math.floor(c/3))%2===0;},
+    function(r,c){return (r*c)%2+(r*c)%3===0;},
+    function(r,c){return ((r*c)%2+(r*c)%3)%2===0;},
+    function(r,c){return ((r+c)%2+(r*c)%3)%2===0;}
+  ][k]; }
+
+  function applyMask(base, reserved, n, k){ var f=maskFn(k); var m=[]; for(var r=0;r<n;r++){ m.push(base[r].slice()); for(var c=0;c<n;c++){ if(!reserved[r][c] && f(r,c)) m[r][c]^=1; } } return m; }
+
+  function putFormat(m, n, ecLevelBits, mask){ var fmt=(ecLevelBits<<3)|mask; var bits=bch(fmt); // 15 бит
+    for(var i=0;i<15;i++){ var b=(bits>>i)&1; // около верхнего-левого
+      // вертикаль по столбцу 8 (снизу вверх для i<7 у левого) — используем стандартную раскладку
+      if(i<6) m[i][8]=b; else if(i===6) m[7][8]=b; else if(i===7) m[8][8]=b; else if(i===8) m[8][7]=b; else m[8][14-i]=b;
+      // вторая копия
+      if(i<8) m[8][n-1-i]=b; else m[n-15+i][8]=b;
+    }
+    m[n-8][8]=1;
+  }
+  function putVersion(m, n, ver){ if(ver<7) return; var bits=bchVer(ver); for(var i=0;i<18;i++){ var b=(bits>>i)&1; var r=Math.floor(i/3), c=i%3; m[r][n-11+c]=b; m[n-11+c][r]=b; } }
+
+  function penalty(m,n){ var p=0;
+    // правило 1: подряд
+    for(var r=0;r<n;r++){ var run=1; for(var c=1;c<n;c++){ if(m[r][c]===m[r][c-1]){ run++; if(run===5)p+=3; else if(run>5)p++; } else run=1; } }
+    for(var c2=0;c2<n;c2++){ var run2=1; for(var r2=1;r2<n;r2++){ if(m[r2][c2]===m[r2-1][c2]){ run2++; if(run2===5)p+=3; else if(run2>5)p++; } else run2=1; } }
+    // правило 2: блоки 2x2
+    for(var r3=0;r3<n-1;r3++) for(var c3=0;c3<n-1;c3++){ var v=m[r3][c3]; if(v===m[r3][c3+1]&&v===m[r3+1][c3]&&v===m[r3+1][c3+1]) p+=3; }
+    // правило 3: шаблоны 1:1:3:1:1
+    var pat=[1,0,1,1,1,0,1];
+    function match(get){ for(var i=0;i<n;i++){ for(var j=0;j<=n-7;j++){ var ok=true; for(var k=0;k<7;k++) if(get(i,j+k)!==pat[k]){ok=false;break;} if(ok){ var before=true,after=true; for(var b=1;b<=4;b++){ if(j-b>=0&&get(i,j-b)!==0)before=false; if(j+7+b-1<n&&get(i,j+6+b)!==0)after=false; } if(before||after)p+=40; } } } }
+    match(function(i,j){return m[i][j];});
+    match(function(i,j){return m[j][i];});
+    // правило 4: баланс
+    var dark=0; for(var r4=0;r4<n;r4++) for(var c4=0;c4<n;c4++) if(m[r4][c4]) dark++;
+    var pct=dark*100/(n*n); p+=Math.floor(Math.abs(pct-50)/5)*10;
+    return p;
+  }
+
+  function generate(text){
+    var b=build(text); if(!b) return null;
+    var placed=place(b.ver, b.cw);
+    var best=null, bestPen=Infinity, bestMask=0;
+    for(var k=0;k<8;k++){ var mm=applyMask(placed.m, placed.reserved, placed.n, k); putFormat(mm, placed.n, 1, k); putVersion(mm, placed.n, b.ver); var pen=penalty(mm, placed.n); if(pen<bestPen){ bestPen=pen; best=mm; bestMask=k; } }
+    return best;
+  }
+  return { generate: generate };
+})();
+
 
 // ============ ЭФФЕКТЫ: ВИБРАЦИЯ + ЗВУК ============
 // Настройки глобальные (не привязаны к персонажу), хранятся в localStorage
@@ -2862,6 +3046,7 @@ function startApp() {
   document.getElementById('screen-main').classList.add('active');
   document.getElementById('fab-dice').classList.remove('hidden');
   initSpellSlots();
+  handleShareHash(); // импорт героя из ссылки #i=... (до загрузки — станет активным)
   loadData();
   loadFxSettings();
   initSwipeNav();
@@ -4118,6 +4303,143 @@ function exportCharacters() {
   try { localStorage.setItem('dnd_last_export', String(Date.now())); } catch(e){}
   const rt = document.getElementById('backup-toast'); if(rt) rt.remove();
   showToast('⬇ Файл сохранён');
+}
+
+// ============ ПОДЕЛИТЬСЯ / QR / ПЕЧАТЬ ============
+// Компактная выгрузка активного персонажа: без фото, истории бросков и
+// того, что вычисляется при загрузке (ячейки). Пустые значения выбрасываем.
+function compactCharPayload() {
+  saveAll();
+  const store = getStore();
+  const c = store && store.list.find(x => x.id === store.active);
+  if(!c) return null;
+  const data = JSON.parse(JSON.stringify(c.data));
+  const s = data.state || {};
+  delete s.portraitImg; delete s.rollHistory; delete s.spellSlots; // spellSlots пересчитываются
+  ['conditions','attacks','resources','features','dsSuccess','dsFailure'].forEach(k=>{ if(Array.isArray(s[k]) && s[k].every(v=>!v)) delete s[k]; });
+  if(!s.concentrationSpell) delete s.concentrationSpell;
+  if(s.bonusSlots && s.bonusSlots.every(v=>!v)) delete s.bonusSlots;
+  if(!s.tempHP) delete s.tempHP;
+  if(!s.inspiration) delete s.inspiration;
+  if(s.diceCount===1) delete s.diceCount;
+  const f = data.fields || {};
+  Object.keys(f).forEach(k=>{ if(f[k]==='' || (/^coin-/.test(k) && f[k]==='0')) delete f[k]; });
+  const json = JSON.stringify({ n: c.name, d: data });
+  return btoa(unescape(encodeURIComponent(json)));
+}
+
+function parseCharPayload(b64) {
+  const json = decodeURIComponent(escape(atob(b64.trim())));
+  const obj = JSON.parse(json);
+  return { name: obj.n || (obj.d && obj.d.fields && obj.d.fields['char-name']) || 'Импорт', data: obj.d };
+}
+
+function shareCharacter() {
+  const payload = compactCharPayload();
+  if(!payload) { showToast('Нет активного персонажа'); return; }
+  const url = location.origin + location.pathname + '#i=' + payload;
+  document.getElementById('share-code').value = payload;
+  const canvas = document.getElementById('share-qr');
+  const note = document.getElementById('share-qr-note');
+  const m = (typeof QR !== 'undefined') ? QR.generate(url) : null;
+  if(m) {
+    const n = m.length, quiet = 4, cells = n + quiet*2, px = 5, size = cells*px;
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,size,size);
+    ctx.fillStyle = '#000';
+    for(let r=0;r<n;r++) for(let cc=0;cc<n;cc++) if(m[r][cc]) ctx.fillRect((cc+quiet)*px,(r+quiet)*px,px,px);
+    canvas.style.display = 'block';
+    note.textContent = 'Отсканируй камерой телефона — откроется приложение с этим героем';
+  } else {
+    canvas.style.display = 'none';
+    note.textContent = 'Персонаж великоват для QR — передай его кодом ниже (скопируй и вставь на другом устройстве).';
+  }
+  document.getElementById('modal-share').classList.add('open');
+}
+
+function copyShareCode() {
+  const ta = document.getElementById('share-code');
+  ta.select();
+  try { navigator.clipboard.writeText(ta.value); } catch(e) { try{document.execCommand('copy');}catch(e2){} }
+  showToast('📋 Код скопирован');
+}
+
+function importFromCode() {
+  const code = document.getElementById('import-code').value.trim();
+  if(!code) { showToast('Вставь код'); return; }
+  try {
+    const c = parseCharPayload(code);
+    if(!c.data) throw new Error('bad');
+    const store = getStore() || { active:null, list:[] };
+    const id = genId();
+    store.list.push({ id, name: c.name, data: c.data });
+    store.active = id;
+    setStore(store);
+    applyCharacter(c.data);
+    document.getElementById('import-code').value = '';
+    document.getElementById('modal-share').classList.remove('open');
+    renderCharMenu();
+    showToast('📥 Герой добавлен: ' + c.name);
+  } catch(e) { showToast('Не удалось прочитать код'); }
+}
+
+// Импорт по ссылке #i=... (скан камерой открывает приложение с данными)
+function handleShareHash() {
+  const h = location.hash || '';
+  const m = h.match(/^#i=(.+)$/);
+  if(!m) return false;
+  try {
+    const c = parseCharPayload(decodeURIComponent(m[1]));
+    if(!c.data) throw new Error('bad');
+    const store = getStore() || { active:null, list:[] };
+    const id = genId();
+    store.list.push({ id, name: c.name, data: c.data });
+    store.active = id;
+    setStore(store);
+    history.replaceState(null, '', location.pathname);
+    setTimeout(()=>showToast('📥 Герой получен: ' + c.name), 800);
+    return true;
+  } catch(e) { history.replaceState(null, '', location.pathname); return false; }
+}
+
+// ============ ПЕЧАТЬ ЛИСТА ============
+function printCharacter() {
+  saveAll();
+  const g = id => (document.getElementById(id)?.value || '');
+  const pb = profBonus();
+  const abilRows = ABILITIES.map((ab,i)=>{
+    const sc = state.abilities[i], m = modStr(sc);
+    return `<td><b>${ABILITY_FULL[i]}</b><br>${sc} (${m})</td>`;
+  }).join('');
+  const skillsHtml = SKILLS_DATA.map((sk,i)=>{
+    const ai = ABILITIES.indexOf(sk.attr);
+    const b = mod(state.abilities[ai]) + (state.skillProfs[i]?pb:0);
+    return `<span>${state.skillProfs[i]?'●':'○'} ${sk.name} ${b>=0?'+':''}${b}</span>`;
+  }).join(' · ');
+  const savesHtml = ABILITIES.map((ab,i)=>{
+    const b = mod(state.abilities[i]) + (state.saveProfs[i]?pb:0);
+    return `${state.saveProfs[i]?'●':'○'} ${ab} ${b>=0?'+':''}${b}`;
+  }).join('  ');
+  const spellsHtml = state.spells.length ? state.spells.slice().sort((a,b)=>a.level-b.level).map(s=>`${s.level===0?'З':s.level}· ${esc(s.name)}${s.prepared?' ✓':''}`).join('<br>') : '—';
+  const invHtml = state.inventory.length ? state.inventory.map(it=>`${esc(it.name)}${it.qty>1?' ×'+it.qty:''}${it.attuned?' ✨':''}`).join(', ') : '—';
+  const atkHtml = state.attacks.length ? state.attacks.map(a=>`${esc(a.name)} ${a.bonus>=0?'+':''}${a.bonus} (${esc(a.damage||'')})`).join('<br>') : '—';
+  const featHtml = (state.features||[]).length ? state.features.map(f=>`<b>${esc(f.name)}</b>${f.desc?': '+esc(f.desc):''}`).join('<br>') : '—';
+  document.getElementById('print-sheet').innerHTML = `
+    <h1>${esc(g('char-name'))}</h1>
+    <p class="sub">${esc(g('char-class'))} · уровень ${esc(g('char-level'))} · ${esc(g('char-race'))} · ${esc(g('char-bg'))}</p>
+    <table class="abil"><tr>${abilRows}</tr></table>
+    <div class="grid2">
+      <div><b>HP:</b> ${state.hp.current}/${state.hp.max} &nbsp; <b>КД:</b> ${esc(g('stat-ac'))} &nbsp; <b>Скорость:</b> ${esc(g('stat-speed'))} &nbsp; <b>Бонус мастерства:</b> +${pb}</div>
+    </div>
+    <h2>Спасброски</h2><p>${savesHtml}</p>
+    <h2>Навыки</h2><p class="small">${skillsHtml}</p>
+    <h2>Атаки</h2><p>${atkHtml}</p>
+    <h2>Заклинания</h2><p class="small">${spellsHtml}</p>
+    <h2>Особенности</h2><p class="small">${featHtml}</p>
+    <h2>Снаряжение</h2><p class="small">${invHtml}</p>
+    <p class="foot">D&D Герой</p>`;
+  window.print();
 }
 
 // ============ НАПОМИНАНИЕ О РЕЗЕРВНОЙ КОПИИ ============
@@ -5845,6 +6167,11 @@ document.head.appendChild(toastStyle);
 document.querySelectorAll('.modal-overlay').forEach(m=>{
   m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });
 });
+
+// Открыт по ссылке-приглашению — сразу входим в приложение, минуя экран приветствия
+if (location.hash.indexOf('#i=') === 0) {
+  window.addEventListener('load', () => { if(!document.getElementById('screen-main').classList.contains('active')) startApp(); });
+}
 
 // Register Service Worker for offline support
 if ('serviceWorker' in navigator) {
