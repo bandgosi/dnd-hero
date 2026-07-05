@@ -1867,7 +1867,7 @@
       <div class="welcome-divider"><span></span><i>◆</i><span></span></div>
       <div class="welcome-sub">Книга приключений всегда с тобой</div>
       <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-      <div class="welcome-version">версия 24</div>
+      <div class="welcome-version">версия 25</div>
     </div>
   </div>
 
@@ -2207,8 +2207,11 @@
           </div>
         </div>
         <div class="section" style="padding-top:0">
-          <div class="section-title">История бросков</div>
-          <div id="roll-history" style="display:flex;flex-direction:column;gap:6px;"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div class="section-title" style="border:none;margin:0">История бросков</div>
+            <button id="clear-history-btn" onclick="clearRollHistory()" style="display:none;background:none;border:1px solid var(--line);border-radius:8px;color:var(--ink-light);font-size:12px;padding:5px 10px;cursor:pointer">🗑 Очистить</button>
+          </div>
+          <div id="roll-history" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
         </div>
       </div>
     </div>
@@ -3921,6 +3924,8 @@ function addRollHistory(label, total, rolls, modVal, sides) {
 
 function renderRollHistory() {
   const div=document.getElementById('roll-history');
+  const clearBtn=document.getElementById('clear-history-btn');
+  if(clearBtn) clearBtn.style.display = state.rollHistory.length ? 'block' : 'none';
   if(!state.rollHistory.length) {
     div.innerHTML = '<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:16px 0">Здесь появятся твои броски — брось первый кубик!</div>';
     return;
@@ -3933,6 +3938,15 @@ function renderRollHistory() {
       </div>
       <div style="font-size:11px;color:#8d97a3">${r.time}</div>
     </div>`).join('');
+}
+
+function clearRollHistory() {
+  if(!state.rollHistory.length) return;
+  if(!confirm('Очистить историю бросков?')) return;
+  state.rollHistory = [];
+  renderRollHistory(); saveAll();
+  vibrate([8]);
+  showToast('🗑 История очищена');
 }
 
 function changeCount(delta) {
