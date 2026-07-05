@@ -1867,7 +1867,7 @@
       <div class="welcome-divider"><span></span><i>◆</i><span></span></div>
       <div class="welcome-sub">Книга приключений всегда с тобой</div>
       <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-      <div class="welcome-version">версия 25</div>
+      <div class="welcome-version">версия 24</div>
     </div>
   </div>
 
@@ -2631,7 +2631,6 @@
     <div class="modal-title">🗂 Мои герои</div>
     <div id="char-list-menu" style="margin-bottom:12px"></div>
     <button class="primary-btn" onclick="openNewCharWizard()" style="margin-bottom:8px">+ Новый герой</button>
-    <button class="primary-btn" onclick="openPhotoImport()" style="margin-bottom:8px;background:var(--stone)">📷 Импорт по фото (ИИ)</button>
     <div style="display:flex;gap:8px;margin-bottom:8px">
       <button class="primary-btn" style="flex:1;background:var(--stone)" onclick="shareCharacter()">🔗 Поделиться</button>
       <button class="primary-btn" style="flex:1;background:var(--stone)" onclick="printCharacter()">🖨 Печать</button>
@@ -2676,45 +2675,6 @@
     <div id="wiz-abils" style="margin-bottom:12px"></div>
     <button class="primary-btn" onclick="finishWizard()">Создать героя</button>
     <button class="primary-btn" style="margin-top:8px;background:var(--stone);box-shadow:none" onclick="document.getElementById('modal-wizard').classList.remove('open');newCharacter()">Пропустить (пустой герой)</button>
-  </div>
-</div>
-
-<!-- ИМПОРТ ПО ФОТО (ИИ) -->
-<div class="modal-overlay" id="modal-photo-import" onclick="if(event.target===this)closePhotoImport()">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title">📷 Импорт по фото</div>
-
-    <div id="pi-step-input">
-      <div style="font-size:12px;color:var(--ink-light);line-height:1.5;margin-bottom:12px">
-        Сфотографируй лист персонажа — ИИ распознает характеристики и создаст героя. Распознавание выполняется через <b>Anthropic API</b>, поэтому нужен ваш API-ключ.
-      </div>
-
-      <div style="font-size:12px;color:var(--ink-light);margin-bottom:4px">API-ключ Anthropic</div>
-      <input class="input-field" id="pi-key" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="sk-ant-..." style="margin-bottom:6px;font-family:monospace">
-      <div style="font-size:11px;color:var(--ink-light);line-height:1.5;margin-bottom:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,0.03)">
-        🔒 Ключ <b>не сохраняется</b>: он хранится только в памяти на время запроса и стирается сразу после. Отправляется напрямую на <b>api.anthropic.com</b> по HTTPS и никуда больше. Получить ключ: <span style="color:var(--gold-light)">console.anthropic.com</span>
-      </div>
-
-      <div style="font-size:12px;color:var(--ink-light);margin-bottom:4px">Модель</div>
-      <select class="add-input" id="pi-model" style="width:100%;margin-bottom:14px">
-        <option value="claude-opus-4-8">Claude Opus 4.8 — точнее (дороже)</option>
-        <option value="claude-haiku-4-5">Claude Haiku 4.5 — быстрее и дешевле</option>
-      </select>
-
-      <input type="file" id="pi-file" accept="image/*" capture="environment" style="display:none" onchange="if(this.files[0])photoImportFile(this.files[0]); this.value='';">
-      <button class="primary-btn" style="margin-bottom:8px;background:var(--stone)" onclick="document.getElementById('pi-file').click()">🖼 Выбрать / снять фото</button>
-      <div id="pi-preview" style="text-align:center;margin-bottom:10px"></div>
-      <button class="primary-btn" id="pi-run-btn" onclick="runPhotoImport()" disabled style="opacity:0.5">✨ Распознать</button>
-      <div id="pi-status" style="font-size:12px;color:var(--ink-light);text-align:center;margin-top:10px;line-height:1.5"></div>
-    </div>
-
-    <div id="pi-step-review" style="display:none">
-      <div style="font-size:12px;color:var(--ink-light);margin-bottom:10px;line-height:1.5">Проверь и поправь распознанное, затем создай героя.</div>
-      <div id="pi-review-fields"></div>
-      <button class="primary-btn" style="margin-top:12px" onclick="confirmPhotoImport()">Создать героя</button>
-      <button class="primary-btn" style="margin-top:8px;background:var(--stone);box-shadow:none" onclick="closePhotoImport()">Отмена</button>
-    </div>
   </div>
 </div>
 
@@ -4443,226 +4403,6 @@ function exportCharacters() {
   try { localStorage.setItem('dnd_last_export', String(Date.now())); } catch(e){}
   const rt = document.getElementById('backup-toast'); if(rt) rt.remove();
   showToast('⬇ Файл сохранён');
-}
-
-// ============ ИМПОРТ ПО ФОТО (ИИ) ============
-// Распознаёт лист персонажа по фотографии через Anthropic Vision API.
-// БЕЗОПАСНОСТЬ: API-ключ НИКОГДА не сохраняется — держится только в поле
-// ввода на время запроса и стирается сразу после. Отправляется исключительно
-// на официальный https://api.anthropic.com по HTTPS. Фото уменьшается локально.
-const PI_ABIL_KEYS = ['str','dex','con','int','wis','cha'];
-let piImageB64 = null;   // base64 JPEG без префикса data:
-let piParsed = null;     // распознанный объект персонажа
-let piBusy = false;
-
-const PI_PROMPT = `Ты распознаёшь лист персонажа Dungeons & Dragons 5e с фотографии и возвращаешь СТРОГО один JSON-объект. Без markdown, без пояснений, без текста вокруг — только JSON.
-Все значения — на русском языке. Если поле не читается, поставь разумное значение по умолчанию (пустая строка, 0 или []).
-
-Правила:
-- class выбери ТОЧНО из списка: Воин, Маг, Плут, Клерик, Паладин, Следопыт, Варвар, Бард, Монах, Чародей, Колдун, Друид.
-- race — раса на русском.
-- abilities — итоговые значения характеристик (обычно 8–20), НЕ модификаторы.
-- saves — массив характеристик с владением спасброском, ТОЧНО из: СИЛ, ЛОВ, ТЕЛ, ИНТ, МУД, ХАР.
-- skills — массив навыков с владением, ТОЧНО из: Акробатика, Анализ, Атлетика, Восприятие, Выживание, Выступление, Запугивание, История, Магия, Медицина, Обман, Природа, Проницательность, Религия, Скрытность, Убеждение, Уход за животными, Ловкость рук.
-- spells — массив объектов {"name","level"} (level 0 — заговоры).
-- inventory — массив объектов {"name","qty"}.
-- features — массив объектов {"name","desc"} (умения, черты, способности).
-
-Схема ответа (заполни значениями с листа):
-{"name":"","race":"","class":"","level":1,"background":"","abilities":{"str":10,"dex":10,"con":10,"int":10,"wis":10,"cha":10},"ac":10,"hp_max":0,"hp_current":0,"speed":30,"xp":0,"saves":[],"skills":[],"spells":[],"inventory":[],"features":[],"traits":""}`;
-
-function openPhotoImport() {
-  closeCharMenu();
-  piImageB64 = null; piParsed = null; piBusy = false;
-  document.getElementById('pi-key').value = '';
-  document.getElementById('pi-preview').innerHTML = '';
-  document.getElementById('pi-status').textContent = '';
-  document.getElementById('pi-status').style.color = 'var(--ink-light)';
-  const runBtn = document.getElementById('pi-run-btn');
-  runBtn.disabled = true; runBtn.style.opacity = '0.5'; runBtn.textContent = '✨ Распознать';
-  document.getElementById('pi-step-input').style.display = '';
-  document.getElementById('pi-step-review').style.display = 'none';
-  document.getElementById('modal-photo-import').classList.add('open');
-}
-
-function closePhotoImport() {
-  // Стираем ключ и картинку из памяти при закрытии
-  const k = document.getElementById('pi-key'); if(k) k.value = '';
-  piImageB64 = null; piParsed = null;
-  document.getElementById('modal-photo-import').classList.remove('open');
-}
-
-// Локально уменьшаем фото до JPEG (макс. сторона 1568px — предел Vision)
-function photoImportFile(file) {
-  const img = new Image();
-  const url = URL.createObjectURL(file);
-  img.onload = () => {
-    const MAX = 1568;
-    let w = img.width, h = img.height;
-    const scale = Math.min(1, MAX/Math.max(w,h));
-    w = Math.max(1, Math.round(w*scale)); h = Math.max(1, Math.round(h*scale));
-    const c = document.createElement('canvas'); c.width = w; c.height = h;
-    c.getContext('2d').drawImage(img, 0, 0, w, h);
-    URL.revokeObjectURL(url);
-    let durl;
-    try { durl = c.toDataURL('image/jpeg', 0.82); }
-    catch(e) { showToast('Не удалось обработать фото'); return; }
-    piImageB64 = durl.split(',')[1];
-    document.getElementById('pi-preview').innerHTML =
-      `<img src="${durl}" alt="" style="max-width:100%;max-height:180px;border-radius:10px;border:1px solid var(--line)">`;
-    const runBtn = document.getElementById('pi-run-btn');
-    runBtn.disabled = false; runBtn.style.opacity = '1';
-    document.getElementById('pi-status').textContent = '';
-  };
-  img.onerror = () => { URL.revokeObjectURL(url); showToast('Не удалось прочитать фото'); };
-  img.src = url;
-}
-
-function piSetStatus(msg, isError) {
-  const s = document.getElementById('pi-status');
-  s.textContent = msg;
-  s.style.color = isError ? 'var(--crimson)' : 'var(--ink-light)';
-}
-
-async function runPhotoImport() {
-  if(piBusy) return;
-  if(!piImageB64) { piSetStatus('Сначала выбери фото', true); return; }
-  const keyEl = document.getElementById('pi-key');
-  const key = (keyEl.value || '').trim();
-  if(!key) { piSetStatus('Введите API-ключ Anthropic', true); return; }
-  // Стираем ключ из поля сразу — дальше он живёт только в локальной переменной
-  keyEl.value = '';
-  const model = document.getElementById('pi-model').value || 'claude-opus-4-8';
-  const runBtn = document.getElementById('pi-run-btn');
-  piBusy = true; runBtn.disabled = true; runBtn.style.opacity = '0.5'; runBtn.textContent = '⏳ Распознаю…';
-  piSetStatus('Отправляю фото в Anthropic…');
-  try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: model,
-        max_tokens: 2048,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: piImageB64 } },
-            { type: 'text', text: PI_PROMPT }
-          ]
-        }]
-      })
-    });
-    if(!resp.ok) {
-      let detail = '';
-      try { const e = await resp.json(); detail = (e.error && e.error.message) || ''; } catch(_) {}
-      if(resp.status === 401) throw new Error('Неверный API-ключ (401)');
-      throw new Error('Ошибка API ' + resp.status + (detail ? ': ' + detail : ''));
-    }
-    const data = await resp.json();
-    const txt = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
-    piParsed = piExtractJson(txt);
-    piSetStatus('');
-    renderPhotoReview(piParsed);
-    document.getElementById('pi-step-input').style.display = 'none';
-    document.getElementById('pi-step-review').style.display = '';
-  } catch(err) {
-    const m = String(err && err.message || err);
-    // Отличаем сетевую ошибку от прочих
-    piSetStatus(/Failed to fetch|NetworkError|load failed/i.test(m) ? 'Нет сети или запрос заблокирован. Проверьте подключение.' : m, true);
-  } finally {
-    piBusy = false;
-    runBtn.disabled = false; runBtn.style.opacity = '1'; runBtn.textContent = '✨ Распознать';
-  }
-}
-
-// Вытаскиваем первый JSON-объект из ответа модели
-function piExtractJson(txt) {
-  let t = String(txt || '').trim();
-  t = t.replace(/^```(?:json)?/i, '').replace(/```$/,'').trim();
-  const a = t.indexOf('{'), b = t.lastIndexOf('}');
-  if(a < 0 || b < 0 || b < a) throw new Error('Не удалось разобрать ответ ИИ');
-  return JSON.parse(t.slice(a, b+1));
-}
-
-function piScore(abil, i) {
-  abil = abil || {};
-  const v = parseInt(abil[PI_ABIL_KEYS[i]]);
-  return isNaN(v) ? 10 : v;
-}
-
-function renderPhotoReview(p) {
-  p = p || {};
-  const classes = ['Воин','Маг','Плут','Клерик','Паладин','Следопыт','Варвар','Бард','Монах','Чародей','Колдун','Друид'];
-  const pc = classes.indexOf(p.class) >= 0 ? p.class : 'Воин';
-  const classOpts = classes.map(c => `<option ${c===pc?'selected':''}>${c}</option>`).join('');
-  const el = document.getElementById('pi-review-fields');
-  el.innerHTML = `
-    <div style="font-size:12px;color:var(--ink-light);margin-bottom:4px">Имя</div>
-    <input class="input-field" id="pir-name" value="${esc(p.name||'')}" style="margin-bottom:10px">
-    <div style="display:flex;gap:8px;margin-bottom:10px">
-      <div style="flex:1"><div style="font-size:12px;color:var(--ink-light);margin-bottom:4px">Класс</div>
-        <select class="add-input" id="pir-class" style="width:100%">${classOpts}</select></div>
-      <div style="width:76px"><div style="font-size:12px;color:var(--ink-light);margin-bottom:4px">Уровень</div>
-        <input class="input-field" id="pir-level" type="number" value="${parseInt(p.level)||1}"></div>
-    </div>
-    <div style="font-size:12px;color:var(--ink-light);margin-bottom:4px">Раса</div>
-    <input class="input-field" id="pir-race" value="${esc(p.race||'')}" style="margin-bottom:10px">
-    <div class="section-title" style="margin:6px 0;border:none">Характеристики</div>
-    <div style="display:flex;gap:6px;margin-bottom:10px">
-      ${ABILITIES.map((ab,i)=>`<div style="flex:1;text-align:center">
-        <div style="font-size:11px;color:var(--ink-light)">${ab}</div>
-        <input class="input-field" id="pir-ab${i}" type="number" value="${piScore(p.abilities,i)}" style="text-align:center;padding:6px 2px">
-      </div>`).join('')}
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:10px">
-      <div style="flex:1"><div style="font-size:12px;color:var(--ink-light);margin-bottom:4px">КД</div>
-        <input class="input-field" id="pir-ac" type="number" value="${parseInt(p.ac)||10}"></div>
-      <div style="flex:1"><div style="font-size:12px;color:var(--ink-light);margin-bottom:4px">Хиты</div>
-        <input class="input-field" id="pir-hp" type="number" value="${parseInt(p.hp_max)||0}"></div>
-      <div style="flex:1"><div style="font-size:12px;color:var(--ink-light);margin-bottom:4px">Скорость</div>
-        <input class="input-field" id="pir-speed" type="number" value="${parseInt(p.speed)||30}"></div>
-    </div>
-    <div style="font-size:12px;color:var(--ink-light);line-height:1.7;padding:8px 10px;border:1px solid var(--line);border-radius:8px">
-      <b>Спасброски:</b> ${(p.saves||[]).map(esc).join(', ')||'—'}<br>
-      <b>Навыки:</b> ${(p.skills||[]).map(esc).join(', ')||'—'}<br>
-      <b>Заклинания:</b> ${(p.spells||[]).length} · <b>Инвентарь:</b> ${(p.inventory||[]).length} · <b>Умения:</b> ${(p.features||[]).length}
-    </div>`;
-}
-
-function confirmPhotoImport() {
-  const p = piParsed || {};
-  const data = blankCharacterData();
-  const name = document.getElementById('pir-name').value.trim() || 'Импорт';
-  const cls = document.getElementById('pir-class').value;
-  const lvl = Math.max(1, Math.min(20, parseInt(document.getElementById('pir-level').value)||1));
-  data.fields['char-name'] = name;
-  data.fields['char-class'] = cls;
-  data.fields['char-level'] = String(lvl);
-  data.fields['char-race'] = document.getElementById('pir-race').value.trim() || 'Человек';
-  data.fields['char-bg'] = (p.background && String(p.background)) || 'Простолюдин';
-  data.fields['char-xp'] = String(parseInt(p.xp)||0);
-  data.fields['char-traits'] = (p.traits && String(p.traits)) || '';
-  data.fields['stat-ac'] = String(parseInt(document.getElementById('pir-ac').value)||10);
-  data.fields['stat-speed'] = String(parseInt(document.getElementById('pir-speed').value)||30);
-  data.state.abilities = ABILITIES.map((ab,i)=>{ const v=parseInt(document.getElementById('pir-ab'+i).value); return isNaN(v)?10:Math.max(1,Math.min(30,v)); });
-  const hp = Math.max(1, parseInt(document.getElementById('pir-hp').value)||1);
-  data.state.hp = { current: hp, max: hp };
-  data.state.hitDice = { total: lvl, used:0, die: CLASS_HIT_DIE[cls]||8 };
-  const saveSet = new Set((p.saves||[]).map(s=>String(s).toUpperCase().trim()));
-  data.state.saveProfs = ABILITIES.map(ab=>saveSet.has(ab));
-  const skillSet = new Set((p.skills||[]).map(s=>String(s).toLowerCase().trim()));
-  data.state.skillProfs = SKILLS_DATA.map(sk=>skillSet.has(sk.name.toLowerCase()));
-  data.state.spells = (p.spells||[]).filter(s=>s&&s.name).map(s=>({ name:String(s.name), level:Math.max(0,Math.min(9,parseInt(s.level)||0)) }));
-  data.state.inventory = (p.inventory||[]).filter(it=>it&&it.name).map(it=>({ name:String(it.name), qty:Math.max(1,parseInt(it.qty)||1), icon:getItemIcon(String(it.name)) }));
-  data.state.features = (p.features||[]).filter(f=>f&&f.name).map(f=>({ name:String(f.name), desc:String(f.desc||'') }));
-  closePhotoImport();
-  newCharacter(data);
-  showToast('📷 Герой распознан и создан');
 }
 
 // ============ ПОДЕЛИТЬСЯ / QR / ПЕЧАТЬ ============
