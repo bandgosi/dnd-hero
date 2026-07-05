@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="D&D Герой">
 <meta name="theme-color" content="#0c0f13">
 <title>D&D Герой</title>
@@ -94,13 +94,14 @@
   }
 
   /* ---- APP SHELL ---- */
-  /* Прибиваем оболочку к вьюпорту (inset:0). На iOS в standalone это надёжнее,
-     чем height:100dvh — навбар всегда у нижнего края, без чёрной полосы снизу. */
+  /* Высоту берём из реального window.innerHeight (JS ставит --app-h). На iOS в
+     standalone это надёжнее, чем 100vh/100dvh, которые оставляют чёрную полосу
+     снизу. Пока JS не отработал — фолбэк на 100dvh. */
   .app {
-    position: fixed;
-    inset: 0;
     display: flex;
     flex-direction: column;
+    height: 100dvh;
+    height: var(--app-h, 100dvh);
   }
 
   /* На планшете/десктопе не растягиваемся на всю ширину — лист по центру */
@@ -108,10 +109,7 @@
     body { background: radial-gradient(ellipse at 50% 0%, #1a2028 0%, #0c0f13 60%); }
     .app {
       max-width: 640px;
-      left: 50%;
-      right: auto;
-      width: 100%;
-      transform: translateX(-50%);
+      margin: 0 auto;
       border-left: 1px solid rgba(201,150,42,0.35);
       border-right: 1px solid rgba(201,150,42,0.35);
       box-shadow: 0 0 80px rgba(0,0,0,0.7);
@@ -1871,7 +1869,7 @@
       <div class="welcome-divider"><span></span><i>◆</i><span></span></div>
       <div class="welcome-sub">Книга приключений всегда с тобой</div>
       <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-      <div class="welcome-version">версия 26</div>
+      <div class="welcome-version">версия 27</div>
     </div>
   </div>
 
@@ -6292,6 +6290,15 @@ if (location.hash.indexOf('#i=') === 0) {
 }
 
 // Register Service Worker for offline support
+// Высота оболочки = реальная видимая высота окна. На iOS standalone 100vh/100dvh
+// могут не совпадать с экраном и оставлять чёрную полосу снизу — берём innerHeight.
+function setAppHeight() {
+  document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px');
+}
+setAppHeight();
+window.addEventListener('resize', setAppHeight);
+window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 300));
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').then(reg => {
