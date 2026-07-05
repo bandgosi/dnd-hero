@@ -61,6 +61,7 @@
     --ink-light: #97a1ad;
     --crimson: #e04343;
     --crimson-light: #ff5c5c;
+    --accent: #ff5c5c; /* акцент интерфейса; перекрашивается под класс в applyClassTheme */
     --gold: #c9a03a;
     --gold-light: #f0c657;
     --stone: #12161c;
@@ -146,7 +147,7 @@
     transition: color 0.2s;
   }
 
-  .nav-btn.active { color: var(--crimson-light); }
+  .nav-btn.active { color: var(--accent); }
   .nav-btn svg { width: 22px; height: 22px; }
 
   /* ---- PAGE HEADER ---- */
@@ -1607,7 +1608,7 @@
     cursor: pointer;
     transition: all 0.2s;
   }
-  .subtab-btn.active { color: #ff6b6b; border-bottom-color: #ff6b6b; }
+  .subtab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 
   .xp-bar-track { height: 8px; background: var(--parchment-dark); border-radius: 4px; margin-top: 8px; overflow: hidden; }
   .xp-bar-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-light)); border-radius: 4px; transition: width 0.5s ease; }
@@ -1688,7 +1689,7 @@
 
   /* Заголовки секций: красный ромб-маркер */
   .section-title { display: flex; align-items: center; gap: 8px; }
-  .section-title::before { content: ''; width: 6px; height: 6px; background: var(--crimson); transform: rotate(45deg); flex-shrink: 0; }
+  .section-title::before { content: ''; width: 6px; height: 6px; background: var(--accent); transform: rotate(45deg); flex-shrink: 0; }
 
   /* Шапка: мягкое свечение за заголовком */
   .page-header { background: radial-gradient(ellipse 70% 130% at 50% 0%, #1b212b 0%, var(--stone) 75%); }
@@ -1749,9 +1750,9 @@
     top: 2px;
     width: 4px;
     height: 4px;
-    background: var(--crimson-light);
+    background: var(--accent);
     transform: rotate(45deg);
-    box-shadow: 0 0 8px rgba(255,92,92,0.9);
+    box-shadow: 0 0 8px var(--accent);
   }
 
   /* ============ ПАК «ЗА СТОЛОМ» ============ */
@@ -2629,7 +2630,7 @@
     <div class="modal-handle"></div>
     <div class="modal-title">🗂 Мои герои</div>
     <div id="char-list-menu" style="margin-bottom:12px"></div>
-    <button class="primary-btn" onclick="newCharacter()" style="margin-bottom:8px">+ Новый герой</button>
+    <button class="primary-btn" onclick="openNewCharWizard()" style="margin-bottom:8px">+ Новый герой</button>
     <div style="display:flex;gap:8px;margin-bottom:8px">
       <button class="primary-btn" style="flex:1;background:var(--stone)" onclick="shareCharacter()">🔗 Поделиться</button>
       <button class="primary-btn" style="flex:1;background:var(--stone)" onclick="printCharacter()">🖨 Печать</button>
@@ -2639,6 +2640,41 @@
       <button class="primary-btn" style="flex:1;background:var(--stone)" onclick="document.getElementById('import-file').click()">⬆ Импорт</button>
     </div>
     <input type="file" id="import-file" accept="application/json" style="display:none" onchange="if(this.files[0])importCharacters(this.files[0]); this.value='';">
+  </div>
+</div>
+
+<!-- МАСТЕР СОЗДАНИЯ ГЕРОЯ -->
+<div class="modal-overlay" id="modal-wizard" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Новый герой</div>
+    <div style="font-size:12px;color:var(--ink-light);margin-bottom:4px">Имя</div>
+    <input class="input-field" id="wiz-name" type="text" value="Новый герой" style="margin-bottom:10px">
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <div style="flex:1">
+        <div style="font-size:12px;color:var(--ink-light);margin-bottom:4px">Класс</div>
+        <select class="add-input" id="wiz-class" style="width:100%">
+          <option>Воин</option><option>Маг</option><option>Плут</option><option>Клерик</option>
+          <option>Паладин</option><option>Следопыт</option><option>Варвар</option><option>Бард</option>
+          <option>Монах</option><option>Чародей</option><option>Колдун</option><option>Друид</option>
+        </select>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:12px;color:var(--ink-light);margin-bottom:4px">Раса</div>
+        <select class="add-input" id="wiz-race" style="width:100%">
+          <option>Человек</option><option>Эльф</option><option>Дварф</option><option>Полурослик</option>
+          <option>Гном</option><option>Полуорк</option><option>Тифлинг</option><option>Драконорождённый</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+      <div class="section-title" style="margin:0;border:none">Характеристики</div>
+      <div style="font-size:12px;color:var(--ink-light)">Очков: <b id="wiz-points" style="font-family:Cinzel,serif">27</b></div>
+    </div>
+    <div style="font-size:11px;color:var(--ink-light);margin-bottom:6px;line-height:1.4">Покупка по очкам (8–15). Расовые бонусы добавишь потом на листе.</div>
+    <div id="wiz-abils" style="margin-bottom:12px"></div>
+    <button class="primary-btn" onclick="finishWizard()">Создать героя</button>
+    <button class="primary-btn" style="margin-top:8px;background:var(--stone);box-shadow:none" onclick="document.getElementById('modal-wizard').classList.remove('open');newCharacter()">Пропустить (пустой герой)</button>
   </div>
 </div>
 
@@ -2739,6 +2775,13 @@ function hexToRgba(hex, a) {
 }
 
 // Перекрасить баннер и герб под текущий класс
+// Осветлить цвет к белому на долю t (чтобы приглушённые классовые цвета читались как акцент)
+function lighten(hex, t) {
+  const n = parseInt(hex.slice(1), 16);
+  let r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+  r=Math.round(r+(255-r)*t); g=Math.round(g+(255-g)*t); b=Math.round(b+(255-b)*t);
+  return 'rgb('+r+','+g+','+b+')';
+}
 function applyClassTheme() {
   const cls = document.getElementById('char-class')?.value;
   const color = CLASS_THEMES[cls] || '#e04343';
@@ -2746,6 +2789,8 @@ function applyClassTheme() {
   if(banner) banner.style.background = `linear-gradient(165deg, ${hexToRgba(color,0.35)} 0%, ${hexToRgba(color,0.1)} 45%, rgba(20,24,30,0) 80%)`;
   const crest = document.getElementById('hero-crest');
   if(crest) { crest.innerHTML = CLASS_CRESTS[cls] || ''; crest.style.color = color; }
+  // акцент интерфейса под класс
+  document.documentElement.style.setProperty('--accent', lighten(color, 0.22));
 }
 
 // HTML-escape для пользовательского ввода, вставляемого через innerHTML
@@ -4239,17 +4284,72 @@ function renderCharMenu() {
   }).join('');
 }
 
-function newCharacter() {
+// Быстрое создание (пустой герой) — вызывается мастером и как запасной путь
+function newCharacter(data) {
   saveAll();
   const store = getStore();
   const id = genId();
-  const data = blankCharacterData();
+  data = data || blankCharacterData();
   store.list.push({ id, name: data.fields['char-name'], data });
   store.active = id;
   setStore(store);
   applyCharacter(data);
   renderCharMenu();
-  showToast('🆕 Новый герой создан');
+  showToast('🆕 Герой создан');
+}
+
+// ============ МАСТЕР СОЗДАНИЯ ГЕРОЯ ============
+const POINT_BUY_COST = {8:0,9:1,10:2,11:3,12:4,13:5,14:7,15:9};
+const POINT_BUY_TOTAL = 27;
+let wizardScores = [8,8,8,8,8,8];
+
+function openNewCharWizard() {
+  closeCharMenu();
+  wizardScores = [8,8,8,8,8,8];
+  document.getElementById('wiz-name').value = 'Новый герой';
+  renderWizard();
+  document.getElementById('modal-wizard').classList.add('open');
+}
+
+function wizardPointsUsed() { return wizardScores.reduce((s,v)=>s+POINT_BUY_COST[v],0); }
+
+function renderWizard() {
+  const used = wizardPointsUsed(), left = POINT_BUY_TOTAL - used;
+  document.getElementById('wiz-points').textContent = left;
+  document.getElementById('wiz-points').style.color = left<0 ? 'var(--crimson)' : 'var(--gold-light)';
+  document.getElementById('wiz-abils').innerHTML = ABILITIES.map((ab,i)=>{
+    const sc = wizardScores[i], m = mod(sc);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)">
+      <div style="flex:1;font-family:Cinzel,serif;font-size:14px;color:var(--ink)">${ABILITY_FULL[i]}</div>
+      <button class="count-btn" onclick="wizAdjust(${i},-1)">−</button>
+      <span style="font-family:Cinzel,serif;font-size:16px;color:var(--gold-light);min-width:44px;text-align:center">${sc} <span style="font-size:12px;color:var(--ink-light)">(${m>=0?'+':''}${m})</span></span>
+      <button class="count-btn" onclick="wizAdjust(${i},1)">+</button>
+    </div>`;
+  }).join('');
+}
+
+function wizAdjust(i, d) {
+  const next = wizardScores[i] + d;
+  if(next<8 || next>15) return;
+  const trial = wizardScores.slice(); trial[i]=next;
+  const used = trial.reduce((s,v)=>s+POINT_BUY_COST[v],0);
+  if(used > POINT_BUY_TOTAL) { showToast('Не хватает очков'); return; }
+  wizardScores[i]=next; vibrate([8]); renderWizard();
+}
+
+function finishWizard() {
+  const data = blankCharacterData();
+  data.state.abilities = wizardScores.slice();
+  data.fields['char-name'] = document.getElementById('wiz-name').value.trim() || 'Новый герой';
+  data.fields['char-class'] = document.getElementById('wiz-class').value;
+  data.fields['char-race'] = document.getElementById('wiz-race').value;
+  data.fields['char-level'] = '1';
+  // КД и кость хитов по классу
+  data.state.hitDice = { total:1, used:0, die: CLASS_HIT_DIE[data.fields['char-class']]||8 };
+  const con = mod(wizardScores[2]);
+  data.state.hp = { current: (CLASS_HIT_DIE[data.fields['char-class']]||8)+con, max: (CLASS_HIT_DIE[data.fields['char-class']]||8)+con };
+  document.getElementById('modal-wizard').classList.remove('open');
+  newCharacter(data);
 }
 
 function switchCharacter(id) {
