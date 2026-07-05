@@ -1753,6 +1753,84 @@
     transform: rotate(45deg);
     box-shadow: 0 0 8px rgba(255,92,92,0.9);
   }
+
+  /* ============ ПАК «ЗА СТОЛОМ» ============ */
+
+  /* Плавающая кнопка быстрого d20 */
+  .fab-dice {
+    position: fixed;
+    right: 16px;
+    bottom: calc(var(--safe-bottom) + 70px);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #e04343, #b32424);
+    border: 2px solid var(--gold);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.5), 0 0 22px rgba(224,67,67,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 150;
+    transition: transform 0.12s;
+  }
+  .fab-dice:active { transform: scale(0.9); }
+  .fab-dice svg { width: 30px; height: 30px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linejoin: round; }
+  .fab-dice.hidden { display: none; }
+
+  /* Всплывающий результат быстрого броска */
+  .quick-roll {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--safe-bottom) + 80px);
+    transform: translateX(-50%) translateY(20px);
+    background: linear-gradient(180deg, #242b35, #161b22);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    padding: 16px 20px;
+    z-index: 160;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .quick-roll.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+  .quick-roll .qr-num { font-family: 'Cinzel', serif; font-size: 46px; line-height: 1; color: var(--gold-light); }
+  .quick-roll .qr-num.crit { color: #ffe27a; text-shadow: 0 0 18px rgba(255,226,122,0.9); }
+  .quick-roll .qr-num.fail { color: #e05050; }
+  .quick-roll .qr-label { font-size: 11px; color: var(--ink-light); margin-top: 2px; letter-spacing: 0.5px; }
+  .quick-roll .qr-actions { display: flex; gap: 6px; margin-top: 10px; }
+  .quick-roll .qr-actions button {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--ink);
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    padding: 7px 10px;
+    cursor: pointer;
+  }
+  .quick-roll .qr-actions button.adv { color: #8fd08f; border-color: rgba(48,128,48,0.5); }
+  .quick-roll .qr-actions button.dis { color: #d09090; border-color: rgba(128,48,48,0.5); }
+
+  /* Переключатели эффектов на вкладке кубиков */
+  .fx-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .fx-toggle {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--ink-light);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .fx-toggle.on { color: var(--gold-light); border-color: rgba(201,160,58,0.5); background: rgba(201,160,58,0.1); }
 </style>
 </head>
 <body>
@@ -2055,6 +2133,10 @@
       </div>
       <div class="content">
         <div class="section">
+          <div class="fx-row">
+            <div class="fx-toggle on" id="fx-sound" onclick="toggleFx('sound')">🔊 Звук</div>
+            <div class="fx-toggle on" id="fx-vibro" onclick="toggleFx('vibro')">📳 Вибрация</div>
+          </div>
           <div class="dice-result-area">
             <div class="dice-result-number" id="dice-result">—</div>
             <div class="dice-result-label" id="dice-label">Выберите кубик</div>
@@ -2394,6 +2476,22 @@
     </nav>
   </div><!-- end screen-main -->
 
+  <!-- Плавающая кнопка быстрого d20 -->
+  <div class="fab-dice hidden" id="fab-dice" onclick="quickRoll('norm')" title="Быстрый бросок к20">
+    <svg viewBox="0 0 32 32"><path d="M16 2 L28 9 L28 23 L16 30 L4 23 L4 9 Z"/><path d="M16 8.5 L24 21.5 L8 21.5 Z M16 2 L16 8.5 M28 9 L24 21.5 M4 9 L8 21.5 M16 30 L16 21.5" stroke-width="1.2"/></svg>
+  </div>
+
+  <!-- Результат быстрого броска -->
+  <div class="quick-roll" id="quick-roll">
+    <div class="qr-num" id="qr-num">—</div>
+    <div class="qr-label" id="qr-label">к20</div>
+    <div class="qr-actions">
+      <button onclick="quickRoll('norm')">к20</button>
+      <button class="adv" onclick="quickRoll('adv')">▲ преим.</button>
+      <button class="dis" onclick="quickRoll('dis')">▼ помеха</button>
+    </div>
+  </div>
+
 </div><!-- end app -->
 
 <!-- MODALS -->
@@ -2582,12 +2680,165 @@ function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// ============ ЭФФЕКТЫ: ВИБРАЦИЯ + ЗВУК ============
+// Настройки глобальные (не привязаны к персонажу), хранятся в localStorage
+let fxSound = true, fxVibro = true;
+let _audioCtx = null;
+
+function loadFxSettings() {
+  try {
+    fxSound = localStorage.getItem('fx_sound') !== '0';
+    fxVibro = localStorage.getItem('fx_vibro') !== '0';
+  } catch(e) {}
+  const s = document.getElementById('fx-sound'), v = document.getElementById('fx-vibro');
+  if(s) s.classList.toggle('on', fxSound);
+  if(v) v.classList.toggle('on', fxVibro);
+}
+
+function toggleFx(kind) {
+  if(kind==='sound') { fxSound = !fxSound; try{localStorage.setItem('fx_sound', fxSound?'1':'0');}catch(e){}
+    document.getElementById('fx-sound').classList.toggle('on', fxSound); if(fxSound) playDiceSound(false,false); }
+  else { fxVibro = !fxVibro; try{localStorage.setItem('fx_vibro', fxVibro?'1':'0');}catch(e){}
+    document.getElementById('fx-vibro').classList.toggle('on', fxVibro); if(fxVibro) vibrate([15]); }
+}
+
+function vibrate(pattern) {
+  if(fxVibro && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} }
+}
+
+// AudioContext создаётся лениво при первом жесте (требование iOS)
+function ensureAudio() {
+  if(!_audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(AC) _audioCtx = new AC();
+  }
+  if(_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+
+// Синтез короткого «стука кубика»; на крит — звонкий аккорд, на провал — глухой удар
+function playDiceSound(crit, fail) {
+  if(!fxSound) return;
+  const ctx = ensureAudio(); if(!ctx) return;
+  const t0 = ctx.currentTime;
+  // шумовой «клац» кубика
+  const dur = 0.16;
+  const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate*dur), ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0;i<d.length;i++){ const e=1-i/d.length; d[i]=(Math.random()*2-1)*e*e; }
+  const noise = ctx.createBufferSource(); noise.buffer = buf;
+  const nf = ctx.createBiquadFilter(); nf.type='bandpass'; nf.frequency.value=1800; nf.Q.value=0.8;
+  const ng = ctx.createGain(); ng.gain.value=0.35;
+  noise.connect(nf); nf.connect(ng); ng.connect(ctx.destination);
+  noise.start(t0);
+  // тональный акцент
+  const notes = crit ? [660, 880, 1320] : fail ? [140, 90] : [420];
+  notes.forEach((f,i)=>{
+    const o = ctx.createOscillator(); o.type = crit?'triangle':'sine'; o.frequency.value=f;
+    const g = ctx.createGain();
+    const st = t0 + i*(crit?0.07:0.0);
+    g.gain.setValueAtTime(0.0001, st);
+    g.gain.exponentialRampToValueAtTime(crit?0.18:0.12, st+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, st+(fail?0.35:0.25));
+    o.connect(g); g.connect(ctx.destination);
+    o.start(st); o.stop(st+0.4);
+  });
+}
+
+// Единый отклик на бросок: вибро + звук, различает крит/провал
+function rollFeedback(crit, fail) {
+  if(crit) vibrate([0,40,40,80]);
+  else if(fail) vibrate([0,120]);
+  else vibrate([0,25]);
+  playDiceSound(!!crit, !!fail);
+}
+
+// ============ БЫСТРЫЙ БРОСОК (плавающая кнопка) ============
+let _quickRollTimer = null;
+function quickRoll(mode) {
+  const r1 = Math.ceil(Math.random()*20), r2 = Math.ceil(Math.random()*20);
+  let kept, label, rolls;
+  if(mode==='adv') { kept = Math.max(r1,r2); label='к20 преимущество'; rolls=[r1,r2]; }
+  else if(mode==='dis') { kept = Math.min(r1,r2); label='к20 помеха'; rolls=[r1,r2]; }
+  else { kept = r1; label='к20'; rolls=[r1]; }
+  const crit = kept===20, fail = kept===1;
+  const bubble = document.getElementById('quick-roll');
+  const num = document.getElementById('qr-num');
+  num.textContent = kept;
+  num.className = 'qr-num' + (crit?' crit':fail?' fail':'');
+  document.getElementById('qr-label').textContent = label + (mode!=='norm'?` (${r1}, ${r2})`:'');
+  bubble.classList.add('show');
+  rollFeedback(crit, fail);
+  addRollHistory(mode==='norm'?'к20 (быстрый)':label, kept, rolls, 0, 20);
+  if(_quickRollTimer) clearTimeout(_quickRollTimer);
+  _quickRollTimer = setTimeout(()=>bubble.classList.remove('show'), 3500);
+}
+
+// ============ ОТМЕНА ИЗМЕНЕНИЯ HP ============
+let _hpUndoSnap = null;
+function snapHP() { _hpUndoSnap = { current: state.hp.current, temp: state.tempHP||0 }; }
+function undoHPChange() {
+  if(!_hpUndoSnap) return;
+  state.hp.current = _hpUndoSnap.current;
+  state.tempHP = _hpUndoSnap.temp;
+  const ti = document.getElementById('temp-hp'); if(ti) ti.value = state.tempHP;
+  _hpUndoSnap = null;
+  updateHPDisplay(); saveAll();
+  const t = document.getElementById('hp-undo-toast'); if(t) t.remove();
+  showToast('↩ Отменено');
+}
+function showHPUndoToast(text) {
+  const old = document.getElementById('hp-undo-toast'); if(old) old.remove();
+  const t = document.createElement('div');
+  t.id = 'hp-undo-toast';
+  t.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--stone);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-size:14px;z-index:500;display:flex;align-items:center;gap:12px;animation:fadeInUp 0.3s ease;max-width:92vw';
+  t.innerHTML = `<span>${esc(text)}</span><button onclick="undoHPChange()" style="background:rgba(224,67,67,0.2);border:1px solid var(--crimson);border-radius:8px;color:#f0a0a0;font-family:Cinzel,serif;font-size:12px;padding:6px 12px;cursor:pointer;white-space:nowrap">↩ ОТМЕНИТЬ</button>`;
+  document.body.appendChild(t);
+  setTimeout(()=>{ if(t.parentElement) t.remove(); }, 5000);
+}
+
+// ============ СВАЙПЫ МЕЖДУ ВКЛАДКАМИ ============
+const TAB_ORDER = ['character','spells','dice','inventory','notes','guide'];
+function activateTab(name) {
+  const btn = [...document.querySelectorAll('.nav-btn')].find(b => (b.getAttribute('onclick')||'').includes(`'${name}'`));
+  if(btn) switchTab(name, btn);
+}
+function currentTabName() {
+  const vis = TAB_ORDER.find(t => { const el=document.getElementById('tab-'+t); return el && el.style.display!=='none'; });
+  return vis || 'character';
+}
+function initSwipeNav() {
+  const scr = document.getElementById('screen-main');
+  if(!scr) return;
+  let x0=0, y0=0, tracking=false;
+  scr.addEventListener('touchstart', e => {
+    if(e.touches.length!==1) { tracking=false; return; }
+    const tgt = e.target;
+    // не мешаем вводу, спискам с горизонтальной прокруткой и открытым модалкам
+    if(tgt.closest('input,textarea,select,.subtabs,.ai-cat-row,.emoji-grid')) { tracking=false; return; }
+    if(document.querySelector('.modal-overlay.open, .ai-overlay.open')) { tracking=false; return; }
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; tracking=true;
+  }, {passive:true});
+  scr.addEventListener('touchend', e => {
+    if(!tracking) return; tracking=false;
+    const dx = e.changedTouches[0].clientX - x0;
+    const dy = e.changedTouches[0].clientY - y0;
+    if(Math.abs(dx) < 65 || Math.abs(dx) < Math.abs(dy)*2) return;
+    const idx = TAB_ORDER.indexOf(currentTabName());
+    const next = dx < 0 ? idx+1 : idx-1;
+    if(next >= 0 && next < TAB_ORDER.length) { activateTab(TAB_ORDER[next]); vibrate([8]); }
+  }, {passive:true});
+}
+
 // ============ INIT ============
 function startApp() {
   document.getElementById('screen-welcome').classList.remove('active');
   document.getElementById('screen-main').classList.add('active');
+  document.getElementById('fab-dice').classList.remove('hidden');
   initSpellSlots();
   loadData();
+  loadFxSettings();
+  initSwipeNav();
   setInterval(saveAll, 5000);
   setTimeout(maybeShowBackupReminder, 4000);
 }
@@ -2646,6 +2897,10 @@ function switchTab(tab, btn) {
   document.getElementById('tab-'+tab).style.display='flex';
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  // на вкладке кубиков плавающая кнопка не нужна
+  const fab = document.getElementById('fab-dice');
+  if(fab) fab.classList.toggle('hidden', tab==='dice');
+  const qr = document.getElementById('quick-roll'); if(qr) qr.classList.remove('show');
   if(tab==='guide') renderClassGuide();
 }
 
@@ -2813,9 +3068,11 @@ function rollConcentration(dmg) {
 }
 
 function changeHP(delta) {
-  if(delta<0) { applyDamage(-delta); return; }
+  snapHP();
+  if(delta<0) { applyDamage(-delta); showHPUndoToast(`${delta} HP`); return; }
   state.hp.current = Math.min(state.hp.max, state.hp.current+delta);
   updateHPDisplay(); saveAll();
+  showHPUndoToast(`+${delta} HP`);
 }
 
 function showHPModal(mode) {
@@ -2828,10 +3085,13 @@ function showHPModal(mode) {
 function applyHPChange() {
   const amt = parseInt(document.getElementById('modal-hp-amount').value)||0;
   document.getElementById('modal-hp').classList.remove('open');
-  if (hpModalMode==='damage') { applyDamage(amt); return; }
+  if(amt<=0) return;
+  snapHP();
+  if (hpModalMode==='damage') { applyDamage(amt); showHPUndoToast(`−${amt} HP`); return; }
   state.hp.current = Math.min(state.hp.max, state.hp.current+amt);
   updateHPDisplay();
   saveAll();
+  showHPUndoToast(`+${amt} HP`);
 }
 
 // ============ РЕСУРСЫ КЛАССА (ки, ярость, очки чародейства...) ============
@@ -2966,6 +3226,7 @@ function rollInitiative() {
   const total = roll+dex;
   document.getElementById('stat-init').textContent = total;
   addRollHistory('Инициатива', total, [roll], dex, 20);
+  rollFeedback(roll===20, roll===1);
   showToast(`⚡ Инициатива: ${roll}${dex>=0?'+':''}${dex} = ${total}`);
   setTimeout(()=> document.getElementById('stat-init').textContent = (dex>=0?'+':'')+dex, 3000);
 }
@@ -2976,6 +3237,7 @@ function rollCheck(label, bonus) {
   const roll = Math.ceil(Math.random()*20);
   const total = roll+bonus;
   addRollHistory(label, total, [roll], bonus, 20);
+  rollFeedback(roll===20, roll===1);
   showToast(`🎲 ${label}: ${roll}${bonus>=0?'+':''}${bonus} = ${total}${roll===20?' ⭐':roll===1?' 💀':''}`);
 }
 
@@ -3028,6 +3290,7 @@ function rollAttack(i) {
   if(crit) msg+=' ⭐КРИТ'; else if(fail) msg+=' 💀ПРОМАХ';
   if(dmg!=null) msg+=` | урон ${dmg}`;
   addRollHistory('Атака: '+a.name, toHit, [roll], a.bonus||0, 20);
+  rollFeedback(crit, fail);
   showToast(msg);
 }
 
@@ -3266,6 +3529,7 @@ function rollDice(sides) {
   const isCrit = sides===20 && count===1 && rolls[0]===20;
   const isFail = sides===20 && count===1 && rolls[0]===1;
   animateDiceResult(el, total, sides, {crit:isCrit, fail:isFail});
+  rollFeedback(isCrit, isFail);
   const label = count>1?`${count}d${sides}${modVal?(' + '+modVal):''}`:`d${sides}${modVal?(' + '+modVal):''}`;
   document.getElementById('dice-label').textContent=label.toUpperCase();
   const detail = rolls.length>1?` (${rolls.join(' + ')}${modVal?(' + '+modVal):''})`:'';
@@ -3286,6 +3550,7 @@ function rollAdvantage() {
   const kept=Math.max(r1,r2);
   const best=kept+modVal;
   animateDiceResult(document.getElementById('dice-result'), best, sides, {crit:kept===20, fail:kept===1});
+  rollFeedback(kept===20, kept===1);
   document.getElementById('dice-label').textContent='d20 ПРЕИМУЩЕСТВО';
   document.getElementById('dice-history').textContent=`(${r1}, ${r2} → ${kept}${modVal?' + '+modVal:''})`;
   addRollHistory('d20 Преим.', best,[r1,r2],modVal,20);
@@ -3297,6 +3562,7 @@ function rollDisadvantage() {
   const kept=Math.min(r1,r2);
   const worst=kept+modVal;
   animateDiceResult(document.getElementById('dice-result'), worst, sides, {crit:kept===20, fail:kept===1});
+  rollFeedback(kept===20, kept===1);
   document.getElementById('dice-label').textContent='d20 ПОМЕХА';
   document.getElementById('dice-history').textContent=`(${r1}, ${r2} → ${kept}${modVal?' + '+modVal:''})`;
   addRollHistory('d20 Помеха', worst,[r1,r2],modVal,20);
