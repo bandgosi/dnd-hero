@@ -66,10 +66,16 @@ Beyond the core fields, `state` also carries `resources` (class counters with sh
 - A floating quick-d20 button (`#fab-dice`, hidden on the dice tab) drives `quickRoll(mode)`; horizontal swipes between the six tabs are wired in `initSwipeNav()`.
 - Sharing: an inline dependency-free QR encoder (`QR.generate`, byte mode / EC-L / versions 1–25) renders a `#i=`-URL QR when the pruned payload (`compactCharPayload()`, strips photo/history/computed slots/empty values) fits; otherwise a copyable base64 code. `handleShareHash()` auto-imports from `#i=` on load. `printCharacter()` fills `#print-sheet` and calls `window.print()` (print-only `@media print` layout).
 
+### AI photo import (the ONE network call)
+
+- `#modal-photo-import` + `openPhotoImport`/`photoImportFile`/`runPhotoImport`/`renderPhotoReview`/`confirmPhotoImport` (search `ИМПОРТ ПО ФОТО (ИИ)`) let the user create a character from a photo of a paper sheet via the **Anthropic Vision API** — the only outbound call in the app. Everything else stays fully offline; do not add other network dependencies.
+- **API-key security is deliberate**: the key is read from a `password` input into a local `const` at request time, the field is cleared immediately, and it is NEVER written to localStorage/`state`. `photoImportFile()` downscales the photo locally to a ≤1568px JPEG (`piImageB64`, base64 no prefix). The request sets `x-api-key`, `anthropic-version: 2023-06-01`, and `anthropic-dangerous-direct-browser-access: true` (required for browser calls). Model is user-selectable (`claude-opus-4-8` default, `claude-haiku-4-5` cheaper).
+- The model returns strict JSON; `piExtractJson()` tolerates code-fences/leading prose. A mandatory editable **review step** (`#pi-step-review`) precedes creation; `confirmPhotoImport()` maps to the app schema (abilities in СИЛ..ХАР order, `saveProfs`/`skillProfs` by matching Russian names, `spells`/`inventory`/`features`, `hitDice` by class) and calls `newCharacter()`. `sw.js` has a network-only passthrough for `api.anthropic.com`.
+
 ## Conventions
 
 - All UI text, data, and most code comments are in Russian; keep new UI strings in Russian.
 - The theme is dark, D&D Beyond-inspired (graphite surfaces, red accents, muted gold): palette lives in `:root`. **Variable names are historical** — `--parchment` and `--ink` are now LIGHT text colors on dark surfaces; backgrounds use `--bg`/`--surface`/`--card`; thin borders use `--line`. Do not reintroduce light backgrounds under `var(--parchment)`.
-- The app has **zero external network dependencies** (fonts are self-hosted) — keep it that way; everything must work fully offline.
+- The app has **zero external network dependencies** for its core (fonts are self-hosted) — everything must work fully offline. The **only** outbound call is the opt-in AI photo import (`api.anthropic.com`), triggered explicitly by the user with their own key; keep it the sole exception.
 - Ability order is always СИЛ, ЛОВ, ТЕЛ, ИНТ, МУД, ХАР (indexes 0–5) across `state.abilities`, `saveProfs`, and `CASTING_ABILITY`.
 - On tablet/desktop widths (≥700px) the app is constrained to a 640px centered column via a media query; test layout changes at both 390px and wide widths.

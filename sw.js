@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dnd-hero-v24';
+const CACHE_NAME = 'dnd-hero-v25';
 const ASSETS = [
   './',
   './index.html',
@@ -38,6 +38,12 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request).catch(() => new Response('{"results":[]}', { headers: { 'Content-Type': 'application/json' } }))
     );
+    return;
+  }
+
+  // Photo import: pass Anthropic API calls straight to the network, never cache
+  if (url.hostname === 'api.anthropic.com') {
+    event.respondWith(fetch(event.request));
     return;
   }
 
