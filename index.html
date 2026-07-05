@@ -197,6 +197,9 @@
     touch-action: pan-y;
     overscroll-behavior-y: contain;
     background: var(--surface);
+    /* Запас снизу, чтобы плавающая кнопка d20 не перекрывала последний ряд
+       (поля/кнопки в самом низу вкладки) */
+    padding-bottom: 84px;
   }
 
   .section { padding: 16px; }
@@ -1869,7 +1872,7 @@
       <div class="welcome-divider"><span></span><i>◆</i><span></span></div>
       <div class="welcome-sub">Книга приключений всегда с тобой</div>
       <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-      <div class="welcome-version">версия 28</div>
+      <div class="welcome-version">версия 29</div>
     </div>
   </div>
 
