@@ -1938,6 +1938,17 @@
             </select>
             <textarea class="notes-textarea" id="char-traits" placeholder="Черты характера, идеалы, привязанности, слабости..." rows="4" onchange="saveAll()"></textarea>
           </div>
+
+          <!-- FEATURES -->
+          <div class="section" style="padding-top:0">
+            <div class="section-title">Особенности и умения</div>
+            <div id="features-list"></div>
+            <div class="add-item-row" style="flex-wrap:wrap;gap:6px;margin-top:10px">
+              <input class="add-input" id="feat-name" type="text" placeholder="Название (Тёмное зрение)" style="flex:2 1 150px">
+              <input class="add-input" id="feat-desc" type="text" placeholder="Описание (необязательно)" style="flex:3 1 180px">
+              <button class="add-btn" onclick="addFeature()">+</button>
+            </div>
+          </div>
         </div>
 
         <!-- COMBAT TAB -->
@@ -2046,7 +2057,10 @@
 
           <!-- CLASS RESOURCES -->
           <div class="section" style="padding-top:0">
-            <div class="section-title">Ресурсы класса</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div class="section-title" style="margin:0">Ресурсы класса</div>
+              <button onclick="scanNotesForResources()" title="Найти счётчики в заметках" style="background:rgba(255,255,255,0.05);border:1px solid var(--line);border-radius:8px;color:var(--ink-light);font-size:11px;padding:6px 10px;cursor:pointer;white-space:nowrap">🔎 из заметок</button>
+            </div>
             <div id="resources-list"></div>
             <div class="add-item-row" style="flex-wrap:wrap;gap:6px;margin-top:10px">
               <input class="add-input" id="res-name" type="text" placeholder="Ки, Ярость, Очки чародейства..." style="flex:2 1 150px">
@@ -2565,6 +2579,17 @@
   </div>
 </div>
 
+<!-- SCAN NOTES → RESOURCES -->
+<div class="modal-overlay" id="modal-scan" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Счётчики из заметок</div>
+    <div style="font-size:13px;color:var(--ink-light);margin-bottom:10px;line-height:1.5">Нашлись строки вида «Название: число». Отметь, какие превратить в счётчики ресурсов (восстановление — длинный отдых, можно поменять потом).</div>
+    <div id="scan-results" style="margin-bottom:12px"></div>
+    <button class="primary-btn" onclick="applyScannedResources()">Добавить выбранные</button>
+  </div>
+</div>
+
 <!-- ITEM INFO (справка из базы знаний по предмету инвентаря) -->
 <div class="modal-overlay" id="modal-item-info" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal-sheet">
@@ -2627,6 +2652,7 @@ let state = {
   tempHP: 0,
   attacks: [],
   resources: [],
+  features: [],
   concentrationSpell: null,
   bonusSlots: [0,0,0,0,0,0,0,0,0],
   hitDice: { total: 1, used: 0, die: 8 }
@@ -3151,6 +3177,81 @@ function recoverResources(restType) {
   return n;
 }
 
+// Найти в заметках строки вида «Название: N» и предложить сделать из них счётчики
+function scanNotesForResources() {
+  const ids = ['notes-campaign','notes-locations','notes-npc','notes-misc'];
+  const existing = new Set((state.resources||[]).map(r => r.name.toLowerCase()));
+  const found = [];
+  const seen = new Set();
+  ids.forEach(id => {
+    const el = document.getElementById(id); if(!el) return;
+    el.value.split('\n').forEach(line => {
+      const m = line.match(/^\s*(.+?)\s*[:：]\s*(\d{1,2})\s*$/);
+      if(!m) return;
+      const name = m[1].trim(), num = parseInt(m[2]);
+      if(name.length<2 || name.length>28 || num<1 || num>20) return;
+      if(/^\d+$/.test(name)) return;
+      const key = name.toLowerCase();
+      if(existing.has(key) || seen.has(key)) return;
+      seen.add(key);
+      found.push({ name, max: num });
+    });
+  });
+  if(!found.length) { showToast('В заметках не нашлось строк вида «Название: число»'); return; }
+  const el = document.getElementById('scan-results');
+  el.innerHTML = found.map((f,i)=>`
+    <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer">
+      <input type="checkbox" checked data-name="${esc(f.name)}" data-max="${f.max}" style="width:18px;height:18px">
+      <span style="flex:1;color:var(--ink)">${esc(f.name)}</span>
+      <span style="color:var(--gold-light);font-family:Cinzel,serif">${f.max}</span>
+    </label>`).join('');
+  document.getElementById('modal-scan').classList.add('open');
+}
+
+function applyScannedResources() {
+  const boxes = document.querySelectorAll('#scan-results input[type=checkbox]:checked');
+  if(!state.resources) state.resources = [];
+  let n = 0;
+  boxes.forEach(b => {
+    state.resources.push({ name: b.dataset.name, max: parseInt(b.dataset.max), used: 0, recover: 'long' });
+    n++;
+  });
+  document.getElementById('modal-scan').classList.remove('open');
+  renderResources(); saveAll();
+  if(n) showToast(`✓ Добавлено счётчиков: ${n}`);
+}
+
+// ============ ОСОБЕННОСТИ И УМЕНИЯ ============
+function renderFeatures() {
+  const el = document.getElementById('features-list'); if(!el) return;
+  const fs = state.features || [];
+  if(!fs.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:8px 0;font-size:13px">Особенности расы и класса: Тёмное зрение, Ярость, Боевой стиль...</div>';
+    return;
+  }
+  el.innerHTML = fs.map((f,i)=>`
+    <div style="padding:10px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start">
+      <div style="flex:1;min-width:0">
+        <div style="font-family:Cinzel,serif;font-size:14px;color:var(--gold-light)">${esc(f.name)}</div>
+        ${f.desc?`<div style="font-size:13px;color:var(--ink-light);margin-top:2px;line-height:1.5">${esc(f.desc)}</div>`:''}
+      </div>
+      <button class="inv-delete" onclick="removeFeature(${i})">✕</button>
+    </div>`).join('');
+}
+
+function addFeature() {
+  const name = document.getElementById('feat-name').value.trim();
+  if(!name) return;
+  const desc = document.getElementById('feat-desc').value.trim();
+  if(!state.features) state.features = [];
+  state.features.push({ name, desc });
+  document.getElementById('feat-name').value = '';
+  document.getElementById('feat-desc').value = '';
+  renderFeatures(); saveAll();
+}
+
+function removeFeature(i) { state.features.splice(i,1); renderFeatures(); saveAll(); }
+
 // ============ ОТДЫХ И КОСТИ ХИТОВ ============
 function renderHitDice() {
   const el=document.getElementById('hit-dice-display'); if(!el) return;
@@ -3472,18 +3573,30 @@ function renderSpellList() {
     const concBtn = d.concentration
       ? `<button onclick="event.stopPropagation();setConcentrationSpell('${esc(sp.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"))}')" title="Концентрация" style="background:${isConc?'#1a2a50':'none'};border:1px solid ${isConc?'#6080c0':'rgba(100,70,200,0.35)'};border-radius:6px;color:${isConc?'#9ab8f0':'#8878b0'};font-size:13px;cursor:pointer;padding:3px 6px;flex-shrink:0">🧿</button>`
       : '';
+    const si = state.spells.indexOf(sp);
+    const prepBtn = sp.level>0
+      ? `<button onclick="event.stopPropagation();togglePrepared(${si})" title="${sp.prepared?'Подготовлено':'Не подготовлено'}" style="background:${sp.prepared?'rgba(201,160,58,0.22)':'none'};border:1px solid ${sp.prepared?'var(--gold)':'var(--line)'};border-radius:6px;color:${sp.prepared?'var(--gold-light)':'var(--ink-light)'};font-size:12px;cursor:pointer;padding:3px 6px;flex-shrink:0">📖</button>`
+      : '';
     return `
-    <div class="spell-browser-card ${isConc?'concentrating':''}" id="myspell-${i}" onclick="${hasDetails ? `toggleMySpellCard(${i})` : ''}" style="${hasDetails ? 'cursor:pointer' : ''}">
+    <div class="spell-browser-card ${isConc?'concentrating':''}" id="myspell-${i}" onclick="${hasDetails ? `toggleMySpellCard(${i})` : ''}" style="${hasDetails ? 'cursor:pointer' : ''};opacity:${sp.level>0 && !sp.prepared ? '0.62' : '1'}">
       <div class="spell-level-badge">${sp.level===0?'З':sp.level}</div>
       <div class="spell-browser-info">
         <div class="spell-browser-name">${esc(sp.name)}</div>
         <div class="spell-browser-meta">${conc}${ritual}${metaParts.join(' · ')}</div>
         ${hasDetails ? `<div class="spell-browser-desc">${esc(d.description)}${higher}</div>` : ''}
       </div>
+      ${prepBtn}
       ${concBtn}
       <button onclick="event.stopPropagation();removeSpell(${state.spells.indexOf(sp)})" style="background:none;border:none;color:#a05050;font-size:16px;cursor:pointer;padding:2px;flex-shrink:0">✕</button>
     </div>`;
   }).join('');
+}
+
+function togglePrepared(i) {
+  const sp = state.spells[i]; if(!sp) return;
+  sp.prepared = !sp.prepared;
+  vibrate([10]);
+  renderSpellList(); saveAll();
 }
 
 function toggleMySpellCard(i) {
@@ -3639,20 +3752,48 @@ function changeQty(i,delta) {
   renderInventory(); saveAll();
 }
 
+// Требует ли предмет настройки (по данным из базы знаний или сохранённой детали)
+function itemRequiresAttunement(it) {
+  if(it.detail && it.detail.attunement) return true;
+  const q = it.name.toLowerCase().replace(/\s*\(.*\)$/,'');
+  const e = DB_MAGIC_ITEMS.find(m => m.name.toLowerCase()===q)
+    || DB_MAGIC_ITEMS.find(m => q.includes(m.name.toLowerCase()) || m.name.toLowerCase().includes(q));
+  return !!(e && e.attunement);
+}
+function attunedCount() { return state.inventory.filter(it => it.attuned).length; }
+
+function toggleAttune(i) {
+  const it = state.inventory[i]; if(!it) return;
+  if(!it.attuned && attunedCount() >= 3) { showToast('⚠ Максимум 3 настроенных предмета'); return; }
+  it.attuned = !it.attuned;
+  vibrate([10]);
+  renderInventory(); saveAll();
+}
+
 function renderInventory() {
   const list=document.getElementById('inv-list');
   if(!state.inventory.length) {list.innerHTML='<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:20px">Инвентарь пуст</div>';return;}
-  list.innerHTML = state.inventory.map((it,i)=>`
+  const anyAttune = state.inventory.some(itemRequiresAttunement);
+  const header = anyAttune
+    ? `<div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-bottom:8px;font-size:12px;color:var(--ink-light)">✨ Настройка: <b style="color:${attunedCount()>=3?'var(--crimson)':'var(--gold-light)'}">${attunedCount()}/3</b></div>`
+    : '';
+  list.innerHTML = header + state.inventory.map((it,i)=>{
+    const att = itemRequiresAttunement(it)
+      ? `<button onclick="toggleAttune(${i})" title="${it.attuned?'Настроен':'Настроить'}" style="background:${it.attuned?'rgba(201,160,58,0.22)':'none'};border:1px solid ${it.attuned?'var(--gold)':'var(--line)'};border-radius:6px;color:${it.attuned?'var(--gold-light)':'var(--ink-light)'};font-size:13px;cursor:pointer;padding:2px 6px;flex-shrink:0">✨</button>`
+      : '';
+    return `
     <div class="inv-item">
       <span class="inv-icon">${it.icon}</span>
-      <span class="inv-name" onclick="showItemInfo(${i})" title="Открыть справку">${esc(it.name)}</span>
+      <span class="inv-name" onclick="showItemInfo(${i})" title="Открыть справку">${esc(it.name)}${it.attuned?' <span style="color:var(--gold-light);font-size:11px">✨</span>':''}</span>
       <div style="display:flex;align-items:center;gap:6px">
-        <button onclick="changeQty(${i},-1)" style="background:none;border:1px solid var(--parchment-dark);border-radius:4px;width:24px;height:24px;color:var(--ink-light);font-size:14px;cursor:pointer">−</button>
+        ${att}
+        <button onclick="changeQty(${i},-1)" style="background:none;border:1px solid var(--line);border-radius:4px;width:24px;height:24px;color:var(--ink-light);font-size:14px;cursor:pointer">−</button>
         <span class="inv-qty">${it.qty}</span>
-        <button onclick="changeQty(${i},+1)" style="background:none;border:1px solid var(--parchment-dark);border-radius:4px;width:24px;height:24px;color:var(--ink-light);font-size:14px;cursor:pointer">+</button>
+        <button onclick="changeQty(${i},+1)" style="background:none;border:1px solid var(--line);border-radius:4px;width:24px;height:24px;color:var(--ink-light);font-size:14px;cursor:pointer">+</button>
         <button class="inv-delete" onclick="removeItem(${i})">✕</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ============ INSPIRATION & XP ============
@@ -3841,6 +3982,7 @@ function applyCharacter(data) {
   state.tempHP = d.tempHP || 0;
   state.attacks = d.attacks || [];
   state.resources = d.resources || [];
+  state.features = d.features || [];
   state.concentrationSpell = d.concentrationSpell || null;
   state.bonusSlots = (d.bonusSlots && d.bonusSlots.length===9) ? d.bonusSlots : new Array(9).fill(0);
   const fields = (data && data.fields) || {};
@@ -3877,7 +4019,7 @@ function blankCharacterData() {
       spells:[], spellSlots:[], inventory:[], conditions:[],
       dsSuccess:[false,false,false], dsFailure:[false,false,false],
       rollHistory:[], diceCount:1, portrait:'⚔️', portraitImg:null, inspiration:false,
-      attacks:[], resources:[], concentrationSpell:null,
+      attacks:[], resources:[], features:[], concentrationSpell:null,
       bonusSlots:[0,0,0,0,0,0,0,0,0], hitDice:{total:1,used:0,die:10}
     },
     fields: {
@@ -4037,6 +4179,7 @@ function renderAll() {
   renderInventory();
   renderAttacks();
   renderResources();
+  renderFeatures();
   renderHitDice();
   renderRollHistory();
   updateXP();
