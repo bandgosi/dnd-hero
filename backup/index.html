@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="D&D Герой">
-<meta name="theme-color" content="#1a0f00">
+<meta name="theme-color" content="#0c0f13">
 <title>D&D Герой</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
@@ -16,25 +16,62 @@
 <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
 <link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120.png">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+  /* Локальные шрифты — приложение полностью офлайн, без запросов к Google Fonts */
+  @font-face {
+    font-family: 'Cinzel';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('fonts/cinzel-latin.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'Crimson Text';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('fonts/crimson-text-latin.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'Crimson Text';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('fonts/crimson-text-600-latin.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'Crimson Text';
+    font-style: italic;
+    font-weight: 400;
+    font-display: swap;
+    src: url('fonts/crimson-text-italic-latin.woff2') format('woff2');
+  }
 
   :root {
-    --parchment: #f5ead6;
-    --parchment-dark: #e8d5b0;
-    --ink: #2c1a08;
-    --ink-light: #5a3a1a;
-    --crimson: #8b1a1a;
-    --crimson-light: #c0392b;
-    --gold: #c9962a;
-    --gold-light: #f0c040;
-    --stone: #3a3028;
-    --stone-light: #5a4a38;
-    --shadow: rgba(0,0,0,0.4);
+    /* Тёмная палитра в духе D&D Beyond: графит + красный + приглушённое золото.
+       Имена переменных исторические: --parchment теперь СВЕТЛЫЙ ТЕКСТ на тёмном,
+       --ink тоже светлый текст (бывший «чернильный» на пергаменте). */
+    --bg: #0c0f13;            /* фон приложения / хром */
+    --surface: #14181e;       /* фон контента */
+    --card: #1d232b;          /* карточки */
+    --card-2: #252c36;        /* приподнятые элементы */
+    --line: rgba(255,255,255,0.09);   /* тонкие границы */
+    --parchment: #e9ecf1;
+    --parchment-dark: rgba(255,255,255,0.16);
+    --ink: #e9ecf1;
+    --ink-light: #97a1ad;
+    --crimson: #e04343;
+    --crimson-light: #ff5c5c;
+    --gold: #c9a03a;
+    --gold-light: #f0c657;
+    --stone: #12161c;
+    --stone-light: #2a313c;
+    --shadow: rgba(0,0,0,0.5);
     --safe-top: env(safe-area-inset-top);
     --safe-bottom: env(safe-area-inset-bottom);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  input, select, textarea, button { font-family: inherit; }
 
   html {
     height: 100%;
@@ -42,8 +79,10 @@
   }
 
   body {
-    font-family: 'Crimson Text', Georgia, serif;
-    background: #1a0f00;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    /* Совпадает с фоном навбара: зона home-индикатора на iPhone сливается с навигацией,
+       а не выглядит отдельной чёрной полосой */
+    background: var(--stone);
     color: var(--ink);
     min-height: 100vh;
     min-height: -webkit-fill-available;
@@ -62,13 +101,25 @@
     height: 100dvh;
   }
 
+  /* На планшете/десктопе не растягиваемся на всю ширину — лист по центру */
+  @media (min-width: 700px) {
+    body { background: radial-gradient(ellipse at 50% 0%, #1a2028 0%, #0c0f13 60%); }
+    .app {
+      max-width: 640px;
+      margin: 0 auto;
+      border-left: 1px solid rgba(201,150,42,0.35);
+      border-right: 1px solid rgba(201,150,42,0.35);
+      box-shadow: 0 0 80px rgba(0,0,0,0.7);
+    }
+  }
+
   .screen { display: none; flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .screen.active { display: flex; flex-direction: column; min-height: 0; }
 
   /* ---- NAV BAR ---- */
   .nav-bar {
     background: var(--stone);
-    border-top: 2px solid var(--gold);
+    border-top: 1px solid var(--line);
     display: flex;
     justify-content: space-around;
     padding-bottom: var(--safe-bottom);
@@ -87,24 +138,38 @@
     padding: 8px 4px;
     background: none;
     border: none;
-    color: #c8a878;
+    color: #8a94a1;
     font-family: 'Cinzel', serif;
-    font-size: 9px;
+    font-size: 10px;
     letter-spacing: 0.5px;
     cursor: pointer;
     transition: color 0.2s;
   }
 
-  .nav-btn.active { color: var(--gold-light); }
+  .nav-btn.active { color: var(--crimson-light); }
   .nav-btn svg { width: 22px; height: 22px; }
 
   /* ---- PAGE HEADER ---- */
   .page-header {
-    background: linear-gradient(135deg, var(--stone) 0%, #2a1f10 100%);
-    border-bottom: 2px solid var(--gold);
-    padding: calc(var(--safe-top) + 12px) 16px 12px;
+    background: var(--stone);
+    border-bottom: 1px solid var(--line);
+    position: relative;
+    padding: calc(var(--safe-top) + 15px) 16px 12px;
     text-align: center;
     flex-shrink: 0;
+  }
+
+  /* Красная акцентная полоса, как у DDB. Рисуется псевдоэлементом НИЖЕ статус-бара
+     (var(--safe-top)), иначе на iPhone она вылезает над часами. */
+  .page-header::before {
+    content: '';
+    position: absolute;
+    top: var(--safe-top);
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--crimson) 15%, var(--crimson) 85%, transparent);
+    pointer-events: none;
   }
 
   .page-header h1 {
@@ -112,14 +177,12 @@
     font-size: 20px;
     color: #ffffff;
     letter-spacing: 2px;
-    text-shadow: 0 1px 12px rgba(240,192,64,0.6);
   }
 
   .page-header p {
     font-size: 12px;
-    color: #d4b896;
+    color: #8a94a1;
     margin-top: 2px;
-    font-style: italic;
   }
 
   /* ---- CONTENT AREA ---- */
@@ -130,10 +193,7 @@
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
     overscroll-behavior-y: contain;
-    background: var(--parchment);
-    background-image:
-      radial-gradient(ellipse at 20% 50%, rgba(180,140,80,0.08) 0%, transparent 60%),
-      repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(180,140,80,0.08) 29px);
+    background: var(--surface);
   }
 
   .section { padding: 16px; }
@@ -141,12 +201,12 @@
 
   .section-title {
     font-family: 'Cinzel', serif;
-    font-size: 13px;
-    color: var(--crimson);
+    font-size: 12px;
+    color: #8a94a1;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    border-bottom: 1px solid var(--crimson);
-    padding-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 6px;
     margin-bottom: 12px;
   }
 
@@ -192,7 +252,6 @@
   .meta-field { text-align: center; }
   .meta-label { font-size: 10px; color: var(--ink-light); letter-spacing: 1px; text-transform: uppercase; }
   .meta-select, .meta-input {
-    font-family: 'Crimson Text', serif;
     font-size: 16px;
     color: var(--ink);
     background: transparent;
@@ -257,7 +316,7 @@
     height: 44px;
     border-radius: 50%;
     border: 2px solid var(--crimson);
-    background: rgba(139,26,26,0.3);
+    background: rgba(224,67,67,0.25);
     color: #e08080;
     font-size: 22px;
     font-weight: bold;
@@ -268,7 +327,7 @@
     transition: all 0.15s;
     -webkit-user-select: none;
   }
-  .icon-btn:active { transform: scale(0.9); background: rgba(139,26,26,0.6); }
+  .icon-btn:active { transform: scale(0.9); background: rgba(224,67,67,0.45); }
 
   /* ---- ABILITY SCORES ---- */
   .abilities-grid {
@@ -278,9 +337,9 @@
   }
 
   .ability-card {
-    background: linear-gradient(135deg, var(--stone), var(--stone-light));
-    border: 1px solid var(--gold);
-    border-radius: 8px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
     padding: 10px 8px;
     text-align: center;
     position: relative;
@@ -326,7 +385,7 @@
     align-items: center;
     gap: 10px;
     padding: 8px 0;
-    border-bottom: 1px solid rgba(180,140,80,0.2);
+    border-bottom: 1px solid rgba(255,255,255,0.11);
   }
 
   .skill-prof {
@@ -361,6 +420,39 @@
     font-weight: 600;
   }
 
+  /* ---- БЛОКИ «ХАРАКТЕРИСТИКА → СПАСБРОСОК + НАВЫКИ» ---- */
+  .abl-block { margin-bottom: 16px; scroll-margin-top: 10px; }
+  .abl-block-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    color: var(--crimson);
+    letter-spacing: 1.5px;
+    border-bottom: 2px solid rgba(224,67,67,0.4);
+    padding-bottom: 4px;
+    margin-bottom: 2px;
+  }
+  .abl-block-mod { color: var(--ink-light); font-size: 12px; letter-spacing: 0.5px; }
+  .abl-block-score { color: var(--ink-light); font-size: 12px; }
+  .skill-row.save-row { background: rgba(255,255,255,0.04); border-radius: 6px; padding-left: 4px; padding-right: 4px; }
+  .skill-row.save-row .skill-name { font-style: italic; }
+
+  /* Кликабельные (бросаемые) значения должны выглядеть кликабельными */
+  .skill-row[onclick] { cursor: pointer; border-radius: 6px; transition: background 0.15s; }
+  .skill-row[onclick]:active { background: rgba(200,150,42,0.18); }
+  @media (hover: hover) { .skill-row[onclick]:hover { background: rgba(200,150,42,0.10); } }
+  .skill-row[onclick] .skill-bonus {
+    border: 1px dashed rgba(224,67,67,0.5);
+    border-radius: 8px;
+    padding: 2px 9px;
+    text-align: center;
+  }
+  .roll-val { cursor: pointer; border-bottom: 1px dashed rgba(240,192,64,0.55); transition: color 0.15s, text-shadow 0.15s; }
+  .roll-val:active { color: var(--gold-light); text-shadow: 0 0 12px rgba(240,192,64,0.8); }
+  .ability-mod.roll-val { display: inline-block; border-bottom-color: rgba(224,67,67,0.45); }
+
   /* ---- DICE ROLLER ---- */
   .dice-grid {
     display: grid;
@@ -370,8 +462,8 @@
   }
 
   .dice-btn {
-    background: linear-gradient(135deg, var(--stone), #1a1208);
-    border: 2px solid var(--gold);
+    background: var(--card);
+    border: 1px solid var(--line);
     border-radius: 10px;
     padding: 12px 8px;
     text-align: center;
@@ -381,12 +473,34 @@
 
   .dice-btn:active { transform: scale(0.92); border-color: var(--gold-light); }
 
-  .dice-icon { font-size: 28px; display: block; }
+  .dice-icon { font-size: 28px; display: block; height: 30px; }
+  .dice-icon svg { width: 30px; height: 30px; display: block; margin: 0 auto; fill: none; stroke: var(--gold-light); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+  .dice-icon svg .die-inner { stroke-width: 1; opacity: 0.55; }
+  .dice-icon svg text { fill: var(--gold-light); stroke: none; font-family: 'Cinzel', serif; font-weight: 700; }
   .dice-label { font-family: 'Cinzel', serif; font-size: 11px; color: var(--gold); margin-top: 2px; letter-spacing: 1px; }
 
+  .advdis-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px;
+    border-radius: 10px;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all 0.15s;
+  }
+  .advdis-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .advdis-btn:active { transform: scale(0.96); }
+  .advdis-adv { background: rgba(30,100,30,0.3); border: 1px solid #308030; color: #8fd08f; }
+  .advdis-dis { background: rgba(100,30,30,0.3); border: 1px solid #803030; color: #d09090; }
+
   .dice-result-area {
-    background: linear-gradient(135deg, var(--stone), #1a1208);
-    border: 2px solid var(--gold);
+    background: var(--card);
+    border: 1px solid var(--line);
     border-radius: 16px;
     padding: 20px;
     text-align: center;
@@ -417,8 +531,26 @@
     80% { transform: rotate(5deg) scale(1.05); }
   }
 
+  /* Натуральные 20 и 1 */
+  .dice-result-number.crit-flash { color: #ffe27a; animation: critPop 0.9s ease; }
+  .dice-result-number.fail-flash { color: #e05050; animation: failShake 0.7s ease; }
+  .dice-result-area.crit-area { border-color: var(--gold-light); box-shadow: 0 0 34px rgba(240,192,64,0.55), inset 0 0 24px rgba(240,192,64,0.15); }
+  .dice-result-area.fail-area { border-color: #a03030; box-shadow: 0 0 30px rgba(200,40,40,0.5), inset 0 0 24px rgba(200,40,40,0.12); }
+
+  @keyframes critPop {
+    0% { transform: scale(1); text-shadow: 0 0 30px rgba(240,192,64,0.6); }
+    30% { transform: scale(1.45); text-shadow: 0 0 60px rgba(255,226,122,1), 0 0 100px rgba(240,192,64,0.8); }
+    60% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+  @keyframes failShake {
+    0%,100% { transform: translateX(0); }
+    15%,45%,75% { transform: translateX(-7px); }
+    30%,60%,90% { transform: translateX(7px); }
+  }
+
   .dice-result-label { font-family: 'Cinzel', serif; font-size: 13px; color: var(--gold); letter-spacing: 2px; margin-top: 6px; }
-  .dice-result-history { font-size: 12px; color: #a08060; margin-top: 4px; font-style: italic; }
+  .dice-result-history { font-size: 12px; color: #8d97a3; margin-top: 4px; font-style: italic; }
 
   .modifier-row {
     display: flex;
@@ -472,8 +604,33 @@
     transition: all 0.2s;
   }
 
+  /* ---- РЕСУРСЫ КЛАССА ---- */
+  .resource-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.11); }
+  .resource-name { font-family: 'Cinzel', serif; font-size: 13px; color: var(--ink); }
+  .resource-meta { font-size: 11px; color: var(--ink-light); font-style: italic; }
+  .resource-row .slot-dots { justify-content: flex-end; max-width: 45%; }
+  .res-dot { border-color: rgba(224,67,67,0.5); }
+  .res-dot.available { background: var(--crimson-light); box-shadow: 0 0 6px rgba(192,57,43,0.45); border-color: var(--crimson); }
+  .res-dot.used { background: transparent; }
+
   .slot-dot.used { background: transparent; border-color: #3a2060; }
   .slot-dot.available { background: #8060e0; box-shadow: 0 0 8px rgba(128,96,224,0.6); }
+  /* Дополнительные ячейки (предметы/черты) — золотые */
+  .slot-dot.bonus { border-color: var(--gold); }
+  .slot-dot.bonus.available { background: var(--gold-light); box-shadow: 0 0 8px rgba(240,192,64,0.6); }
+  .slot-dot.bonus.used { background: transparent; border-color: rgba(201,150,42,0.45); }
+
+  .add-slot-card {
+    background: transparent !important;
+    border: 1px dashed rgba(100,70,200,0.5) !important;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .add-slot-card .slot-level { color: #8878b0; }
+  .add-slot-card:active { border-color: #8060e0 !important; background: rgba(96,64,192,0.08) !important; }
 
   .spell-list { display: flex; flex-direction: column; gap: 8px; }
 
@@ -520,11 +677,10 @@
   .notes-textarea {
     width: 100%;
     min-height: 200px;
-    background: rgba(240,220,180,0.3);
+    background: rgba(255,255,255,0.076);
     border: 1px solid var(--parchment-dark);
     border-radius: 8px;
     padding: 12px;
-    font-family: 'Crimson Text', serif;
     font-size: 16px;
     color: var(--ink);
     resize: vertical;
@@ -540,11 +696,11 @@
     align-items: center;
     gap: 10px;
     padding: 10px 0;
-    border-bottom: 1px solid rgba(180,140,80,0.2);
+    border-bottom: 1px solid rgba(255,255,255,0.11);
   }
 
   .inv-icon { font-size: 20px; width: 32px; text-align: center; }
-  .inv-name { flex: 1; font-size: 15px; color: var(--ink); }
+  .inv-name { flex: 1; font-size: 15px; color: var(--ink); cursor: pointer; text-decoration: underline dotted rgba(90,58,26,0.35); text-underline-offset: 3px; }
   .inv-qty { font-family: 'Cinzel', serif; font-size: 14px; color: var(--crimson); min-width: 24px; text-align: right; }
   .inv-delete { background: none; border: none; color: #c05050; font-size: 18px; padding: 4px 8px; cursor: pointer; opacity: 0.6; }
 
@@ -556,10 +712,9 @@
 
   .add-input {
     flex: 1;
-    font-family: 'Crimson Text', serif;
     font-size: 16px;
     padding: 8px 12px;
-    background: rgba(240,220,180,0.3);
+    background: rgba(255,255,255,0.076);
     border: 1px solid var(--parchment-dark);
     border-radius: 8px;
     color: var(--ink);
@@ -590,7 +745,7 @@
   }
 
   .coin-card {
-    background: linear-gradient(135deg, #2a2010, #1a1408);
+    background: var(--card);
     border-radius: 10px;
     padding: 10px 6px;
     text-align: center;
@@ -604,7 +759,7 @@
   .coin-card.pp { border-color: #E5E4E2; }
 
   .coin-symbol { font-size: 20px; display: block; }
-  .coin-name { font-size: 9px; color: #a08060; letter-spacing: 0.5px; font-family: 'Cinzel', serif; }
+  .coin-name { font-size: 9px; color: #8d97a3; letter-spacing: 0.5px; font-family: 'Cinzel', serif; }
   .coin-input {
     font-family: 'Cinzel', serif;
     font-size: 18px;
@@ -621,8 +776,8 @@
   .combat-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
 
   .combat-stat {
-    background: linear-gradient(135deg, var(--stone), #1a1208);
-    border: 2px solid var(--gold);
+    background: var(--card);
+    border: 1px solid var(--line);
     border-radius: 10px;
     padding: 10px;
     text-align: center;
@@ -708,8 +863,9 @@
   .inspiration-bar.active { background: rgba(200,150,42,0.3); }
   .insp-star { font-size: 28px; transition: transform 0.3s; }
   .inspiration-bar.active .insp-star { transform: scale(1.3); }
-  .insp-text { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold); letter-spacing: 1px; }
-  .insp-status { font-size: 12px; color: #a08040; font-style: italic; }
+  .insp-text { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold-light); letter-spacing: 1px; }
+  .insp-status { font-size: 12px; color: #9aa3ad; font-style: italic; }
+  .inspiration-bar.active .insp-text { color: var(--crimson); }
 
   /* ---- MODAL ---- */
   .modal-overlay {
@@ -725,8 +881,8 @@
   .modal-overlay.open { display: flex; }
 
   .modal-sheet {
-    background: var(--parchment);
-    background-image: radial-gradient(ellipse at 30% 50%, rgba(180,140,80,0.1), transparent 60%);
+    background: var(--card);
+    border-top: 1px solid var(--line);
     border-radius: 20px 20px 0 0;
     padding: 20px 16px calc(var(--safe-bottom) + 20px);
     width: 100%;
@@ -738,10 +894,9 @@
   .modal-title { font-family: 'Cinzel', serif; font-size: 18px; color: var(--crimson); margin-bottom: 16px; text-align: center; letter-spacing: 1px; }
 
   .input-field {
-    font-family: 'Crimson Text', serif;
     font-size: 16px;
     color: var(--ink);
-    background: rgba(240,220,180,0.4);
+    background: rgba(255,255,255,0.088);
     border: 1px solid var(--parchment-dark);
     border-radius: 8px;
     width: 100%;
@@ -768,7 +923,7 @@
 
   /* ---- WELCOME SCREEN ---- */
   .welcome-bg {
-    background: linear-gradient(160deg, #1a0f00 0%, #0d0820 50%, #1a0f00 100%);
+    background: radial-gradient(ellipse at 50% 30%, #1b2029 0%, #0c0f13 70%);
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -779,23 +934,38 @@
     padding-bottom: calc(var(--safe-bottom) + 40px);
   }
 
-  .welcome-dragon { font-size: 80px; margin-bottom: 20px; animation: breathe 3s ease-in-out infinite; }
+  .welcome-art {
+    width: 148px;
+    height: 148px;
+    border-radius: 30px;
+    border: 2px solid var(--gold);
+    box-shadow: 0 0 50px rgba(240,192,64,0.25), 0 8px 30px rgba(0,0,0,0.6);
+    margin-bottom: 26px;
+    animation: breathe 3s ease-in-out infinite;
+  }
   @keyframes breathe { 0%,100% { filter: drop-shadow(0 0 8px rgba(200,100,0,0.4)); } 50% { filter: drop-shadow(0 0 20px rgba(200,100,0,0.8)); } }
 
-  .welcome-title { font-family: 'Cinzel', serif; font-size: 32px; color: var(--gold-light); letter-spacing: 3px; text-align: center; margin-bottom: 8px; text-shadow: 0 0 30px rgba(240,192,64,0.5); }
-  .welcome-sub { font-family: 'Crimson Text', serif; font-style: italic; font-size: 16px; color: #a08060; text-align: center; margin-bottom: 40px; }
+  .welcome-title { font-family: 'Cinzel', serif; font-size: 32px; color: var(--gold-light); letter-spacing: 3px; text-align: center; margin-bottom: 12px; text-shadow: 0 0 30px rgba(240,192,64,0.5); }
+
+  .welcome-divider { display: flex; align-items: center; gap: 10px; width: 220px; margin-bottom: 12px; color: var(--gold); }
+  .welcome-divider span { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gold)); }
+  .welcome-divider span:last-child { background: linear-gradient(90deg, var(--gold), transparent); }
+  .welcome-divider i { font-style: normal; font-size: 10px; }
+
+  .welcome-sub { font-family: 'Crimson Text', serif; font-style: italic; font-size: 16px; color: #8d97a3; text-align: center; margin-bottom: 40px; }
+  .welcome-version { margin-top: 28px; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 1px; color: #5b6572; }
 
   .welcome-btn {
-    background: linear-gradient(135deg, var(--crimson), #6b0f0f);
-    border: 2px solid var(--gold);
+    background: linear-gradient(135deg, #e04343, #b32424);
+    border: none;
     border-radius: 14px;
     padding: 18px 48px;
     font-family: 'Cinzel', serif;
     font-size: 16px;
     letter-spacing: 2px;
-    color: var(--gold-light);
+    color: #ffffff;
     cursor: pointer;
-    box-shadow: 0 4px 30px rgba(139,26,26,0.5);
+    box-shadow: 0 4px 30px rgba(224,67,67,0.5);
     transition: all 0.3s;
   }
 
@@ -806,7 +976,7 @@
   .ai-overlay {
     position: fixed;
     inset: 0;
-    background: linear-gradient(160deg, #0d0820 0%, #1a0f00 100%);
+    background: linear-gradient(160deg, #171c24 0%, #0c0f13 100%);
     z-index: 300;
     display: none;
     flex-direction: column;
@@ -866,7 +1036,7 @@
     background: transparent;
     font-family: 'Cinzel', serif;
     font-size: 10px;
-    color: #a08060;
+    color: #8d97a3;
     letter-spacing: 0.5px;
     white-space: nowrap;
     cursor: pointer;
@@ -886,11 +1056,10 @@
 
   .ai-search-input {
     flex: 1;
-    background: rgba(240,220,180,0.08);
+    background: rgba(255,255,255,0.05);
     border: 1px solid rgba(200,150,42,0.4);
     border-radius: 10px;
     padding: 10px 14px;
-    font-family: 'Crimson Text', serif;
     font-size: 16px;
     color: var(--parchment);
     -webkit-appearance: none;
@@ -962,7 +1131,7 @@
   }
 
   .ai-result-card {
-    background: rgba(240,220,180,0.05);
+    background: rgba(255,255,255,0.046);
     border: 1px solid rgba(200,150,42,0.3);
     border-radius: 14px;
     overflow: hidden;
@@ -1063,12 +1232,12 @@
 
   .ai-suggestion {
     padding: 10px 14px;
-    background: rgba(240,220,180,0.05);
+    background: rgba(255,255,255,0.046);
     border: 1px solid rgba(200,150,42,0.2);
     border-radius: 8px;
     font-family: 'Cinzel', serif;
     font-size: 12px;
-    color: #a08060;
+    color: #8d97a3;
     cursor: pointer;
     text-align: left;
     letter-spacing: 0.5px;
@@ -1079,8 +1248,8 @@
 
   /* ---- GUIDE / СПРАВОЧНИК ---- */
   .guide-card {
-    background: rgba(240,220,180,0.15);
-    border: 1px solid rgba(180,140,80,0.3);
+    background: rgba(255,255,255,0.058);
+    border: 1px solid rgba(255,255,255,0.14);
     border-radius: 12px;
     padding: 12px 14px;
     margin-bottom: 16px;
@@ -1119,7 +1288,7 @@
     align-items: center;
     gap: 10px;
     padding: 6px 0;
-    border-bottom: 1px solid rgba(180,140,80,0.15);
+    border-bottom: 1px solid rgba(255,255,255,0.095);
     font-size: 13px;
     color: var(--ink-light);
     line-height: 1.4;
@@ -1131,17 +1300,17 @@
     font-size: 10px;
     padding: 3px 8px;
     border-radius: 8px;
-    background: rgba(139,26,26,0.15);
+    background: rgba(224,67,67,0.14);
     color: var(--crimson);
-    border: 1px solid rgba(139,26,26,0.3);
+    border: 1px solid rgba(224,67,67,0.25);
     white-space: nowrap;
     flex-shrink: 0;
     letter-spacing: 0.5px;
   }
 
   .tip-card {
-    background: rgba(240,220,180,0.12);
-    border: 1px solid rgba(180,140,80,0.25);
+    background: rgba(255,255,255,0.054);
+    border: 1px solid rgba(255,255,255,0.125);
     border-left: 4px solid var(--gold);
     border-radius: 10px;
     padding: 14px;
@@ -1223,6 +1392,18 @@
   .spell-browser-name { font-family: 'Cinzel', serif; font-size: 14px; color: var(--parchment); }
   .spell-browser-meta { font-size: 11px; color: #b9a6e6; margin-top: 3px; line-height: 1.4; }
   .spell-browser-desc { font-size: 13px; color: #a090b0; margin-top: 6px; line-height: 1.5; display: none; }
+
+  .spell-browser-card.concentrating { border-color: #6080c0 !important; box-shadow: 0 0 10px rgba(96,128,192,0.35); }
+
+  /* Тот же класс карточки на пергаментном листе («Список заклинаний») — светлый вариант */
+  #spell-list .spell-browser-card {
+    background: rgba(96,64,192,0.06);
+    border: 1px solid rgba(100,70,200,0.35);
+    border-left: 3px solid #6040c0;
+  }
+  #spell-list .spell-browser-name { color: var(--ink); }
+  #spell-list .spell-browser-meta { color: #6a4aa0; }
+  #spell-list .spell-browser-desc { color: var(--ink-light); }
   .spell-browser-card.expanded .spell-browser-desc { display: block; }
 
   .add-spell-mini {
@@ -1244,11 +1425,11 @@
   .level-filter-btn {
     padding: 6px 12px;
     border-radius: 16px;
-    border: 1px solid rgba(180,140,80,0.3);
+    border: 1px solid rgba(255,255,255,0.14);
     background: transparent;
     font-family: 'Cinzel', serif;
     font-size: 10px;
-    color: #a08060;
+    color: #8d97a3;
     cursor: pointer;
     letter-spacing: 0.5px;
     transition: all 0.2s;
@@ -1276,11 +1457,11 @@
   .helper-cat {
     padding: 6px 12px;
     border-radius: 16px;
-    border: 1px solid rgba(180,140,80,0.3);
+    border: 1px solid rgba(255,255,255,0.14);
     background: transparent;
     font-family: Cinzel, serif;
     font-size: 10px;
-    color: #a08060;
+    color: #8d97a3;
     cursor: pointer;
     letter-spacing: 0.5px;
     transition: all 0.2s;
@@ -1364,14 +1545,14 @@
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
-    background: rgba(240,220,180,0.04);
-    border: 1px solid rgba(180,140,80,0.15);
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.095);
     border-radius: 10px;
     margin-bottom: 6px;
     cursor: pointer;
     transition: all 0.15s;
   }
-  .helper-q-item:active { background: rgba(240,220,180,0.1); border-color: var(--gold); }
+  .helper-q-item:active { background: rgba(255,255,255,0.052); border-color: var(--gold); }
   .helper-q-icon { font-size: 18px; flex-shrink: 0; }
   .helper-q-text { font-size: 14px; color: var(--ink-light); line-height: 1.4; }
 
@@ -1395,13 +1576,24 @@
   .subtabs {
     display: flex;
     background: rgba(0,0,0,0.15);
-    border-bottom: 1px solid rgba(180,140,80,0.3);
+    border-bottom: 1px solid rgba(255,255,255,0.14);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     flex-shrink: 0;
   }
   .subtabs::-webkit-scrollbar { display: none; }
+  /* Градиентная «шторка» справа — намёк, что вкладки листаются */
+  .subtabs::after {
+    content: '';
+    position: sticky;
+    right: 0;
+    flex: 0 0 28px;
+    margin-left: -28px;
+    align-self: stretch;
+    background: linear-gradient(90deg, transparent, rgba(10,13,17,0.9));
+    pointer-events: none;
+  }
   .subtab-btn {
     padding: 10px 16px;
     background: none;
@@ -1409,7 +1601,7 @@
     border-bottom: 2px solid transparent;
     font-family: 'Cinzel', serif;
     font-size: 11px;
-    color: #d4b896;
+    color: #98a2ae;
     letter-spacing: 1px;
     white-space: nowrap;
     cursor: pointer;
@@ -1433,6 +1625,134 @@
     color: var(--gold);
     letter-spacing: 0.5px;
   }
+
+  /* ============ ГЛУБИНА И ОРНАМЕНТ (полировка в духе DDB) ============ */
+
+  /* Лёгкое зерно + красное свечение сверху вместо плоской заливки */
+  .content {
+    background:
+      radial-gradient(ellipse 130% 50% at 50% -8%, rgba(224,67,67,0.06), transparent 60%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='linear' slope='0.04'/></feComponentTransfer></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
+      var(--surface);
+  }
+
+  /* Карточки: вертикальный градиент + подсвеченная верхняя кромка + тень */
+  .combat-stat, .dice-btn, .coin-card, .spell-slot-card, .dice-result-area,
+  .ability-card, .inspiration-bar, .modal-sheet, .modifier-row {
+    background: linear-gradient(180deg, #242b35 0%, #1a2027 100%);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-top-color: rgba(255,255,255,0.18);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .hp-section {
+    background: linear-gradient(180deg, #33161a 0%, #1d0c0e 100%);
+    border: 1px solid rgba(224,67,67,0.45);
+    border-top-color: rgba(255,120,120,0.5);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.45), 0 0 30px rgba(224,67,67,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .modal-sheet { border-radius: 20px 20px 0 0; }
+
+  /* Фирменные срезанные углы DDB на статовых плитках */
+  .combat-stat, .spell-slot-card, .dice-btn {
+    border-radius: 4px;
+    clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% calc(100% - 9px), calc(100% - 9px) 100%, 9px 100%, 0 calc(100% - 9px), 0 9px);
+  }
+
+  /* КД в силуэте щита */
+  .combat-stat.ac-shield {
+    clip-path: none;
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 52'><path d='M23 2 L42 8 V21 C42 33 34 42 23 49 C12 42 4 33 4 21 V8 Z' fill='rgba(201,160,58,0.07)' stroke='%23c9a03a' stroke-width='1.6'/></svg>"),
+      linear-gradient(180deg, #242b35 0%, #1a2027 100%);
+    background-repeat: no-repeat, no-repeat;
+    background-position: center 4px, center;
+    background-size: auto 68%, cover;
+  }
+
+  /* Модификатор характеристики — «таблетка», нависающая над нижней кромкой */
+  .ability-card { overflow: visible; }
+  .ability-mod.roll-val {
+    background: var(--card-2);
+    border: 1px solid rgba(224,67,67,0.45);
+    border-radius: 999px;
+    padding: 2px 14px;
+    margin-top: 4px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+  }
+
+  /* Портрет: двойное кольцо со свечением */
+  .char-portrait {
+    border: none;
+    box-shadow: 0 0 0 2px var(--gold), 0 0 0 5px var(--bg), 0 0 0 6px rgba(201,160,58,0.35), 0 8px 24px rgba(0,0,0,0.5), 0 0 30px rgba(201,160,58,0.15);
+  }
+
+  /* Заголовки секций: красный ромб-маркер */
+  .section-title { display: flex; align-items: center; gap: 8px; }
+  .section-title::before { content: ''; width: 6px; height: 6px; background: var(--crimson); transform: rotate(45deg); flex-shrink: 0; }
+
+  /* Шапка: мягкое свечение за заголовком */
+  .page-header { background: radial-gradient(ellipse 70% 130% at 50% 0%, #1b212b 0%, var(--stone) 75%); }
+
+  /* Кнопки: градиент + светлая кромка + нажатие */
+  .primary-btn {
+    background: linear-gradient(180deg, #e85050 0%, #c02b2b 100%);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(224,67,67,0.25), inset 0 1px 0 rgba(255,255,255,0.25);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .primary-btn:active { transform: translateY(1px) scale(0.99); box-shadow: 0 2px 6px rgba(224,67,67,0.2), inset 0 1px 0 rgba(255,255,255,0.15); }
+  .welcome-btn { box-shadow: 0 6px 24px rgba(224,67,67,0.35), inset 0 1px 0 rgba(255,255,255,0.3); }
+
+  /* Область результата броска: внутренняя виньетка */
+  .dice-result-area { box-shadow: 0 6px 16px rgba(0,0,0,0.35), inset 0 0 46px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05); }
+  .dice-btn:active { border-color: var(--gold); box-shadow: 0 0 14px rgba(201,160,58,0.35), inset 0 1px 0 rgba(255,255,255,0.05); }
+
+  /* Классовый баннер-обложка на «Основном» */
+  .hero-banner {
+    position: relative;
+    padding: 22px 16px 14px;
+    border-bottom: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .hero-crest {
+    position: absolute;
+    right: -18px;
+    top: -10px;
+    width: 160px;
+    height: 160px;
+    opacity: 0.14;
+    transform: rotate(10deg);
+    pointer-events: none;
+  }
+  .hero-crest svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .crest-watermark { position: absolute; right: -16px; top: -10px; width: 130px; height: 130px; opacity: 0.16; transform: rotate(10deg); pointer-events: none; }
+  .crest-watermark svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .hero-banner .char-name-input { border-bottom-color: rgba(255,255,255,0.25); }
+
+  /* Сетка эмодзи в выборе портрета */
+  .emoji-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 14px; }
+  .emoji-grid button {
+    font-size: 26px;
+    padding: 8px 0;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .emoji-grid button.picked { background: rgba(224,67,67,0.2); border-color: var(--crimson); }
+
+  /* Навигация: активная вкладка с точкой-самоцветом */
+  .nav-btn { position: relative; }
+  .nav-btn.active::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    width: 4px;
+    height: 4px;
+    background: var(--crimson-light);
+    transform: rotate(45deg);
+    box-shadow: 0 0 8px rgba(255,92,92,0.9);
+  }
 </style>
 </head>
 <body>
@@ -1441,10 +1761,12 @@
   <!-- WELCOME SCREEN -->
   <div class="screen active" id="screen-welcome">
     <div class="welcome-bg">
-      <div class="welcome-dragon">🐉</div>
+      <img class="welcome-art" src="icons/icon-512.png" alt="D&D Герой">
       <div class="welcome-title">D&D ГЕРОЙ</div>
+      <div class="welcome-divider"><span></span><i>◆</i><span></span></div>
       <div class="welcome-sub">Книга приключений всегда с тобой</div>
       <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
+      <div class="welcome-version">версия 21</div>
     </div>
   </div>
 
@@ -1460,18 +1782,22 @@
       <div class="subtabs">
         <button class="subtab-btn active" onclick="switchSubtab('char','main',this)">Основное</button>
         <button class="subtab-btn" onclick="switchSubtab('char','combat',this)">Бой</button>
-        <button class="subtab-btn" onclick="switchSubtab('char','abilities',this)">Характеристики</button>
-        <button class="subtab-btn" onclick="switchSubtab('char','skills',this)">Навыки</button>
+        <button class="subtab-btn" onclick="switchSubtab('char','abilities',this)">Характеристики и навыки</button>
       </div>
       <div class="content" id="char-content">
 
         <!-- MAIN TAB -->
         <div class="tab-content active" id="char-main">
-          <div class="section">
-            <div class="char-portrait" onclick="changeEmoji()">
+          <!-- Классовый баннер-обложка: цвет и герб зависят от класса -->
+          <div class="hero-banner" id="hero-banner">
+            <div class="hero-crest" id="hero-crest"></div>
+            <div class="char-portrait" onclick="openPortraitPicker()" title="Сменить портрет">
               <span id="portrait-emoji">⚔️</span>
+              <img id="portrait-img" alt="" style="display:none">
             </div>
             <input class="char-name-input" id="char-name" type="text" value="Игрок" placeholder="Имя персонажа">
+          </div>
+          <div class="section">
             <div class="char-meta">
               <div class="meta-field">
                 <div class="meta-label">Класс</div>
@@ -1514,6 +1840,14 @@
               <span style="font-size:13px;color:var(--ink-light)" id="xp-next">/ 300 XP до ур.2</span>
             </div>
             <div class="xp-bar-track"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
+            <div id="levelup-banner" style="display:none;margin-top:10px;padding:12px 14px;background:linear-gradient(135deg,rgba(200,150,42,0.18),rgba(224,67,67,0.1));border:1px solid var(--gold);border-radius:10px;align-items:center;gap:10px">
+              <span style="font-size:22px">🏆</span>
+              <div style="flex:1">
+                <div style="font-family:Cinzel,serif;font-size:13px;color:var(--crimson);letter-spacing:0.5px" id="levelup-text">Достигнут новый уровень!</div>
+                <div style="font-size:12px;color:var(--ink-light)" id="levelup-hint"></div>
+              </div>
+              <button onclick="applyLevelUp()" style="padding:8px 14px;background:linear-gradient(135deg,var(--crimson),#6b0f0f);border:1px solid var(--gold);border-radius:8px;color:var(--gold-light);font-family:Cinzel,serif;font-size:12px;cursor:pointer;letter-spacing:0.5px">ПРИНЯТЬ</button>
+            </div>
           </div>
 
           <!-- BACKGROUND -->
@@ -1590,12 +1924,12 @@
           <div class="section" style="padding-top:0">
             <div class="section-title">Боевые характеристики</div>
             <div class="combat-stats-grid">
-              <div class="combat-stat">
+              <div class="combat-stat ac-shield">
                 <input class="combat-stat-val" type="number" id="stat-ac" value="10" onchange="saveAll()">
                 <div class="combat-stat-label">БРОНЯ</div>
               </div>
               <div class="combat-stat">
-                <div class="combat-stat-val" id="stat-init" style="cursor:pointer" onclick="rollInitiative()">+0</div>
+                <div class="combat-stat-val roll-val" id="stat-init" onclick="rollInitiative()">+0</div>
                 <div class="combat-stat-label">ИНИЦИАТИВА</div>
               </div>
               <div class="combat-stat">
@@ -1632,6 +1966,21 @@
             </div>
           </div>
 
+          <!-- CLASS RESOURCES -->
+          <div class="section" style="padding-top:0">
+            <div class="section-title">Ресурсы класса</div>
+            <div id="resources-list"></div>
+            <div class="add-item-row" style="flex-wrap:wrap;gap:6px;margin-top:10px">
+              <input class="add-input" id="res-name" type="text" placeholder="Ки, Ярость, Очки чародейства..." style="flex:2 1 150px">
+              <input class="add-input" id="res-max" type="number" min="1" max="20" placeholder="Макс." style="flex:1 1 60px">
+              <select class="add-input" id="res-recover" style="flex:1 1 120px">
+                <option value="short">Короткий отдых</option>
+                <option value="long" selected>Длинный отдых</option>
+              </select>
+              <button class="add-btn" onclick="addResource()">+</button>
+            </div>
+          </div>
+
           <!-- REST / HIT DICE -->
           <div class="section" style="padding-top:0">
             <div class="section-title">🛌 Отдых</div>
@@ -1660,20 +2009,13 @@
               <!-- Rendered by JS -->
             </div>
           </div>
-          <div class="section">
-            <div class="section-title">Спасброски</div>
-            <div id="saving-throws-list" class="skills-list"></div>
-          </div>
-        </div>
-
-        <!-- SKILLS TAB -->
-        <div class="tab-content" id="char-skills">
-          <div class="section">
+          <div class="section" style="padding-top:0">
             <div class="section-title">Пассивные значения</div>
             <div class="combat-stats-grid" id="passive-block"></div>
           </div>
           <div class="section" style="padding-top:0">
-            <div class="skills-list" id="skills-list"></div>
+            <div class="section-title">Спасброски и навыки</div>
+            <div id="ability-blocks"></div>
           </div>
         </div>
 
@@ -1719,14 +2061,14 @@
             <div class="dice-result-history" id="dice-history"></div>
           </div>
           <div class="dice-grid">
-            <div class="dice-btn" onclick="rollDice(4)"><span class="dice-icon">🔺</span><span class="dice-label">d4</span></div>
-            <div class="dice-btn" onclick="rollDice(6)"><span class="dice-icon">🎲</span><span class="dice-label">d6</span></div>
-            <div class="dice-btn" onclick="rollDice(8)"><span class="dice-icon">💎</span><span class="dice-label">d8</span></div>
-            <div class="dice-btn" onclick="rollDice(10)"><span class="dice-icon">🔷</span><span class="dice-label">d10</span></div>
-            <div class="dice-btn" onclick="rollDice(12)"><span class="dice-icon">⬡</span><span class="dice-label">d12</span></div>
-            <div class="dice-btn" onclick="rollDice(20)"><span class="dice-icon">🌟</span><span class="dice-label">d20</span></div>
-            <div class="dice-btn" onclick="rollDice(100)"><span class="dice-icon">💯</span><span class="dice-label">d100</span></div>
-            <div class="dice-btn" onclick="rollDice(0)"><span class="dice-icon">🎯</span><span class="dice-label">Своя</span></div>
+            <div class="dice-btn" onclick="rollDice(4)"><span class="dice-icon"><svg viewBox="0 0 32 32"><path d="M16 4 L28 27 L4 27 Z"/><path class="die-inner" d="M16 4 L16 27"/></svg></span><span class="dice-label">d4</span></div>
+            <div class="dice-btn" onclick="rollDice(6)"><span class="dice-icon"><svg viewBox="0 0 32 32"><rect x="6" y="6" width="20" height="20" rx="3"/><path class="die-inner" d="M6 12 L26 12"/></svg></span><span class="dice-label">d6</span></div>
+            <div class="dice-btn" onclick="rollDice(8)"><span class="dice-icon"><svg viewBox="0 0 32 32"><path d="M16 3 L29 16 L16 29 L3 16 Z"/><path class="die-inner" d="M16 3 L16 29"/></svg></span><span class="dice-label">d8</span></div>
+            <div class="dice-btn" onclick="rollDice(10)"><span class="dice-icon"><svg viewBox="0 0 32 32"><path d="M16 3 L27 13 L16 29 L5 13 Z"/><path class="die-inner" d="M5 13 L16 18 L27 13 M16 18 L16 29"/></svg></span><span class="dice-label">d10</span></div>
+            <div class="dice-btn" onclick="rollDice(12)"><span class="dice-icon"><svg viewBox="0 0 32 32"><path d="M16 3 L28.4 12 L23.7 26.6 L8.3 26.6 L3.6 12 Z"/><path class="die-inner" d="M16 9 L22.7 13.9 L20.1 21.8 L11.9 21.8 L9.3 13.9 Z"/></svg></span><span class="dice-label">d12</span></div>
+            <div class="dice-btn" onclick="rollDice(20)"><span class="dice-icon"><svg viewBox="0 0 32 32"><path d="M16 2 L28 9 L28 23 L16 30 L4 23 L4 9 Z"/><path class="die-inner" d="M16 8.5 L24 21.5 L8 21.5 Z M16 2 L16 8.5 M28 9 L24 21.5 M4 9 L8 21.5 M16 30 L16 21.5"/></svg></span><span class="dice-label">d20</span></div>
+            <div class="dice-btn" onclick="rollDice(100)"><span class="dice-icon"><svg viewBox="0 0 32 32"><path d="M10 5 L18 13 L10 27 L2 13 Z"/><path d="M22 5 L30 13 L22 27 L14 13 Z" class="die-inner"/></svg></span><span class="dice-label">d100</span></div>
+            <div class="dice-btn" onclick="rollDice(0)"><span class="dice-icon"><svg viewBox="0 0 32 32"><rect x="5" y="5" width="22" height="22" rx="4"/><text x="16" y="22" text-anchor="middle" font-size="15">?</text></svg></span><span class="dice-label">Своя</span></div>
           </div>
           <div class="modifier-row">
             <span class="mod-label">🎲 КОЛИЧЕСТВО</span>
@@ -1741,8 +2083,8 @@
             <input class="mod-input" type="number" id="dice-modifier" value="0">
           </div>
           <div style="display:flex;gap:8px;margin-top:4px">
-            <button onclick="rollAdvantage()" style="flex:1;padding:12px;background:rgba(30,100,30,0.3);border:1px solid #308030;border-radius:10px;color:#80c080;font-family:Cinzel,serif;font-size:12px;cursor:pointer;letter-spacing:0.5px">✅ ПРЕИМУЩЕСТВО</button>
-            <button onclick="rollDisadvantage()" style="flex:1;padding:12px;background:rgba(100,30,30,0.3);border:1px solid #803030;border-radius:10px;color:#c08080;font-family:Cinzel,serif;font-size:12px;cursor:pointer;letter-spacing:0.5px">❌ ПОМЕХА</button>
+            <button onclick="rollAdvantage()" class="advdis-btn advdis-adv"><svg viewBox="0 0 16 16"><path d="M8 3 L13 11 L3 11 Z" fill="currentColor" stroke="none"/></svg> ПРЕИМУЩЕСТВО</button>
+            <button onclick="rollDisadvantage()" class="advdis-btn advdis-dis"><svg viewBox="0 0 16 16"><path d="M8 13 L13 5 L3 5 Z" fill="currentColor" stroke="none"/></svg> ПОМЕХА</button>
           </div>
         </div>
         <div class="section" style="padding-top:0">
@@ -1835,7 +2177,7 @@
           <div class="section">
             <div class="section-title">Поиск заклинаний по классу</div>
             <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
-              <select id="browser-class" onchange="browseSpells()" class="meta-select" style="font-size:15px;padding:8px;background:rgba(240,220,180,0.3);border:1px solid var(--parchment-dark);border-radius:8px;-webkit-appearance:none">
+              <select id="browser-class" onchange="browseSpells()" class="meta-select" style="font-size:15px;padding:8px;background:rgba(255,255,255,0.076);border:1px solid var(--parchment-dark);border-radius:8px;-webkit-appearance:none">
                 <option value="warlock">Колдун (Warlock)</option>
                 <option value="wizard">Маг (Wizard)</option>
                 <option value="sorcerer">Чародей (Sorcerer)</option>
@@ -2001,7 +2343,7 @@
             </div>
 
             <div style="display:flex;gap:8px;margin-bottom:12px">
-              <input id="ai-helper-input" type="text" placeholder="Например: как работает концентрация?" style="flex:1;background:rgba(240,220,180,0.08);border:1px solid rgba(200,150,42,0.4);border-radius:10px;padding:12px 14px;font-family:Crimson Text,serif;font-size:16px;color:var(--parchment);-webkit-appearance:none" onkeydown="if(event.key==='Enter')askHelper()">
+              <input id="ai-helper-input" type="text" placeholder="Например: как работает концентрация?" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(200,150,42,0.4);border-radius:10px;padding:12px 14px;font-size:16px;color:var(--parchment);-webkit-appearance:none" onkeydown="if(event.key==='Enter')askHelper()">
               <button onclick="askHelper()" style="background:linear-gradient(135deg,var(--crimson),#6b0f0f);border:1px solid var(--gold);border-radius:10px;padding:12px 18px;font-family:Cinzel,serif;font-size:13px;color:var(--gold-light);cursor:pointer;letter-spacing:0.5px;white-space:nowrap">Спросить</button>
             </div>
 
@@ -2073,7 +2415,7 @@
 
   <div class="ai-search-wrap">
     <div id="ai-class-row" style="margin-bottom:10px;display:none">
-      <select id="ai-class-select" onchange="onAiClassChange()" style="width:100%;font-family:Crimson Text,serif;font-size:15px;padding:8px 10px;background:rgba(240,220,180,0.08);border:1px solid rgba(200,150,42,0.4);border-radius:8px;color:var(--parchment);-webkit-appearance:none">
+      <select id="ai-class-select" onchange="onAiClassChange()" style="width:100%;font-size:15px;padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(200,150,42,0.4);border-radius:8px;color:var(--parchment);-webkit-appearance:none">
         <option value="Колдун">Колдун (Warlock)</option>
         <option value="Маг">Маг (Wizard)</option>
         <option value="Чародей">Чародей (Sorcerer)</option>
@@ -2099,6 +2441,40 @@
     <div class="modal-title">Свой кубик</div>
     <input class="input-field" id="custom-dice-val" type="number" placeholder="Количество граней..." min="2">
     <button class="primary-btn" onclick="rollCustomDice()">Бросить!</button>
+  </div>
+</div>
+
+<!-- PORTRAIT PICKER -->
+<div class="modal-overlay" id="modal-portrait" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Портрет героя</div>
+    <div class="emoji-grid" id="emoji-grid"></div>
+    <button class="primary-btn" style="margin-bottom:8px" onclick="document.getElementById('portrait-file').click()">📷 Загрузить фото</button>
+    <button class="primary-btn" id="portrait-remove-btn" style="background:var(--stone);box-shadow:none;display:none" onclick="removePortraitImage()">Убрать фото</button>
+    <input type="file" id="portrait-file" accept="image/*" style="display:none" onchange="if(this.files[0])setPortraitImage(this.files[0]); this.value='';">
+  </div>
+</div>
+
+<!-- BONUS SPELL SLOTS -->
+<div class="modal-overlay" id="modal-bonus-slots" onclick="if(event.target===this)closeBonusSlots()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Дополнительные ячейки</div>
+    <div style="font-size:13px;color:var(--ink-light);margin-bottom:10px;line-height:1.5">Бонусные ячейки от магических предметов, черт или решения Мастера. Прибавляются к ячейкам класса и показываются золотым цветом.</div>
+    <div id="bonus-slots-list" style="margin-bottom:12px"></div>
+    <button class="primary-btn" onclick="closeBonusSlots()">Готово</button>
+  </div>
+</div>
+
+<!-- ITEM INFO (справка из базы знаний по предмету инвентаря) -->
+<div class="modal-overlay" id="modal-item-info" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="item-info-title"></div>
+    <div style="font-size:12px;color:var(--ink-light);font-style:italic;margin-bottom:10px" id="item-info-meta"></div>
+    <div style="font-size:15px;color:var(--ink);line-height:1.6;max-height:45vh;overflow-y:auto" id="item-info-desc"></div>
+    <button class="primary-btn" style="margin-top:14px" onclick="document.getElementById('modal-item-info').classList.remove('open')">Закрыть</button>
   </div>
 </div>
 
@@ -2148,9 +2524,13 @@ let state = {
   rollHistory: [],
   diceCount: 1,
   portrait: '⚔️',
+  portraitImg: null,
   inspiration: false,
   tempHP: 0,
   attacks: [],
+  resources: [],
+  concentrationSpell: null,
+  bonusSlots: [0,0,0,0,0,0,0,0,0],
   hitDice: { total: 1, used: 0, die: 8 }
 };
 
@@ -2158,6 +2538,44 @@ let hpModalMode = 'damage';
 let currentDiceSides = 6;
 
 const CLASS_HIT_DIE = {'Воин':10,'Маг':6,'Плут':8,'Клерик':8,'Паладин':10,'Следопыт':10,'Варвар':12,'Бард':8,'Монах':8,'Чародей':6,'Колдун':8,'Друид':8};
+
+// Фирменный цвет каждого класса (в духе D&D Beyond)
+const CLASS_THEMES = {
+  'Варвар':'#e7623e','Бард':'#ab6dac','Клерик':'#91a1b2','Друид':'#7a9a3b',
+  'Воин':'#c25c33','Монах':'#51a5c5','Паладин':'#b59e54','Следопыт':'#4f9a6c',
+  'Плут':'#8a93a0','Чародей':'#c33e3e','Колдун':'#8a4fb5','Маг':'#3b64c9'
+};
+
+// Векторные гербы классов (штриховые, наследуют цвет через currentColor)
+const CLASS_CRESTS = {
+  'Воин':'<svg viewBox="0 0 48 48"><path d="M10 38 L38 10 M30 10 L38 18 M14 10 L38 34 M14 18 L22 10 M10 38 l-3 3 M38 34 l3 3"/></svg>',
+  'Маг':'<svg viewBox="0 0 48 48"><path d="M24 6 L27.5 20.5 L42 24 L27.5 27.5 L24 42 L20.5 27.5 L6 24 L20.5 20.5 Z M37 9 l.01 0 M11 37 l.01 0"/></svg>',
+  'Плут':'<svg viewBox="0 0 48 48"><path d="M24 5 L29 20 L24 33 L19 20 Z M14 22 H34 M24 33 v8 M19 42 h10"/></svg>',
+  'Клерик':'<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="9"/><path d="M24 5 v7 M24 36 v7 M5 24 h7 M36 24 h7 M11 11 l5 5 M37 11 l-5 5 M11 37 l5-5 M37 37 l-5-5"/></svg>',
+  'Паладин':'<svg viewBox="0 0 48 48"><path d="M24 5 L40 10 V22 C40 32 33 39 24 44 C15 39 8 32 8 22 V10 Z M24 13 v16 M16 19 h16"/></svg>',
+  'Следопыт':'<svg viewBox="0 0 48 48"><path d="M13 7 C29 15 29 33 13 41 M13 7 V41 M13 24 H41 M41 24 l-6-4 M41 24 l-6 4"/></svg>',
+  'Варвар':'<svg viewBox="0 0 48 48"><path d="M29 7 C39 11 41 21 33 26 M29 7 L33 26 M31 16 L11 41 M26 12 l-4-3"/></svg>',
+  'Бард':'<svg viewBox="0 0 48 48"><path d="M14 7 C14 23 17 28 24 28 C31 28 34 23 34 7 M10 7 h8 M30 7 h8 M24 28 v9 M17 40 h14 M19 11 v13 M24 11 v14 M29 11 v13"/></svg>',
+  'Монах':'<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="17"/><path d="M24 7 C14 14 14 26 24 24 C34 22 34 34 24 41"/></svg>',
+  'Чародей':'<svg viewBox="0 0 48 48"><path d="M24 5 C29 13 36 17 34 27 C33 36 29 42 24 42 C19 42 15 36 14 27 C13 19 18 14 20 8 C22 13 27 13 24 5 Z M24 42 C21 37 22 32 24 28 C26 32 27 37 24 42 Z"/></svg>',
+  'Колдун':'<svg viewBox="0 0 48 48"><path d="M5 24 C13 11 35 11 43 24 C35 37 13 37 5 24 Z"/><circle cx="24" cy="24" r="6.5"/><circle cx="24" cy="24" r="1.6"/></svg>',
+  'Друид':'<svg viewBox="0 0 48 48"><path d="M24 43 C9 34 8 17 24 5 C40 17 39 34 24 43 Z M24 13 V39 M24 21 l-7-5 M24 21 l7-5 M24 30 l-8-6 M24 30 l8-6"/></svg>'
+};
+
+function hexToRgba(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+}
+
+// Перекрасить баннер и герб под текущий класс
+function applyClassTheme() {
+  const cls = document.getElementById('char-class')?.value;
+  const color = CLASS_THEMES[cls] || '#e04343';
+  const banner = document.getElementById('hero-banner');
+  if(banner) banner.style.background = `linear-gradient(165deg, ${hexToRgba(color,0.35)} 0%, ${hexToRgba(color,0.1)} 45%, rgba(20,24,30,0) 80%)`;
+  const crest = document.getElementById('hero-crest');
+  if(crest) { crest.innerHTML = CLASS_CRESTS[cls] || ''; crest.style.color = color; }
+}
 
 // HTML-escape для пользовательского ввода, вставляемого через innerHTML
 function esc(s) {
@@ -2171,6 +2589,7 @@ function startApp() {
   initSpellSlots();
   loadData();
   setInterval(saveAll, 5000);
+  setTimeout(maybeShowBackupReminder, 4000);
 }
 
 // loadDefaultCharacter defined below
@@ -2202,7 +2621,7 @@ function renderSpellcasting() {
   const atk = pb + m;
   el.innerHTML =
     `<div class="combat-stat"><div class="combat-stat-val" style="font-size:26px">${dc}</div><div class="combat-stat-label">СЛ СПАСБРОСКА</div></div>`
-   +`<div class="combat-stat"><div class="combat-stat-val" style="font-size:26px;cursor:pointer" onclick="rollCheck('Атака заклинанием', ${atk})">${atk>=0?'+':''}${atk}</div><div class="combat-stat-label">БОНУС АТАКИ</div></div>`
+   +`<div class="combat-stat"><div class="combat-stat-val roll-val" style="font-size:26px" onclick="rollCheck('Атака заклинанием', ${atk})">${atk>=0?'+':''}${atk}</div><div class="combat-stat-label">БОНУС АТАКИ</div></div>`
    +`<div class="combat-stat"><div class="combat-stat-val" style="font-size:26px">${ABILITIES[ai]}</div><div class="combat-stat-label">ХАРАКТЕРИСТИКА</div></div>`;
 }
 
@@ -2246,9 +2665,9 @@ function renderAbilities() {
     const m = modStr(score);
     grid.innerHTML += `
       <div class="ability-card">
-        <div class="ability-name">${ABILITY_FULL[i]}</div>
+        <div class="ability-name" title="К навыкам" onclick="scrollToAbilityBlock(${i})" style="cursor:pointer">${ABILITY_FULL[i]}</div>
         <input class="ability-score" type="number" min="1" max="30" value="${score}" onchange="updateAbility(${i},this.value)">
-        <div class="ability-mod">${m}</div>
+        <div class="ability-mod roll-val" title="Бросить проверку" onclick="rollCheck('Проверка: ${ABILITY_FULL[i]}', ${mod(score)})">${m}</div>
       </div>`;
   });
 }
@@ -2264,48 +2683,61 @@ function updateAbility(i, val) {
   saveAll();
 }
 
-// ============ SKILLS ============
-function renderSkills() {
+// ============ SKILLS & SAVES (сгруппированы по характеристикам) ============
+// Навык и спасбросок — производные от характеристики, поэтому показываем их
+// единым блоком под каждой характеристикой.
+function renderAbilityBlocks() {
+  const el = document.getElementById('ability-blocks'); if(!el) return;
   const pb = profBonus();
-  document.getElementById('skills-list').innerHTML = SKILLS_DATA.map((sk,i)=>{
-    const attrIdx = ABILITIES.indexOf(sk.attr);
-    const base = mod(state.abilities[attrIdx]);
-    const bonus = base + (state.skillProfs[i] ? pb : 0);
-    const bStr = (bonus>=0?'+':'')+bonus;
-    return `<div class="skill-row" onclick="rollCheck('${sk.name}', ${bonus})" style="cursor:pointer">
-      <div class="skill-prof ${state.skillProfs[i]?'proficient':''}" onclick="event.stopPropagation();toggleSkillProf(${i})"></div>
-      <div class="skill-name">${sk.name} <span class="skill-attr">(${sk.attr})</span></div>
-      <div class="skill-bonus">${bStr}</div>
+  el.innerHTML = ABILITIES.map((ab,ai)=>{
+    const m = mod(state.abilities[ai]);
+    const saveBonus = m + (state.saveProfs[ai] ? pb : 0);
+    const sStr = (saveBonus>=0?'+':'')+saveBonus;
+    const saveRow = `<div class="skill-row save-row" onclick="rollCheck('Спас ${ABILITY_FULL[ai]}', ${saveBonus})">
+      <div class="skill-prof ${state.saveProfs[ai]?'proficient':''}" onclick="event.stopPropagation();toggleSaveProf(${ai})"></div>
+      <div class="skill-name">🛡 Спасбросок</div>
+      <div class="skill-bonus">${sStr}</div>
+    </div>`;
+    const skillRows = SKILLS_DATA.map((sk,i)=>({sk,i}))
+      .filter(x=>x.sk.attr===ab)
+      .sort((a,b)=>a.sk.name.localeCompare(b.sk.name,'ru'))
+      .map(({sk,i})=>{
+        const bonus = m + (state.skillProfs[i] ? pb : 0);
+        const bStr = (bonus>=0?'+':'')+bonus;
+        return `<div class="skill-row" onclick="rollCheck('${sk.name}', ${bonus})">
+          <div class="skill-prof ${state.skillProfs[i]?'proficient':''}" onclick="event.stopPropagation();toggleSkillProf(${i})"></div>
+          <div class="skill-name">${sk.name}</div>
+          <div class="skill-bonus">${bStr}</div>
+        </div>`;
+      }).join('');
+    return `<div class="abl-block" id="abl-block-${ai}">
+      <div class="abl-block-title"><span>${ABILITY_FULL[ai].toUpperCase()} <span class="abl-block-mod">${modStr(state.abilities[ai])}</span></span><span class="abl-block-score">${state.abilities[ai]}</span></div>
+      ${saveRow}${skillRows}
     </div>`;
   }).join('');
 }
 
+// Старые имена сохранены — их зовут из многих мест
+function renderSkills() { renderAbilityBlocks(); }
+function renderSavingThrows() { renderAbilityBlocks(); }
+
 function toggleSkillProf(i) {
   state.skillProfs[i] = !state.skillProfs[i];
-  renderSkills();
+  renderAbilityBlocks();
   renderPassives();
   saveAll();
 }
 
-// ============ SAVING THROWS ============
-function renderSavingThrows() {
-  const pb = profBonus();
-  document.getElementById('saving-throws-list').innerHTML = ABILITIES.map((ab,i)=>{
-    const base = mod(state.abilities[i]);
-    const bonus = base + (state.saveProfs[i] ? pb : 0);
-    const bStr = (bonus>=0?'+':'')+bonus;
-    return `<div class="skill-row" onclick="rollCheck('Спас ${ABILITY_FULL[i]}', ${bonus})" style="cursor:pointer">
-      <div class="skill-prof ${state.saveProfs[i]?'proficient':''}" onclick="event.stopPropagation();toggleSaveProf(${i})"></div>
-      <div class="skill-name">${ABILITY_FULL[i]}</div>
-      <div class="skill-bonus">${bStr}</div>
-    </div>`;
-  }).join('');
-}
-
 function toggleSaveProf(i) {
   state.saveProfs[i] = !state.saveProfs[i];
-  renderSavingThrows();
+  renderAbilityBlocks();
   saveAll();
+}
+
+// Тап по названию характеристики в карточке — скролл к её блоку навыков
+function scrollToAbilityBlock(i) {
+  const el = document.getElementById('abl-block-'+i);
+  if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 // ============ HP ============
@@ -2356,6 +2788,11 @@ function removeCondition(cond) {
   state.conditions = state.conditions.filter(c=>c!==cond);
   const chip = document.querySelector('.condition-chip[data-cond="'+cond+'"]');
   if(chip) chip.classList.remove('active');
+  if(cond==='Концентрация') {
+    state.concentrationSpell = null;
+    updateConcentrationChip();
+    renderSpellList();
+  }
 }
 
 // #4 — спасбросок Телосложения на удержание концентрации при получении урона
@@ -2397,6 +2834,63 @@ function applyHPChange() {
   saveAll();
 }
 
+// ============ РЕСУРСЫ КЛАССА (ки, ярость, очки чародейства...) ============
+function renderResources() {
+  const el = document.getElementById('resources-list'); if(!el) return;
+  const rs = state.resources || [];
+  if(!rs.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:8px 0;font-size:13px">Добавь счётчик: ки, ярость, очки чародейства, заряды предмета...</div>';
+    return;
+  }
+  el.innerHTML = rs.map((r,i)=>{
+    let dots='';
+    for(let d=0; d<r.max; d++){
+      const avail = d < r.max - r.used;
+      dots += `<div class="slot-dot res-dot ${avail?'available':'used'}" onclick="toggleResource(${i},${d})"></div>`;
+    }
+    return `<div class="resource-row">
+      <div style="flex:1;min-width:0">
+        <div class="resource-name">${esc(r.name)}</div>
+        <div class="resource-meta">${r.max-r.used}/${r.max} · ${r.recover==='short'?'короткий отдых':'длинный отдых'}</div>
+      </div>
+      <div class="slot-dots">${dots}</div>
+      <button class="inv-delete" onclick="removeResource(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function addResource() {
+  const name = document.getElementById('res-name').value.trim();
+  if(!name) return;
+  const max = Math.max(1, Math.min(20, parseInt(document.getElementById('res-max').value)||1));
+  const recover = document.getElementById('res-recover').value;
+  if(!state.resources) state.resources = [];
+  state.resources.push({ name, max, used: 0, recover });
+  document.getElementById('res-name').value='';
+  document.getElementById('res-max').value='';
+  renderResources(); saveAll();
+}
+
+function removeResource(i) { state.resources.splice(i,1); renderResources(); saveAll(); }
+
+function toggleResource(i,d) {
+  const r = state.resources[i];
+  const avail = d < r.max - r.used;
+  if(avail) r.used = Math.min(r.max, r.used+1);
+  else r.used = Math.max(0, r.used-1);
+  renderResources(); saveAll();
+}
+
+// Восстановление ресурсов на отдыхе
+function recoverResources(restType) {
+  let n = 0;
+  (state.resources||[]).forEach(r => {
+    if(restType==='long' || r.recover==='short') { if(r.used>0) n++; r.used = 0; }
+  });
+  if(n) renderResources();
+  return n;
+}
+
 // ============ ОТДЫХ И КОСТИ ХИТОВ ============
 function renderHitDice() {
   const el=document.getElementById('hit-dice-display'); if(!el) return;
@@ -2422,6 +2916,7 @@ function shortRest() {
   const cls=document.getElementById('char-class')?.value;
   if(cls==='Колдун') { state.spellSlots.forEach(s=>s.used=0); renderSpellSlots(); msg+=': ячейки Договора восстановлены'; }
   else { msg+=': трать Кости Хитов для лечения'; }
+  recoverResources('short');
   saveAll();
   showToast(msg);
 }
@@ -2435,8 +2930,9 @@ function longRest() {
   hd.used=Math.max(0, hd.used-Math.max(1,Math.floor(hd.total/2)));
   state.dsSuccess=[false,false,false];
   state.dsFailure=[false,false,false];
+  recoverResources('long');
   updateHPDisplay(); renderSpellSlots(); renderDeathSaves(); renderHitDice(); saveAll();
-  showToast('🌙 Длинный отдых: HP и ячейки восстановлены');
+  showToast('🌙 Длинный отдых: HP, ячейки и ресурсы восстановлены');
 }
 // сохраняем старое имя для совместимости
 function fullHeal() { longRest(); }
@@ -2501,7 +2997,7 @@ function renderAttacks() {
   if(!state.attacks.length) { el.innerHTML='<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:14px;font-size:13px">Атак нет. Добавь оружие ниже.</div>'; return; }
   el.innerHTML = state.attacks.map((a,i)=>`
     <div class="skill-row" style="gap:8px">
-      <button onclick="rollAttack(${i})" style="width:34px;height:34px;border-radius:8px;border:1px solid var(--crimson);background:rgba(139,26,26,0.25);color:#e08080;font-size:16px;cursor:pointer;flex-shrink:0">🎯</button>
+      <button onclick="rollAttack(${i})" style="width:34px;height:34px;border-radius:8px;border:1px solid var(--crimson);background:rgba(224,67,67,0.2);color:#e08080;font-size:16px;cursor:pointer;flex-shrink:0">🎯</button>
       <div class="skill-name">${esc(a.name)} ${a.damage?`<span class="skill-attr">${esc(a.damage)}</span>`:''}</div>
       <div class="skill-bonus">${a.bonus>=0?'+':''}${a.bonus}</div>
       <button class="inv-delete" onclick="removeAttack(${i})">✕</button>
@@ -2539,30 +3035,136 @@ function toggleCondition(btn) {
   btn.classList.toggle('active');
   const cond = btn.dataset.cond;
   if(btn.classList.contains('active')) { if(!state.conditions.includes(cond)) state.conditions.push(cond); }
-  else { state.conditions = state.conditions.filter(c=>c!==cond); }
+  else {
+    state.conditions = state.conditions.filter(c=>c!==cond);
+    if(cond==='Концентрация') { state.concentrationSpell = null; renderSpellList(); }
+  }
+  updateConcentrationChip();
   saveAll();
 }
 
+// Пометить заклинание, на котором держится концентрация
+function setConcentrationSpell(name) {
+  if(state.concentrationSpell === name) {
+    // повторный тап — снять концентрацию
+    state.concentrationSpell = null;
+    removeCondition('Концентрация');
+    showToast('🧿 Концентрация снята');
+  } else {
+    state.concentrationSpell = name;
+    if(!state.conditions.includes('Концентрация')) state.conditions.push('Концентрация');
+    const chip = document.querySelector('.condition-chip[data-cond="Концентрация"]');
+    if(chip) chip.classList.add('active');
+    showToast(`🧿 Концентрация: ${name}`);
+  }
+  updateConcentrationChip();
+  renderSpellList();
+  saveAll();
+}
+
+// Показать имя заклинания прямо на чипе состояния
+function updateConcentrationChip() {
+  const chip = document.querySelector('.condition-chip[data-cond="Концентрация"]');
+  if(!chip) return;
+  chip.textContent = state.concentrationSpell ? `🧿 ${state.concentrationSpell}` : '🧿 Концентрация';
+}
+
 // ============ SPELLS ============
+// Таблицы ячеек по уровню персонажа (SRD). totals[i] = ячейки уровня i+1.
+const FULL_CASTERS = ['Маг','Клерик','Друид','Бард','Чародей'];
+const HALF_CASTERS = ['Паладин','Следопыт'];
+const FULL_CASTER_SLOTS = [
+  [2],[3],[4,2],[4,3],[4,3,2],[4,3,3],[4,3,3,1],[4,3,3,2],[4,3,3,3,1],[4,3,3,3,2],
+  [4,3,3,3,2,1],[4,3,3,3,2,1],[4,3,3,3,2,1,1],[4,3,3,3,2,1,1],[4,3,3,3,2,1,1,1],[4,3,3,3,2,1,1,1],
+  [4,3,3,3,2,1,1,1,1],[4,3,3,3,3,1,1,1,1],[4,3,3,3,3,2,1,1,1],[4,3,3,3,3,2,2,1,1]
+];
+const HALF_CASTER_SLOTS = [
+  [],[2],[3],[3],[4,2],[4,2],[4,3],[4,3],[4,3,2],[4,3,2],
+  [4,3,3],[4,3,3],[4,3,3,1],[4,3,3,1],[4,3,3,2],[4,3,3,2],[4,3,3,3,1],[4,3,3,3,1],[4,3,3,3,2],[4,3,3,3,2]
+];
+// Колдун (Магия Договора): [сколько ячеек, какого уровня]
+const PACT_SLOTS = [
+  [1,1],[2,1],[2,2],[2,2],[2,3],[2,3],[2,4],[2,4],[2,5],[2,5],
+  [3,5],[3,5],[3,5],[3,5],[3,5],[3,5],[4,5],[4,5],[4,5],[4,5]
+];
+
+function slotTotalsFor(cls, lvl) {
+  lvl = Math.min(20, Math.max(1, lvl));
+  const totals = new Array(9).fill(0);
+  if(FULL_CASTERS.includes(cls)) FULL_CASTER_SLOTS[lvl-1].forEach((n,i)=>totals[i]=n);
+  else if(HALF_CASTERS.includes(cls)) HALF_CASTER_SLOTS[lvl-1].forEach((n,i)=>totals[i]=n);
+  else if(cls==='Колдун') { const p=PACT_SLOTS[lvl-1]; totals[p[1]-1]=p[0]; }
+  return totals;
+}
+
 function initSpellSlots() {
-  state.spellSlots = [
-    {level:1,total:4,used:0},{level:2,total:3,used:0},{level:3,total:3,used:0},
-    {level:4,total:3,used:0},{level:5,total:2,used:0},{level:6,total:1,used:0},
-    {level:7,total:1,used:0},{level:8,total:1,used:0},{level:9,total:1,used:0}
-  ];
+  state.spellSlots = Array.from({length:9},(_,i)=>({level:i+1,total:0,used:0}));
+}
+
+// Пересчитать тоталы ячеек по классу/уровню из полей формы, сохранив потраченные.
+// К базовым ячейкам класса прибавляются дополнительные (state.bonusSlots) —
+// от магических предметов, черт или решения Мастера.
+function syncSpellSlots() {
+  const cls = document.getElementById('char-class')?.value;
+  const lvl = parseInt(document.getElementById('char-level')?.value)||1;
+  if(!state.spellSlots || state.spellSlots.length!==9) initSpellSlots();
+  if(!state.bonusSlots || state.bonusSlots.length!==9) state.bonusSlots = new Array(9).fill(0);
+  const totals = slotTotalsFor(cls, lvl);
+  state.spellSlots.forEach((s,i)=>{
+    s.level=i+1;
+    s.base=totals[i];
+    s.total=totals[i] + (state.bonusSlots[i]||0);
+    s.used=Math.min(s.used, s.total);
+  });
 }
 
 function renderSpellSlots() {
   const grid = document.getElementById('spell-slots-grid');
   grid.innerHTML = '';
+  const cls = document.getElementById('char-class')?.value;
+  const isPact = cls==='Колдун';
+  let any = false;
   state.spellSlots.forEach((slot,si)=>{
+    if(!slot.total) return;
+    any = true;
+    const base = slot.base!==undefined ? slot.base : slot.total;
     let dots='';
     for(let i=0;i<slot.total;i++){
       const avail = i < slot.total - slot.used;
-      dots+=`<div class="slot-dot ${avail?'available':'used'}" onclick="toggleSlot(${si},${i})"></div>`;
+      const isBonus = i >= base; // дополнительные ячейки рисуем золотыми
+      dots+=`<div class="slot-dot ${avail?'available':'used'} ${isBonus?'bonus':''}" onclick="toggleSlot(${si},${i})"></div>`;
     }
-    grid.innerHTML+=`<div class="spell-slot-card"><div class="slot-level">${slot.level} УРОВЕНЬ</div><div class="slot-dots">${dots}</div></div>`;
+    grid.innerHTML+=`<div class="spell-slot-card"><div class="slot-level">${slot.level} УРОВЕНЬ${isPact && base>0?' · ДОГОВОР':''}</div><div class="slot-dots">${dots}</div></div>`;
   });
+  if(!any) grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--ink-light);font-style:italic;padding:8px 0;font-size:13px">${esc(cls||'Этот класс')} не использует ячейки заклинаний${isPact?'':' по базовым правилам'}</div>`;
+  grid.innerHTML += `<div class="spell-slot-card add-slot-card" onclick="openBonusSlots()"><div class="slot-level">＋ ДОП. ЯЧЕЙКИ</div><div style="font-size:11px;color:#8878b0;margin-top:4px">предметы, черты</div></div>`;
+}
+
+// ============ ДОПОЛНИТЕЛЬНЫЕ ЯЧЕЙКИ ============
+function openBonusSlots() {
+  renderBonusSlotsEditor();
+  document.getElementById('modal-bonus-slots').classList.add('open');
+}
+function closeBonusSlots() { document.getElementById('modal-bonus-slots').classList.remove('open'); }
+
+function renderBonusSlotsEditor() {
+  if(!state.bonusSlots || state.bonusSlots.length!==9) state.bonusSlots = new Array(9).fill(0);
+  const el = document.getElementById('bonus-slots-list');
+  el.innerHTML = state.bonusSlots.map((n,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.11)">
+      <div style="flex:1;font-family:Cinzel,serif;font-size:13px;color:var(--ink)">${i+1} уровень</div>
+      <button class="count-btn" onclick="changeBonusSlot(${i},-1)">−</button>
+      <span style="font-family:Cinzel,serif;font-size:16px;color:${n>0?'var(--crimson)':'var(--ink-light)'};min-width:22px;text-align:center">${n}</span>
+      <button class="count-btn" onclick="changeBonusSlot(${i},+1)">+</button>
+    </div>`).join('');
+}
+
+function changeBonusSlot(i, delta) {
+  state.bonusSlots[i] = Math.max(0, Math.min(8, (state.bonusSlots[i]||0)+delta));
+  syncSpellSlots();
+  renderSpellSlots();
+  renderBonusSlotsEditor();
+  saveAll();
 }
 
 function toggleSlot(si,di) {
@@ -2603,14 +3205,19 @@ function renderSpellList() {
     if (d.castingTime || sp.cast) metaParts.push(esc(d.castingTime||sp.cast));
     if (d.range) metaParts.push(esc(d.range));
     const hasDetails = !!d.description;
+    const isConc = state.concentrationSpell === sp.name;
+    const concBtn = d.concentration
+      ? `<button onclick="event.stopPropagation();setConcentrationSpell('${esc(sp.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"))}')" title="Концентрация" style="background:${isConc?'#1a2a50':'none'};border:1px solid ${isConc?'#6080c0':'rgba(100,70,200,0.35)'};border-radius:6px;color:${isConc?'#9ab8f0':'#8878b0'};font-size:13px;cursor:pointer;padding:3px 6px;flex-shrink:0">🧿</button>`
+      : '';
     return `
-    <div class="spell-browser-card" id="myspell-${i}" onclick="${hasDetails ? `toggleMySpellCard(${i})` : ''}" style="${hasDetails ? 'cursor:pointer' : ''}">
+    <div class="spell-browser-card ${isConc?'concentrating':''}" id="myspell-${i}" onclick="${hasDetails ? `toggleMySpellCard(${i})` : ''}" style="${hasDetails ? 'cursor:pointer' : ''}">
       <div class="spell-level-badge">${sp.level===0?'З':sp.level}</div>
       <div class="spell-browser-info">
         <div class="spell-browser-name">${esc(sp.name)}</div>
         <div class="spell-browser-meta">${conc}${ritual}${metaParts.join(' · ')}</div>
         ${hasDetails ? `<div class="spell-browser-desc">${esc(d.description)}${higher}</div>` : ''}
       </div>
+      ${concBtn}
       <button onclick="event.stopPropagation();removeSpell(${state.spells.indexOf(sp)})" style="background:none;border:none;color:#a05050;font-size:16px;cursor:pointer;padding:2px;flex-shrink:0">✕</button>
     </div>`;
   }).join('');
@@ -2624,6 +3231,29 @@ function toggleMySpellCard(i) {
 function removeSpell(i) { state.spells.splice(i,1); renderSpellList(); saveAll(); }
 
 // ============ DICE ============
+// Анимация результата: короткий перебор случайных чисел, затем финал.
+// На натуральные 20/1 (один d20) — золотая/красная вспышка.
+let _diceAnimTimer = null;
+function animateDiceResult(el, finalTotal, sides, opts) {
+  opts = opts || {};
+  if(_diceAnimTimer) clearInterval(_diceAnimTimer);
+  const area = el.closest('.dice-result-area');
+  el.classList.remove('crit-flash','fail-flash');
+  if(area) area.classList.remove('crit-area','fail-area');
+  el.classList.add('rolling');
+  let ticks = 0;
+  _diceAnimTimer = setInterval(()=>{
+    ticks++;
+    if(ticks < 8) { el.textContent = Math.ceil(Math.random()*Math.max(2,sides)); return; }
+    clearInterval(_diceAnimTimer); _diceAnimTimer = null;
+    el.textContent = finalTotal;
+    el.classList.remove('rolling');
+    if(opts.crit) { el.classList.add('crit-flash'); if(area) area.classList.add('crit-area'); }
+    else if(opts.fail) { el.classList.add('fail-flash'); if(area) area.classList.add('fail-area'); }
+    setTimeout(()=>{ el.classList.remove('crit-flash','fail-flash'); if(area) area.classList.remove('crit-area','fail-area'); }, 1000);
+  }, 45);
+}
+
 function rollDice(sides) {
   if(sides===0) { document.getElementById('modal-custom-dice').classList.add('open'); return; }
   currentDiceSides = sides;
@@ -2633,11 +3263,9 @@ function rollDice(sides) {
   for(let i=0;i<count;i++){const r=Math.ceil(Math.random()*sides);rolls.push(r);total+=r;}
   total += modVal;
   const el = document.getElementById('dice-result');
-  el.classList.add('rolling');
-  setTimeout(()=>{
-    el.textContent=total;
-    el.classList.remove('rolling');
-  },120);
+  const isCrit = sides===20 && count===1 && rolls[0]===20;
+  const isFail = sides===20 && count===1 && rolls[0]===1;
+  animateDiceResult(el, total, sides, {crit:isCrit, fail:isFail});
   const label = count>1?`${count}d${sides}${modVal?(' + '+modVal):''}`:`d${sides}${modVal?(' + '+modVal):''}`;
   document.getElementById('dice-label').textContent=label.toUpperCase();
   const detail = rolls.length>1?` (${rolls.join(' + ')}${modVal?(' + '+modVal):''})`:'';
@@ -2655,24 +3283,22 @@ function rollCustomDice() {
 function rollAdvantage() {
   const sides=20,modVal=parseInt(document.getElementById('dice-modifier').value)||0;
   const r1=Math.ceil(Math.random()*sides),r2=Math.ceil(Math.random()*sides);
-  const best=Math.max(r1,r2)+modVal;
-  const el=document.getElementById('dice-result');
-  el.classList.add('rolling');
-  setTimeout(()=>{el.textContent=best;el.classList.remove('rolling');},120);
+  const kept=Math.max(r1,r2);
+  const best=kept+modVal;
+  animateDiceResult(document.getElementById('dice-result'), best, sides, {crit:kept===20, fail:kept===1});
   document.getElementById('dice-label').textContent='d20 ПРЕИМУЩЕСТВО';
-  document.getElementById('dice-history').textContent=`(${r1}, ${r2} → ${Math.max(r1,r2)}${modVal?' + '+modVal:''})`;
+  document.getElementById('dice-history').textContent=`(${r1}, ${r2} → ${kept}${modVal?' + '+modVal:''})`;
   addRollHistory('d20 Преим.', best,[r1,r2],modVal,20);
 }
 
 function rollDisadvantage() {
   const sides=20,modVal=parseInt(document.getElementById('dice-modifier').value)||0;
   const r1=Math.ceil(Math.random()*sides),r2=Math.ceil(Math.random()*sides);
-  const worst=Math.min(r1,r2)+modVal;
-  const el=document.getElementById('dice-result');
-  el.classList.add('rolling');
-  setTimeout(()=>{el.textContent=worst;el.classList.remove('rolling');},120);
+  const kept=Math.min(r1,r2);
+  const worst=kept+modVal;
+  animateDiceResult(document.getElementById('dice-result'), worst, sides, {crit:kept===20, fail:kept===1});
   document.getElementById('dice-label').textContent='d20 ПОМЕХА';
-  document.getElementById('dice-history').textContent=`(${r1}, ${r2} → ${Math.min(r1,r2)}${modVal?' + '+modVal:''})`;
+  document.getElementById('dice-history').textContent=`(${r1}, ${r2} → ${kept}${modVal?' + '+modVal:''})`;
   addRollHistory('d20 Помеха', worst,[r1,r2],modVal,20);
 }
 
@@ -2686,13 +3312,17 @@ function addRollHistory(label, total, rolls, modVal, sides) {
 
 function renderRollHistory() {
   const div=document.getElementById('roll-history');
+  if(!state.rollHistory.length) {
+    div.innerHTML = '<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:16px 0">Здесь появятся твои броски — брось первый кубик!</div>';
+    return;
+  }
   div.innerHTML = state.rollHistory.slice(0,10).map(r=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(180,140,80,0.15)">
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.095)">
       <div style="font-family:Cinzel,serif;font-size:22px;color:${r.isCrit?'#f0c040':r.isFail?'#c03030':'var(--ink)'};min-width:36px;text-align:center">${r.total}</div>
       <div style="flex:1">
         <div style="font-size:13px;color:var(--ink-light)">${r.label}${r.isCrit?' ⭐ КРИТ!':r.isFail?' 💀 ПРОВАЛ':''}</div>
       </div>
-      <div style="font-size:11px;color:#a08060">${r.time}</div>
+      <div style="font-size:11px;color:#8d97a3">${r.time}</div>
     </div>`).join('');
 }
 
@@ -2702,7 +3332,7 @@ function changeCount(delta) {
 }
 
 // ============ INVENTORY ============
-const ITEM_ICONS = {'меч':'⚔️','лук':'🏹','щит':'🛡️','посох':'🪄','зелье':'🧪','свиток':'📜','еда':'🍖','факел':'🕯️','книга':'📖','кинжал':'🗡️','монета':'💰','кольцо':'💍','амулет':'🔮','шлем':'⛑️','броня':'🥋','плащ':'🧥','ключ':'🗝️','верёвка':'🪢'};
+const ITEM_ICONS = {'меч':'⚔️','лук':'🏹','арбалет':'🏹','стрел':'🏹','болт':'🏹','щит':'🛡️','доспех':'🛡️','брон':'🛡️','посох':'🪄','палочка':'🪄','зелье':'🧪','свиток':'📜','еда':'🍖','паёк':'🍖','вино':'🍷','фляга':'🍶','факел':'🕯️','лампа':'🏮','фонарь':'🏮','книга':'📖','кинжал':'🗡️','топор':'🪓','молот':'🔨','монета':'💰','кольцо':'💍','амулет':'🔮','фокусировка':'🔮','шлем':'⛑️','плащ':'🧥','одежда':'🧥','ключ':'🗝️','воровск':'🗝️','инструмент':'🛠️','верёвка':'🪢','спальник':'🛏️','мешок':'🎒','набор':'🎒'};
 
 function getItemIcon(name) {
   const lower = name.toLowerCase();
@@ -2721,6 +3351,23 @@ function addItem() {
 
 function removeItem(i) { state.inventory.splice(i,1); renderInventory(); saveAll(); }
 
+// Тап по названию предмета — карточка из локальной базы знаний
+function showItemInfo(i) {
+  const item = state.inventory[i]; if(!item) return;
+  const all = [].concat(DB_WEAPONS, DB_ARMOR, DB_MAGIC_ITEMS, DB_GEAR);
+  const q = item.name.toLowerCase().replace(/\s*\(.*\)$/,''); // «Книга (оккультные знания)» → «книга»
+  const entry = all.find(e => e.name.toLowerCase() === q)
+    || all.find(e => q.includes(e.name.toLowerCase()) || e.name.toLowerCase().includes(q));
+  if(!entry) { showToast('В справочнике нет описания этого предмета'); return; }
+  document.getElementById('item-info-title').textContent = `${item.icon} ${entry.name}`;
+  const meta = [entry.itemType, entry.cost, entry.weight, entry.damage, entry.ac ? 'КД ' + entry.ac : null]
+    .filter(Boolean).join(' · ');
+  const props = (entry.properties && entry.properties.length) ? entry.properties.join(', ') : '';
+  document.getElementById('item-info-meta').textContent = meta + (props ? ' · ' + props : '');
+  document.getElementById('item-info-desc').textContent = entry.description || '';
+  document.getElementById('modal-item-info').classList.add('open');
+}
+
 function changeQty(i,delta) {
   state.inventory[i].qty = Math.max(1, state.inventory[i].qty+delta);
   renderInventory(); saveAll();
@@ -2732,7 +3379,7 @@ function renderInventory() {
   list.innerHTML = state.inventory.map((it,i)=>`
     <div class="inv-item">
       <span class="inv-icon">${it.icon}</span>
-      <span class="inv-name">${esc(it.name)}</span>
+      <span class="inv-name" onclick="showItemInfo(${i})" title="Открыть справку">${esc(it.name)}</span>
       <div style="display:flex;align-items:center;gap:6px">
         <button onclick="changeQty(${i},-1)" style="background:none;border:1px solid var(--parchment-dark);border-radius:4px;width:24px;height:24px;color:var(--ink-light);font-size:14px;cursor:pointer">−</button>
         <span class="inv-qty">${it.qty}</span>
@@ -2760,6 +3407,7 @@ function onLevelChange() {
   renderHitDice();
   renderPassives();
   renderSpellcasting();
+  syncSpellSlots(); renderSpellSlots();
   updateXP(); saveAll();
 }
 
@@ -2767,6 +3415,8 @@ function onClassChange() {
   state.hitDice.die=CLASS_HIT_DIE[document.getElementById('char-class').value]||8;
   renderHitDice();
   renderSpellcasting();
+  syncSpellSlots(); renderSpellSlots();
+  applyClassTheme();
   saveAll();
 }
 
@@ -2783,16 +3433,108 @@ function updateXP() {
     document.getElementById('xp-bar').style.width='100%';
     document.getElementById('xp-next').textContent='Максимальный уровень';
   }
+  updateLevelUpBanner(xp, lvl);
+}
+
+// ============ ПОВЫШЕНИЕ УРОВНЯ ============
+// Уровень, положенный по опыту (XP_TABLE[i] — порог уровня i+1)
+function levelForXP(xp) {
+  let lvl = 1;
+  for(let i=1;i<XP_TABLE.length;i++) { if(xp>=XP_TABLE[i]) lvl=i+1; }
+  return lvl;
+}
+
+function updateLevelUpBanner(xp, lvl) {
+  const banner = document.getElementById('levelup-banner'); if(!banner) return;
+  const earned = levelForXP(xp);
+  if(earned > lvl) {
+    const cls = document.getElementById('char-class')?.value;
+    const die = CLASS_HIT_DIE[cls]||8;
+    const newPB = Math.ceil(earned/4)+1, oldPB = Math.ceil(lvl/4)+1;
+    let hint = `+1к${die} к хитам`;
+    if(newPB>oldPB) hint += `, бонус мастерства +${newPB}`;
+    hint += ' — проверь умения в Гиде';
+    document.getElementById('levelup-text').textContent = `Опыта хватает на уровень ${earned}!`;
+    document.getElementById('levelup-hint').textContent = hint;
+    banner.style.display = 'flex';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function applyLevelUp() {
+  const xp = parseInt(document.getElementById('char-xp').value)||0;
+  const earned = levelForXP(xp);
+  document.getElementById('char-level').value = earned;
+  onLevelChange();
+  showToast(`🏆 Уровень ${earned}! Не забудь поднять максимум HP`);
 }
 
 // ============ PORTRAIT ============
 let emojiIdx=0;
-function changeEmoji() {
-  emojiIdx=(emojiIdx+1)%EMOJIS.length;
-  state.portrait=EMOJIS[emojiIdx];
-  document.getElementById('portrait-emoji').textContent=state.portrait;
-  saveAll();
+
+function renderPortrait() {
+  const im = document.getElementById('portrait-img');
+  const em = document.getElementById('portrait-emoji');
+  if(!im || !em) return;
+  if(state.portraitImg) {
+    im.src = state.portraitImg;
+    im.style.display = 'block';
+    em.style.display = 'none';
+  } else {
+    im.removeAttribute('src');
+    im.style.display = 'none';
+    em.style.display = 'block';
+    em.textContent = state.portrait || '⚔️';
+  }
 }
+
+function openPortraitPicker() {
+  const grid = document.getElementById('emoji-grid');
+  grid.innerHTML = EMOJIS.map(e =>
+    `<button class="${state.portrait===e && !state.portraitImg ? 'picked' : ''}" onclick="pickPortraitEmoji('${e}')">${e}</button>`
+  ).join('');
+  document.getElementById('portrait-remove-btn').style.display = state.portraitImg ? 'block' : 'none';
+  document.getElementById('modal-portrait').classList.add('open');
+}
+
+function pickPortraitEmoji(e) {
+  state.portrait = e;
+  state.portraitImg = null;
+  renderPortrait(); saveAll();
+  document.getElementById('modal-portrait').classList.remove('open');
+}
+
+// Фото ужимается до 256×256 JPEG (~30 КБ), чтобы не раздувать localStorage
+function setPortraitImage(file) {
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  img.onload = () => {
+    const S = 256;
+    const c = document.createElement('canvas'); c.width = c.height = S;
+    const ctx = c.getContext('2d');
+    const m = Math.min(img.width, img.height);
+    ctx.drawImage(img, (img.width-m)/2, (img.height-m)/2, m, m, 0, 0, S, S);
+    URL.revokeObjectURL(url);
+    try {
+      state.portraitImg = c.toDataURL('image/jpeg', 0.85);
+    } catch(e) { showToast('Не удалось обработать изображение'); return; }
+    renderPortrait(); saveAll();
+    document.getElementById('modal-portrait').classList.remove('open');
+    showToast('📷 Портрет обновлён');
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); showToast('Не удалось прочитать изображение'); };
+  img.src = url;
+}
+
+function removePortraitImage() {
+  state.portraitImg = null;
+  renderPortrait(); saveAll();
+  openPortraitPicker();
+}
+
+// старое имя оставлено на случай внешних ссылок
+function changeEmoji() { openPortraitPicker(); }
 
 // ============ SAVE / LOAD ============
 // ============ ХРАНИЛИЩЕ ПЕРСОНАЖЕЙ ============
@@ -2828,9 +3570,13 @@ function applyCharacter(data) {
   state.rollHistory = d.rollHistory || [];
   state.diceCount = d.diceCount || 1;
   state.portrait = d.portrait || '⚔️';
+  state.portraitImg = d.portraitImg || null;
   state.inspiration = !!d.inspiration;
   state.tempHP = d.tempHP || 0;
   state.attacks = d.attacks || [];
+  state.resources = d.resources || [];
+  state.concentrationSpell = d.concentrationSpell || null;
+  state.bonusSlots = (d.bonusSlots && d.bonusSlots.length===9) ? d.bonusSlots : new Array(9).fill(0);
   const fields = (data && data.fields) || {};
   FIELD_IDS.forEach(id => { const el=document.getElementById(id); if(el && fields[id]!==undefined) el.value=fields[id]; });
   // Кости Хитов: берём из сейва или вычисляем по классу/уровню
@@ -2839,6 +3585,7 @@ function applyCharacter(data) {
     const lvl = parseInt(fields['char-level']||1);
     state.hitDice = { total: lvl, used: 0, die: CLASS_HIT_DIE[fields['char-class']]||8 };
   }
+  syncSpellSlots(); // тоталы ячеек всегда считаются из класса/уровня
   renderAll();
 }
 
@@ -2863,8 +3610,9 @@ function blankCharacterData() {
       hp:{current:10,max:10}, tempHP:0,
       spells:[], spellSlots:[], inventory:[], conditions:[],
       dsSuccess:[false,false,false], dsFailure:[false,false,false],
-      rollHistory:[], diceCount:1, portrait:'⚔️', inspiration:false,
-      attacks:[], hitDice:{total:1,used:0,die:10}
+      rollHistory:[], diceCount:1, portrait:'⚔️', portraitImg:null, inspiration:false,
+      attacks:[], resources:[], concentrationSpell:null,
+      bonusSlots:[0,0,0,0,0,0,0,0,0], hitDice:{total:1,used:0,die:10}
     },
     fields: {
       'char-name':'Новый герой','char-class':'Воин','char-level':'1',
@@ -2959,7 +3707,31 @@ function exportCharacters() {
   a.href = url; a.download = 'dnd-герои.json';
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
+  try { localStorage.setItem('dnd_last_export', String(Date.now())); } catch(e){}
+  const rt = document.getElementById('backup-toast'); if(rt) rt.remove();
   showToast('⬇ Файл сохранён');
+}
+
+// ============ НАПОМИНАНИЕ О РЕЗЕРВНОЙ КОПИИ ============
+// iOS может стереть localStorage у долго не открывавшихся PWA — мягко напоминаем об экспорте
+function maybeShowBackupReminder() {
+  const DAY = 24*60*60*1000;
+  let firstRun = 0, lastExport = 0;
+  try {
+    firstRun = parseInt(localStorage.getItem('dnd_first_run'))||0;
+    if(!firstRun) { firstRun = Date.now(); localStorage.setItem('dnd_first_run', String(firstRun)); }
+    lastExport = parseInt(localStorage.getItem('dnd_last_export'))||0;
+  } catch(e) { return; }
+  const store = getStore();
+  if(!store || !store.list.length) return;
+  const due = lastExport ? (Date.now()-lastExport > 21*DAY) : (Date.now()-firstRun > 14*DAY);
+  if(!due || document.getElementById('backup-toast')) return;
+  const t = document.createElement('div');
+  t.id = 'backup-toast';
+  t.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--stone);color:#cfd5db;border:1px solid var(--gold);border-radius:14px;padding:12px 16px;font-size:14px;z-index:500;display:flex;align-items:center;gap:12px;animation:fadeInUp 0.3s ease;max-width:92vw';
+  t.innerHTML = '<span>💾 Давно не было резервной копии героев</span><button onclick="openCharMenu();this.parentElement.remove()" style="background:rgba(200,150,42,0.2);border:1px solid var(--gold);border-radius:8px;color:var(--gold-light);font-family:Cinzel,serif;font-size:12px;padding:7px 12px;cursor:pointer;white-space:nowrap">ЭКСПОРТ</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#8a94a1;font-size:16px;cursor:pointer;padding:2px">✕</button>';
+  document.body.appendChild(t);
+  setTimeout(()=>{ if(t.parentElement) t.remove(); }, 15000);
 }
 
 function importCharacters(file) {
@@ -2998,14 +3770,15 @@ function renderAll() {
   renderPassives();
   renderInventory();
   renderAttacks();
+  renderResources();
   renderHitDice();
   renderRollHistory();
   updateXP();
   document.getElementById('prof-bonus-display').textContent='+'+profBonus();
   document.getElementById('dice-count').textContent=state.diceCount;
   const tempEl=document.getElementById('temp-hp'); if(tempEl) tempEl.value=state.tempHP||0;
-  const emojiEl=document.getElementById('portrait-emoji');
-  if(emojiEl&&state.portrait) { emojiEl.textContent=state.portrait; emojiIdx=EMOJIS.indexOf(state.portrait); }
+  renderPortrait();
+  applyClassTheme();
   const inspBar=document.getElementById('insp-bar');
   inspBar.classList.toggle('active', !!state.inspiration);
   document.getElementById('insp-status').textContent = state.inspiration?'Активно!':'Не активно';
@@ -3013,6 +3786,7 @@ function renderAll() {
   document.querySelectorAll('.condition-chip').forEach(btn=>{
     btn.classList.toggle('active', state.conditions.includes(btn.dataset.cond));
   });
+  updateConcentrationChip();
 }
 
 function loadDefaultCharacter() {
@@ -3034,18 +3808,17 @@ function loadDefaultCharacter() {
     { name: 'Сглаз', level: 1, school: 'Очарование', cast: '1 д.' },
     { name: 'Сотня настоек', level: 2, school: 'Преобразование', cast: '1 д.' },
   ];
-  state.spellSlots[0] = { level:1, total:2, used:0 };
-  state.spellSlots[1] = { level:2, total:2, used:0 };
+  // Ячейки считаются автоматически из класса/уровня (syncSpellSlots)
   state.inventory = [
-    { name: 'Кожаный доспех', qty: 1, icon: '🥋' },
+    { name: 'Кожаный доспех', qty: 1, icon: '🛡️' },
     { name: 'Серп', qty: 1, icon: '⚔️' },
     { name: 'Кинжал', qty: 3, icon: '🗡️' },
     { name: 'Магическая фокусировка (сфера)', qty: 1, icon: '🔮' },
     { name: 'Книга (оккультные знания)', qty: 1, icon: '📖' },
     { name: 'Набор учёного', qty: 1, icon: '🎒' },
-    { name: 'Воровские инструменты', qty: 1, icon: '🔧' },
+    { name: 'Воровские инструменты', qty: 1, icon: '🗝️' },
     { name: 'Игральные кости', qty: 1, icon: '🎲' },
-    { name: 'Спальник', qty: 1, icon: '🎒' },
+    { name: 'Спальник', qty: 1, icon: '🛏️' },
     { name: 'Одежда путешественника', qty: 1, icon: '🧥' },
     { name: 'Хрустальная дверная ручка', qty: 1, icon: '💎' },
     { name: 'Зелье', qty: 1, icon: '🧪' },
@@ -3411,7 +4184,7 @@ function renderClassGuide() {
         const spells = classSpells.filter(sp => sp.level === l).map(sp => sp.name);
         if (!spells.length) continue;
         var spellBtns = spells.map(function(s) {
-          return '<button onclick="quickSearchFromGuide(this)" data-spell="' + s + '" style="padding:5px 10px;background:rgba(100,70,200,0.18);border:1px solid rgba(100,70,200,0.5);border-radius:12px;color:#3a1f70;font-size:12px;cursor:pointer;font-family:Crimson Text,serif">' + s + '</button>';
+          return '<button onclick="quickSearchFromGuide(this)" data-spell="' + s + '" style="padding:5px 10px;background:rgba(100,70,200,0.18);border:1px solid rgba(100,70,200,0.5);border-radius:12px;color:#c9b8f0;font-size:12px;cursor:pointer">' + s + '</button>';
         }).join('');
         spellsHTML += '<div style="margin-bottom:10px">'
           + '<div style="font-family:Cinzel,serif;font-size:11px;color:#5a2da0;letter-spacing:1px;margin-bottom:6px">' + (l===0?'ЗАГОВОРЫ':l+' УРОВЕНЬ') + '</div>'
@@ -3423,12 +4196,14 @@ function renderClassGuide() {
 
   let tipsHTML = '';
   if (guide.tips) {
-    tipsHTML = guide.tips.map(t => `<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid rgba(180,140,80,0.15);font-size:13px;color:var(--ink-light)"><span>💡</span><span>${t}</span></div>`).join('');
+    tipsHTML = guide.tips.map(t => `<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.095);font-size:13px;color:var(--ink-light)"><span>💡</span><span>${t}</span></div>`).join('');
   }
 
+  const themeColor = CLASS_THEMES[className] || '#6040c0';
   container.innerHTML = `
     <div class="section">
-      <div class="class-hero-card">
+      <div class="class-hero-card" style="border-color:${themeColor};background:linear-gradient(150deg,${hexToRgba(themeColor,0.3)} 0%, #14181e 75%);position:relative;overflow:hidden">
+        <div class="crest-watermark" style="color:${themeColor}">${CLASS_CRESTS[className]||''}</div>
         <div class="class-hero-icon">${guide.icon}</div>
         <div class="class-hero-name">${className}</div>
         <div class="class-hero-sub">${guide.en} · ${level} уровень</div>
@@ -4665,8 +5440,26 @@ document.querySelectorAll('.modal-overlay').forEach(m=>{
 // Register Service Worker for offline support
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      // Новая версия установилась поверх работающей — предложить перезапуск
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if(!nw) return;
+        nw.addEventListener('statechange', () => {
+          if(nw.state === 'installed' && navigator.serviceWorker.controller) showUpdateToast();
+        });
+      });
+    }).catch(()=>{});
   });
+}
+
+function showUpdateToast() {
+  if(document.getElementById('update-toast')) return;
+  const t = document.createElement('div');
+  t.id = 'update-toast';
+  t.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--stone);color:var(--gold-light);border:1px solid var(--gold);border-radius:14px;padding:12px 16px;font-family:"Cinzel",serif;font-size:13px;z-index:500;display:flex;align-items:center;gap:12px;animation:fadeInUp 0.3s ease;max-width:92vw';
+  t.innerHTML = '<span>Доступно обновление</span><button onclick="location.reload()" style="background:linear-gradient(135deg,var(--crimson),#6b0f0f);border:1px solid var(--gold);border-radius:8px;color:var(--gold-light);font-family:Cinzel,serif;font-size:12px;padding:7px 12px;cursor:pointer;letter-spacing:0.5px">ОБНОВИТЬ</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#8a94a1;font-size:16px;cursor:pointer;padding:2px">✕</button>';
+  document.body.appendChild(t);
 }
 </script>
 </body>
