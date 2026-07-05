@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dnd-hero-v23';
+const CACHE_NAME = 'dnd-hero-v22';
 const ASSETS = [
   './',
   './index.html',
@@ -8,9 +8,7 @@ const ASSETS = [
   './fonts/cinzel-latin.woff2',
   './fonts/crimson-text-latin.woff2',
   './fonts/crimson-text-600-latin.woff2',
-  './fonts/crimson-text-italic-latin.woff2',
-  './print-p1.jpg',
-  './print-p2.jpg'
+  './fonts/crimson-text-italic-latin.woff2'
 ];
 
 // Install: pre-cache the app shell
