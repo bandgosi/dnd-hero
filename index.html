@@ -1833,26 +1833,23 @@
   }
   .fx-toggle.on { color: var(--gold-light); border-color: rgba(201,160,58,0.5); background: rgba(201,160,58,0.1); }
 
-  /* ============ ПЕЧАТЬ ЛИСТА ============ */
+  /* ============ ПЕЧАТЬ НА АРТ-ШАБЛОНЕ ============ */
   #print-sheet { display: none; }
+  .print-page { position: relative; background-size: 100% 100%; background-repeat: no-repeat; margin: 0 auto; }
+  .print-page.p1 { width: 677px; height: 1109px; background-image: url('print-p1.jpg'); }
+  .print-page.p2 { width: 729px; height: 1109px; background-image: url('print-p2.jpg'); }
+  .pf { position: absolute; transform: translate(-50%,-50%); color: #241606; white-space: nowrap; font-weight: 600; line-height: 1; font-family: Georgia,'Times New Roman',serif; }
+  .pf.l { transform: translateY(-50%); text-align: left; }
+  .pf.banner { font-family: 'Cinzel',Georgia,serif; font-weight: 700; letter-spacing: 1px; }
+  .pf.blk { transform: none; white-space: normal; line-height: 1.35; overflow: hidden; }
+  .pdot { position: absolute; transform: translate(-50%,-50%); width: 12px; height: 12px; border-radius: 50%; background: #33240c; }
+  .pmask { position: absolute; transform: translate(-50%,-50%); background: rgb(246,226,204); border-radius: 40%/60%; }
   @media print {
+    @page { size: A4; margin: 0; }
     html, body { height: auto; overflow: visible; background: #fff; }
     .app, .fab-dice, .quick-roll, .modal-overlay, .ai-overlay { display: none !important; }
-    #print-sheet {
-      display: block !important;
-      color: #111;
-      font-family: Georgia, 'Times New Roman', serif;
-      padding: 12px 18px;
-      font-size: 12pt;
-      line-height: 1.4;
-    }
-    #print-sheet h1 { font-size: 22pt; margin: 0 0 2px; border-bottom: 2px solid #333; }
-    #print-sheet h2 { font-size: 12pt; margin: 12px 0 3px; color: #7c1010; border-bottom: 1px solid #ccc; text-transform: uppercase; letter-spacing: 1px; }
-    #print-sheet .sub { color: #555; margin: 0 0 10px; font-style: italic; }
-    #print-sheet .abil { width: 100%; border-collapse: collapse; margin: 8px 0; text-align: center; }
-    #print-sheet .abil td { border: 1px solid #999; padding: 6px 2px; width: 16.6%; }
-    #print-sheet .small { font-size: 10pt; }
-    #print-sheet .foot { margin-top: 16px; text-align: center; color: #999; font-size: 9pt; }
+    #print-sheet { display: block !important; }
+    .print-page { page-break-after: always; }
   }
 </style>
 </head>
@@ -1867,7 +1864,7 @@
       <div class="welcome-divider"><span></span><i>◆</i><span></span></div>
       <div class="welcome-sub">Книга приключений всегда с тобой</div>
       <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-      <div class="welcome-version">версия 22</div>
+      <div class="welcome-version">версия 23</div>
     </div>
   </div>
 
@@ -4504,42 +4501,96 @@ function handleShareHash() {
 }
 
 // ============ ПЕЧАТЬ ЛИСТА ============
+// Печать на пользовательском арт-шаблоне (2 страницы). Данные подставляются
+// поверх фонового изображения по выверенным координатам (в % от страницы).
+// Порядок навыков в шаблоне фиксирован рисунком; сопоставляем с SKILLS_DATA.
+const PRINT_SKILL_MAP = ['Акробатика','Атлетика','Восприятие','Выживание','Обман','Запугивание','Магия','Природа','Религия','Проницательность','Медицина','Анализ','Скрытность','Убеждение','Уход за животными'];
+const PRINT_SKILL_Y = [7.2,9.55,11.9,14.25,16.6,18.95,21.3,23.65,26.0,28.35,30.7,33.05,35.4,37.75,40.1];
+const PRINT_SAVE_Y = [19.6,22.5,25.4,28.3,31.2,34.1];
+const PRINT_ABIL = [6.9,18.6,30.3,42.0,53.8,65.6];
+
 function printCharacter() {
   saveAll();
   const g = id => (document.getElementById(id)?.value || '');
   const pb = profBonus();
-  const abilRows = ABILITIES.map((ab,i)=>{
-    const sc = state.abilities[i], m = modStr(sc);
-    return `<td><b>${ABILITY_FULL[i]}</b><br>${sc} (${m})</td>`;
-  }).join('');
-  const skillsHtml = SKILLS_DATA.map((sk,i)=>{
-    const ai = ABILITIES.indexOf(sk.attr);
-    const b = mod(state.abilities[ai]) + (state.skillProfs[i]?pb:0);
-    return `<span>${state.skillProfs[i]?'●':'○'} ${sk.name} ${b>=0?'+':''}${b}</span>`;
-  }).join(' · ');
-  const savesHtml = ABILITIES.map((ab,i)=>{
-    const b = mod(state.abilities[i]) + (state.saveProfs[i]?pb:0);
-    return `${state.saveProfs[i]?'●':'○'} ${ab} ${b>=0?'+':''}${b}`;
-  }).join('  ');
-  const spellsHtml = state.spells.length ? state.spells.slice().sort((a,b)=>a.level-b.level).map(s=>`${s.level===0?'З':s.level}· ${esc(s.name)}${s.prepared?' ✓':''}`).join('<br>') : '—';
-  const invHtml = state.inventory.length ? state.inventory.map(it=>`${esc(it.name)}${it.qty>1?' ×'+it.qty:''}${it.attuned?' ✨':''}`).join(', ') : '—';
-  const atkHtml = state.attacks.length ? state.attacks.map(a=>`${esc(a.name)} ${a.bonus>=0?'+':''}${a.bonus} (${esc(a.damage||'')})`).join('<br>') : '—';
-  const featHtml = (state.features||[]).length ? state.features.map(f=>`<b>${esc(f.name)}</b>${f.desc?': '+esc(f.desc):''}`).join('<br>') : '—';
-  document.getElementById('print-sheet').innerHTML = `
-    <h1>${esc(g('char-name'))}</h1>
-    <p class="sub">${esc(g('char-class'))} · уровень ${esc(g('char-level'))} · ${esc(g('char-race'))} · ${esc(g('char-bg'))}</p>
-    <table class="abil"><tr>${abilRows}</tr></table>
-    <div class="grid2">
-      <div><b>HP:</b> ${state.hp.current}/${state.hp.max} &nbsp; <b>КД:</b> ${esc(g('stat-ac'))} &nbsp; <b>Скорость:</b> ${esc(g('stat-speed'))} &nbsp; <b>Бонус мастерства:</b> +${pb}</div>
-    </div>
-    <h2>Спасброски</h2><p>${savesHtml}</p>
-    <h2>Навыки</h2><p class="small">${skillsHtml}</p>
-    <h2>Атаки</h2><p>${atkHtml}</p>
-    <h2>Заклинания</h2><p class="small">${spellsHtml}</p>
-    <h2>Особенности</h2><p class="small">${featHtml}</p>
-    <h2>Снаряжение</h2><p class="small">${invHtml}</p>
-    <p class="foot">D&D Герой</p>`;
-  window.print();
+  const el = o => {
+    if(o.mask) return `<div class="pmask" style="left:${o.x}%;top:${o.y}%;width:${o.w}%;height:${o.h}%"></div>`;
+    if(o.dot) return `<div class="pdot" style="left:${o.x}%;top:${o.y}%"></div>`;
+    if(o.blk) return `<div class="pf blk" style="left:${o.x}%;top:${o.y}%;width:${o.w}%;height:${o.h}%;font-size:${o.s}px">${o.t}</div>`;
+    return `<div class="pf${o.l?' l':''}${o.b?' banner':''}" style="left:${o.x}%;top:${o.y}%;font-size:${o.s}px">${esc(o.t)}</div>`;
+  };
+
+  // --- Страница 1 ---
+  const p1 = [
+    {mask:1,x:50,y:8.4,w:52,h:6},
+    {x:50,y:8.4,s:30,t:g('char-name'),b:1},
+    {x:50,y:68.5,s:21,t:g('stat-ac')},
+    {x:19,y:71.2,s:13,t:g('char-race'),l:1},
+    {x:19,y:75.4,s:13,t:g('char-class'),l:1},
+    {x:19,y:79.6,s:12,t:g('char-bg'),l:1},
+    {x:19,y:88.1,s:13,t:'+'+pb,l:1},
+    {x:35,y:84,s:15,t:(mod(state.abilities[1])>=0?'+':'')+mod(state.abilities[1])},
+    {x:65,y:84,s:15,t:g('stat-speed')},
+    {x:50,y:84.5,s:17,t:String(state.hp.current)},
+    {x:50,y:91,s:12,t:String(state.hp.max)},
+    {x:62,y:93.4,s:15,t:g('char-level'),l:1},
+  ];
+
+  // --- Страница 2 ---
+  const p2 = [];
+  PRINT_ABIL.forEach((y,i)=>{
+    const sc=state.abilities[i], m=mod(sc);
+    p2.push({x:18,y:y,s:16,t:(m>=0?'+':'')+m});
+    p2.push({x:9,y:y+3.5,s:14,t:String(sc),l:1});
+  });
+  // навыки — точки владения
+  PRINT_SKILL_MAP.forEach((nm,i)=>{
+    const idx = SKILLS_DATA.findIndex(s=>s.name===nm);
+    if(idx>=0 && state.skillProfs[idx]) p2.push({dot:1,x:30,y:PRINT_SKILL_Y[i]});
+  });
+  // спасброски — точки владения
+  PRINT_SAVE_Y.forEach((y,i)=>{ if(state.saveProfs[i]) p2.push({dot:1,x:59.5,y:y}); });
+  // иконки: КД, хиты, вдохновение
+  p2.push({x:62,y:9.2,s:19,t:g('stat-ac')});
+  p2.push({x:78,y:9.2,s:17,t:state.hp.current+'/'+state.hp.max});
+  if(state.inspiration) p2.push({x:93,y:8.5,s:20,t:'✦'});
+  // заклинания
+  const castAI = CASTING_ABILITY[g('char-class')];
+  if(castAI!==undefined){
+    const dc = 8+pb+mod(state.abilities[castAI]);
+    const atk = pb+mod(state.abilities[castAI]);
+    p2.push({x:26,y:63.6,s:13,t:g('char-class'),l:1});
+    p2.push({x:64,y:63.6,s:13,t:String(dc),l:1});
+    p2.push({x:44,y:66.2,s:13,t:(atk>=0?'+':'')+atk,l:1});
+  }
+  // таблица заклинаний (до 8 строк)
+  const sp = state.spells.slice().sort((a,b)=>a.level-b.level).slice(0,8);
+  sp.forEach((s,i)=>{
+    const d = findSpellDetails(s);
+    const y = 73.2 + i*1.42;
+    p2.push({x:9,y:y,s:11,t:(s.level===0?'З':String(s.level))});
+    p2.push({x:15,y:y,s:11,t:esc(s.name)+(s.prepared?' ✓':''),l:1});
+    p2.push({x:64,y:y,s:10,t:esc(d.school||s.school||''),l:1});
+    p2.push({x:76,y:y,s:10,t:esc(d.castingTime||s.cast||''),l:1});
+  });
+  // черты и особенности (блок с переносом)
+  const feats = (state.features||[]).map(f=>esc(f.name)+(f.desc?': '+esc(f.desc):'')).join(' • ');
+  const traits = esc(g('char-traits'));
+  const featText = [feats, traits].filter(Boolean).join('<br>');
+  if(featText) p2.push({blk:1,x:57.5,y:39,w:38,h:17,s:11,t:featText});
+  // снаряжение и заметки (блок)
+  const gear = state.inventory.map(it=>esc(it.name)+(it.qty>1?' ×'+it.qty:'')+(it.attuned?' ✨':'')).join(', ');
+  const notes = [g('notes-campaign'),g('notes-npc'),g('notes-misc')].filter(Boolean).map(esc).join(' — ');
+  const gearText = [gear, notes].filter(Boolean).join('<br>');
+  if(gearText) p2.push({blk:1,x:8,y:89,w:86,h:9,s:11,t:gearText});
+
+  document.getElementById('print-sheet').innerHTML =
+    `<div class="print-page p1">${p1.map(el).join('')}</div>` +
+    `<div class="print-page p2">${p2.map(el).join('')}</div>`;
+  // дождаться загрузки фоновых картинок, иначе первая печать выйдет без арта
+  const imgs = ['print-p1.jpg','print-p2.jpg'].map(src => { const i = new Image(); i.src = src; return i; });
+  Promise.all(imgs.map(i => i.complete ? Promise.resolve() : new Promise(r => { i.onload = i.onerror = r; })))
+    .then(() => setTimeout(() => window.print(), 150));
 }
 
 // ============ НАПОМИНАНИЕ О РЕЗЕРВНОЙ КОПИИ ============

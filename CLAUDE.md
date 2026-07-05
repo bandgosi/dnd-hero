@@ -24,7 +24,8 @@ python3 -m http.server 8000
 - `manifest.json` — PWA manifest (Russian, portrait, standalone).
 - `icons/` — all icon sizes referenced by the manifest and `<head>`; keep `icons/icon-192.png` and `icons/icon-512.png` in sync with `sw.js`'s `ASSETS` list.
 - `fonts/` — self-hosted Cinzel (variable, 400–700) and Crimson Text woff2 (latin subset). Body text uses the system sans-serif stack; Cinzel is for headings/numbers (Cyrillic falls back per stack), Crimson Text only for the welcome-screen tagline. Declared via `@font-face` in `index.html`, precached in `sw.js`.
-- `backup/` — snapshot of the pre-v16 version (`index.html`, `sw.js`, `manifest.json`), kept for rollback.
+- `print-p1.jpg` / `print-p2.jpg` — two-page hand-drawn character-sheet art used as the print template; `printCharacter()` overlays character data on them at percentage coordinates. Precached in `sw.js`.
+- `backup/` — snapshot of an earlier version (`index.html`, `sw.js`, `manifest.json`), kept for rollback.
 
 ## JavaScript Architecture
 
