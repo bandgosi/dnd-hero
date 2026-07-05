@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-"D&D Герой" — a Russian-language D&D 5e character sheet Progressive Web App. The entire application is a single self-contained `index.html` (~4,700 lines: CSS, HTML, and JavaScript) with no framework, no dependencies, no build step, and no tests. All D&D content (spells, items, rules) is embedded as local Russian-language data, so the app works fully offline.
+"D&D Герой" — a Russian-language D&D 5e character sheet Progressive Web App. The entire application is a single self-contained `index.html` (~6,000 lines: CSS, HTML, and JavaScript) with no framework, no dependencies, no build step, and no tests. All D&D content (spells, items, rules) and even the QR encoder are embedded locally, so the app works fully offline.
 
 ## Development
 
@@ -54,6 +54,17 @@ All rules content lives in constants inside `index.html`, in Russian:
 - Derived-stat logic uses `CLASS_HIT_DIE`, `CASTING_ABILITY`, `SKILLS_DATA`, `XP_TABLE`; class names are Russian strings ('Воин', 'Маг', 'Колдун', …) used as lookup keys — keep spelling consistent across all these tables.
 - Spell slot **totals are always computed** from class + level via `syncSpellSlots()` (SRD tables `FULL_CASTER_SLOTS` / `HALF_CASTER_SLOTS` / `PACT_SLOTS` for warlock) plus user-managed `state.bonusSlots` (9 ints, extra slots from items/feats, rendered as gold dots); only `used` and `bonusSlots` are user state. Never hand-edit computed slot totals in saves.
 - Skills and saving throws render as one grouped list (`renderAbilityBlocks()`, container `#ability-blocks`): one block per ability with its save first, then its skills. `renderSkills()`/`renderSavingThrows()` are thin aliases kept for call-site compatibility.
+- `CLASS_THEMES` (color) and `CLASS_CRESTS` (stroke-SVG emblem) drive the class banner, guide card, and the `--accent` CSS var (nav/subtab/section accents). `applyClassTheme()` recolors on class change.
+
+### Additional persistent state
+
+Beyond the core fields, `state` also carries `resources` (class counters with short/long-rest recovery), `features` (name/desc list), `bonusSlots`, `concentrationSpell`, `portraitImg` (256px JPEG data URL), and per-item `attuned` / per-spell `prepared` flags. All must be defaulted in both `applyCharacter()` and `blankCharacterData()`.
+
+### Feedback, quick-roll, sharing
+
+- Dice feedback: `rollFeedback(crit, fail)` fires `navigator.vibrate` + a synthesized WebAudio "clack" (`playDiceSound`). Toggles (`fx_sound`/`fx_vibro`) are **global** localStorage, not per-character. `ensureAudio()` lazily creates the AudioContext on first gesture (iOS requirement). Every roll entry point calls `rollFeedback`.
+- A floating quick-d20 button (`#fab-dice`, hidden on the dice tab) drives `quickRoll(mode)`; horizontal swipes between the six tabs are wired in `initSwipeNav()`.
+- Sharing: an inline dependency-free QR encoder (`QR.generate`, byte mode / EC-L / versions 1–25) renders a `#i=`-URL QR when the pruned payload (`compactCharPayload()`, strips photo/history/computed slots/empty values) fits; otherwise a copyable base64 code. `handleShareHash()` auto-imports from `#i=` on load. `printCharacter()` fills `#print-sheet` and calls `window.print()` (print-only `@media print` layout).
 
 ## Conventions
 
