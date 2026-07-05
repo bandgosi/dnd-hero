@@ -1869,7 +1869,7 @@
       <div class="welcome-divider"><span></span><i>◆</i><span></span></div>
       <div class="welcome-sub">Книга приключений всегда с тобой</div>
       <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-      <div class="welcome-version">версия 27</div>
+      <div class="welcome-version">версия 28</div>
     </div>
   </div>
 
@@ -6298,6 +6298,37 @@ function setAppHeight() {
 setAppHeight();
 window.addEventListener('resize', setAppHeight);
 window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 300));
+
+// ВРЕМЕННАЯ ДИАГНОСТИКА (v28) — показывает реальные метрики iOS, чтобы найти
+// причину чёрной полосы снизу. Убрать после диагностики. Тап — закрыть.
+function showViewportDiag() {
+  if(document.getElementById('vp-diag')) return;
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;top:0;left:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
+  document.body.appendChild(probe);
+  const cs = getComputedStyle(probe);
+  const safe = `${cs.paddingTop} / ${cs.paddingBottom} / ${cs.paddingLeft} / ${cs.paddingRight}`;
+  probe.remove();
+  const vv = window.visualViewport;
+  const appH = Math.round(document.querySelector('.app').getBoundingClientRect().height);
+  const d = document.createElement('div');
+  d.id = 'vp-diag';
+  d.onclick = () => d.remove();
+  d.style.cssText = 'position:fixed;left:8px;right:8px;top:120px;z-index:99999;background:rgba(0,0,0,0.9);color:#38ff8e;font:12px/1.6 monospace;padding:10px 12px;border:1px solid #38ff8e;border-radius:8px;white-space:pre;box-shadow:0 4px 20px rgba(0,0,0,0.6)';
+  d.textContent = [
+    '=== ДИАГНОСТИКА v28 (тап — скрыть) ===',
+    'inner:  ' + window.innerWidth + ' x ' + window.innerHeight,
+    'client: ' + document.documentElement.clientWidth + ' x ' + document.documentElement.clientHeight,
+    'screen: ' + screen.width + ' x ' + screen.height + '  avail:' + screen.availHeight,
+    'visualVP: ' + (vv ? Math.round(vv.width) + ' x ' + Math.round(vv.height) : 'n/a'),
+    'safe T/B/L/R: ' + safe,
+    'standalone: ' + (('standalone' in navigator) ? navigator.standalone : '?'),
+    'dpr: ' + window.devicePixelRatio,
+    'app height: ' + appH,
+  ].join('\n');
+  document.body.appendChild(d);
+}
+window.addEventListener('load', () => setTimeout(showViewportDiag, 600));
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
