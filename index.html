@@ -196,7 +196,12 @@
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
     overscroll-behavior-y: contain;
-    background: var(--surface);
+    /* Тонкая текстура (гексы/печати) под полупрозрачным слоем цвета
+       поверхности: узор на грани видимости, швы тайла не заметны */
+    background:
+      linear-gradient(rgba(20,24,30,0.8), rgba(20,24,30,0.8)),
+      url('images/bg-texture.jpg') top left / 480px repeat,
+      var(--surface);
     /* Запас снизу, чтобы плавающая кнопка d20 не перекрывала последний ряд
        (поля/кнопки в самом низу вкладки) */
     padding-bottom: 84px;
@@ -928,38 +933,33 @@
   .primary-btn:active { transform: scale(0.97); background: var(--crimson-light); }
 
   /* ---- WELCOME SCREEN ---- */
+  /* Фон — полноэкранный арт (d20 на гримуаре). Текст сверху (там арт тёмный),
+     кнопка снизу; градиенты по краям для читаемости. */
   .welcome-bg {
-    background: radial-gradient(ellipse at 50% 30%, #1b2029 0%, #0c0f13 70%);
+    background:
+      linear-gradient(180deg, rgba(8,10,14,0.66) 0%, rgba(8,10,14,0.18) 20%, transparent 42%, transparent 74%, rgba(8,10,14,0.62) 100%),
+      url('images/welcome-art.jpg') center bottom / cover no-repeat,
+      #0c0f13;
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     padding: 40px 24px;
-    padding-top: calc(var(--safe-top) + 40px);
-    padding-bottom: calc(var(--safe-bottom) + 40px);
+    padding-top: calc(var(--safe-top) + 52px);
+    padding-bottom: calc(var(--safe-bottom) + 34px);
   }
+  .welcome-top, .welcome-bottom { display: flex; flex-direction: column; align-items: center; }
 
-  .welcome-art {
-    width: 148px;
-    height: 148px;
-    border-radius: 30px;
-    border: 2px solid var(--gold);
-    box-shadow: 0 0 50px rgba(240,192,64,0.25), 0 8px 30px rgba(0,0,0,0.6);
-    margin-bottom: 26px;
-    animation: breathe 3s ease-in-out infinite;
-  }
-  @keyframes breathe { 0%,100% { filter: drop-shadow(0 0 8px rgba(200,100,0,0.4)); } 50% { filter: drop-shadow(0 0 20px rgba(200,100,0,0.8)); } }
-
-  .welcome-title { font-family: 'Cinzel', serif; font-size: 32px; color: var(--gold-light); letter-spacing: 3px; text-align: center; margin-bottom: 12px; text-shadow: 0 0 30px rgba(240,192,64,0.5); }
+  .welcome-title { font-family: 'Cinzel', serif; font-size: 34px; color: var(--gold-light); letter-spacing: 3px; text-align: center; margin-bottom: 12px; text-shadow: 0 0 30px rgba(240,192,64,0.5), 0 2px 10px rgba(0,0,0,0.8); }
 
   .welcome-divider { display: flex; align-items: center; gap: 10px; width: 220px; margin-bottom: 12px; color: var(--gold); }
   .welcome-divider span { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gold)); }
   .welcome-divider span:last-child { background: linear-gradient(90deg, var(--gold), transparent); }
   .welcome-divider i { font-style: normal; font-size: 10px; }
 
-  .welcome-sub { font-family: 'Crimson Text', serif; font-style: italic; font-size: 16px; color: #8d97a3; text-align: center; margin-bottom: 40px; }
-  .welcome-version { margin-top: 28px; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 1px; color: #5b6572; }
+  .welcome-sub { font-family: 'Crimson Text', serif; font-style: italic; font-size: 17px; color: #b8c0ca; text-align: center; text-shadow: 0 1px 8px rgba(0,0,0,0.8); }
+  .welcome-version { margin-top: 14px; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 1px; color: #8d97a3; text-shadow: 0 1px 6px rgba(0,0,0,0.9); }
 
   .welcome-btn {
     background: linear-gradient(135deg, #e04343, #b32424);
@@ -1867,12 +1867,15 @@
   <!-- WELCOME SCREEN -->
   <div class="screen active" id="screen-welcome">
     <div class="welcome-bg">
-      <img class="welcome-art" src="icons/icon-512.png" alt="D&D Герой">
-      <div class="welcome-title">D&D ГЕРОЙ</div>
-      <div class="welcome-divider"><span></span><i>◆</i><span></span></div>
-      <div class="welcome-sub">Книга приключений всегда с тобой</div>
-      <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-      <div class="welcome-version">версия 31</div>
+      <div class="welcome-top">
+        <div class="welcome-title">D&D ГЕРОЙ</div>
+        <div class="welcome-divider"><span></span><i>◆</i><span></span></div>
+        <div class="welcome-sub">Книга приключений всегда с тобой</div>
+      </div>
+      <div class="welcome-bottom">
+        <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
+        <div class="welcome-version">версия 32</div>
+      </div>
     </div>
   </div>
 
