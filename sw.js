@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dnd-hero-v32';
+const CACHE_NAME = 'dnd-hero-v33';
 const ASSETS = [
   './',
   './index.html',
@@ -10,7 +10,25 @@ const ASSETS = [
   './fonts/crimson-text-600-latin.woff2',
   './fonts/crimson-text-italic-latin.woff2',
   './images/welcome-art.jpg',
-  './images/bg-texture.jpg'
+  './images/bg-texture.jpg',
+  './images/vignette.png',
+  './images/frame.png',
+  './images/crests/voin.png',
+  './images/crests/mag.png',
+  './images/crests/plut.png',
+  './images/crests/klerik.png',
+  './images/crests/paladin.png',
+  './images/crests/sledopyt.png',
+  './images/crests/varvar.png',
+  './images/crests/bard.png',
+  './images/crests/monah.png',
+  './images/crests/charodey.png',
+  './images/crests/koldun.png',
+  './images/crests/druid.png',
+  './images/empty/spells.png',
+  './images/empty/inventory.png',
+  './images/empty/features.png',
+  './images/empty/rolls.png'
 ];
 
 // Install: pre-cache the app shell

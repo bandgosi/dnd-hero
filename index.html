@@ -235,10 +235,11 @@
     margin: 0 auto 12px;
     cursor: pointer;
     position: relative;
-    overflow: hidden;
+    /* overflow:hidden нельзя — обрежет кованую рамку (::after) */
   }
 
   .char-portrait img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+  #portrait-emoji { position: relative; z-index: 1; }
 
   .char-name-input {
     font-family: 'Cinzel', serif;
@@ -1689,7 +1690,8 @@
   /* Портрет: двойное кольцо со свечением */
   .char-portrait {
     border: none;
-    box-shadow: 0 0 0 2px var(--gold), 0 0 0 5px var(--bg), 0 0 0 6px rgba(201,160,58,0.35), 0 8px 24px rgba(0,0,0,0.5), 0 0 30px rgba(201,160,58,0.15);
+    /* Золотое кольцо заменила кованая рамка (::after); оставляем мягкую тень */
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   }
 
   /* Заголовки секций: красный ромб-маркер */
@@ -1731,8 +1733,22 @@
     pointer-events: none;
   }
   .hero-crest svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .hero-crest img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6)); }
   .crest-watermark { position: absolute; right: -16px; top: -10px; width: 130px; height: 130px; opacity: 0.16; transform: rotate(10deg); pointer-events: none; }
   .crest-watermark svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .crest-watermark img { width: 100%; height: 100%; object-fit: contain; }
+  /* Кованая рамка поверх круглого портрета (прозрачный центр) */
+  .char-portrait::after {
+    content: '';
+    position: absolute;
+    inset: -17px -16px -19px -16px;
+    background: url('images/frame.png') center / contain no-repeat;
+    pointer-events: none;
+    z-index: 3;
+  }
+  /* Виньетка под именем героя и на welcome */
+  .name-vignette { width: 200px; max-width: 70%; display: block; margin: 8px auto 0; opacity: 0.9; pointer-events: none; }
+  .empty-art { display: block; width: 116px; margin: 0 auto 10px; opacity: 0.9; }
   .hero-banner .char-name-input { border-bottom-color: rgba(255,255,255,0.25); }
 
   /* Сетка эмодзи в выборе портрета */
@@ -1869,12 +1885,12 @@
     <div class="welcome-bg">
       <div class="welcome-top">
         <div class="welcome-title">D&D ГЕРОЙ</div>
-        <div class="welcome-divider"><span></span><i>◆</i><span></span></div>
+        <img src="images/vignette.png" alt="" style="width:250px;max-width:75%;margin-bottom:4px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.7))">
         <div class="welcome-sub">Книга приключений всегда с тобой</div>
       </div>
       <div class="welcome-bottom">
         <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-        <div class="welcome-version">версия 32</div>
+        <div class="welcome-version">версия 33</div>
       </div>
     </div>
   </div>
@@ -1905,6 +1921,7 @@
               <img id="portrait-img" alt="" style="display:none">
             </div>
             <input class="char-name-input" id="char-name" type="text" value="Игрок" placeholder="Имя персонажа">
+            <img class="name-vignette" src="images/vignette.png" alt="">
           </div>
           <div class="section">
             <div class="char-meta">
@@ -2793,13 +2810,19 @@ function lighten(hex, t) {
   r=Math.round(r+(255-r)*t); g=Math.round(g+(255-g)*t); b=Math.round(b+(255-b)*t);
   return 'rgb('+r+','+g+','+b+')';
 }
+// Нарисованные гербы классов (золотая гравюра, PNG с прозрачностью)
+const CLASS_CREST_IMG = {'Воин':'voin','Маг':'mag','Плут':'plut','Клерик':'klerik','Паладин':'paladin','Следопыт':'sledopyt','Варвар':'varvar','Бард':'bard','Монах':'monah','Чародей':'charodey','Колдун':'koldun','Друид':'druid'};
+function crestImgTag(cls) {
+  const f = CLASS_CREST_IMG[cls];
+  return f ? `<img src="images/crests/${f}.png" alt="">` : (CLASS_CRESTS[cls] || '');
+}
 function applyClassTheme() {
   const cls = document.getElementById('char-class')?.value;
   const color = CLASS_THEMES[cls] || '#e04343';
   const banner = document.getElementById('hero-banner');
   if(banner) banner.style.background = `linear-gradient(165deg, ${hexToRgba(color,0.35)} 0%, ${hexToRgba(color,0.1)} 45%, rgba(20,24,30,0) 80%)`;
   const crest = document.getElementById('hero-crest');
-  if(crest) { crest.innerHTML = CLASS_CRESTS[cls] || ''; crest.style.color = color; }
+  if(crest) { crest.innerHTML = crestImgTag(cls); crest.style.color = color; }
   // акцент интерфейса под класс
   document.documentElement.style.setProperty('--accent', lighten(color, 0.22));
 }
@@ -3467,7 +3490,7 @@ function renderFeatures() {
   const el = document.getElementById('features-list'); if(!el) return;
   const fs = state.features || [];
   if(!fs.length) {
-    el.innerHTML = '<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:8px 0;font-size:13px">Особенности расы и класса: Тёмное зрение, Ярость, Боевой стиль...</div>';
+    el.innerHTML = '<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:8px 0;font-size:13px"><img class="empty-art" src="images/empty/features.png" alt="" style="width:96px">Особенности расы и класса: Тёмное зрение, Ярость, Боевой стиль...</div>';
     return;
   }
   el.innerHTML = fs.map((f,i)=>`
@@ -3797,7 +3820,7 @@ function findSpellDetails(spellObj) {
 
 function renderSpellList() {
   const list = document.getElementById('spell-list');
-  if(!state.spells.length) { list.innerHTML='<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:20px">Заклинания не добавлены</div>'; return; }
+  if(!state.spells.length) { list.innerHTML='<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:20px"><img class="empty-art" src="images/empty/spells.png" alt="">Заклинания не добавлены</div>'; return; }
   const sorted = [...state.spells].sort((a,b)=>a.level-b.level);
   window._mySpellCache = sorted;
 
@@ -3935,7 +3958,7 @@ function renderRollHistory() {
   const clearBtn=document.getElementById('clear-history-btn');
   if(clearBtn) clearBtn.style.display = state.rollHistory.length ? 'block' : 'none';
   if(!state.rollHistory.length) {
-    div.innerHTML = '<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:16px 0">Здесь появятся твои броски — брось первый кубик!</div>';
+    div.innerHTML = '<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:16px 0"><img class="empty-art" src="images/empty/rolls.png" alt="">Здесь появятся твои броски — брось первый кубик!</div>';
     return;
   }
   div.innerHTML = state.rollHistory.slice(0,10).map(r=>`
@@ -4024,7 +4047,7 @@ function toggleAttune(i) {
 
 function renderInventory() {
   const list=document.getElementById('inv-list');
-  if(!state.inventory.length) {list.innerHTML='<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:20px">Инвентарь пуст</div>';return;}
+  if(!state.inventory.length) {list.innerHTML='<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:20px"><img class="empty-art" src="images/empty/inventory.png" alt="">Инвентарь пуст</div>';return;}
   const anyAttune = state.inventory.some(itemRequiresAttunement);
   const header = anyAttune
     ? `<div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-bottom:8px;font-size:12px;color:var(--ink-light)">✨ Настройка: <b style="color:${attunedCount()>=3?'var(--crimson)':'var(--gold-light)'}">${attunedCount()}/3</b></div>`
@@ -5056,7 +5079,7 @@ function renderClassGuide() {
   container.innerHTML = `
     <div class="section">
       <div class="class-hero-card" style="border-color:${themeColor};background:linear-gradient(150deg,${hexToRgba(themeColor,0.3)} 0%, #14181e 75%);position:relative;overflow:hidden">
-        <div class="crest-watermark" style="color:${themeColor}">${CLASS_CRESTS[className]||''}</div>
+        <div class="crest-watermark" style="color:${themeColor}">${crestImgTag(className)}</div>
         <div class="class-hero-icon">${guide.icon}</div>
         <div class="class-hero-name">${className}</div>
         <div class="class-hero-sub">${guide.en} · ${level} уровень</div>
