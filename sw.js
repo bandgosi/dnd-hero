@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dnd-hero-v35';
+const CACHE_NAME = 'dnd-hero-v36';
 const ASSETS = [
   './',
   './index.html',
@@ -27,7 +27,37 @@ const ASSETS = [
   './images/empty/spells.png',
   './images/empty/inventory.png',
   './images/empty/features.png',
-  './images/empty/rolls.png'
+  './images/empty/rolls.png',
+  './images/items/sword.png',
+  './images/items/dagger.png',
+  './images/items/bow.png',
+  './images/items/staff.png',
+  './images/items/shield.png',
+  './images/items/armor.png',
+  './images/items/potion.png',
+  './images/items/scroll.png',
+  './images/items/book.png',
+  './images/items/orb.png',
+  './images/items/key.png',
+  './images/items/chest.png',
+  './images/items/rope.png',
+  './images/items/torch.png',
+  './images/items/tent.png',
+  './images/items/food.png',
+  './images/items/coin.png',
+  './images/items/ring.png',
+  './images/items/amulet.png',
+  './images/items/boots.png',
+  './images/items/cloak.png',
+  './images/items/gloves.png',
+  './images/items/helmet.png',
+  './images/items/horn.png',
+  './images/items/lute.png',
+  './images/items/dice.png',
+  './images/items/lockpicks.png',
+  './images/items/bomb.png',
+  './images/items/map.png',
+  './images/items/bag.png'
 ];
 
 // Install: pre-cache the app shell

@@ -712,6 +712,7 @@
   }
 
   .inv-icon { font-size: 20px; width: 32px; text-align: center; }
+  .inv-icon .item-pic { width: 26px; height: 26px; display: block; margin: 0 auto; opacity: 0.92; }
   .inv-name { flex: 1; font-size: 15px; color: var(--ink); cursor: pointer; text-decoration: underline dotted rgba(90,58,26,0.35); text-underline-offset: 3px; }
   .inv-qty { font-family: 'Cinzel', serif; font-size: 14px; color: var(--crimson); min-width: 24px; text-align: right; }
   .inv-delete { background: none; border: none; color: #c05050; font-size: 18px; padding: 4px 8px; cursor: pointer; opacity: 0.6; }
@@ -1979,7 +1980,7 @@
       </div>
       <div class="welcome-bottom">
         <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-        <div class="welcome-version">версия 35</div>
+        <div class="welcome-version">версия 36</div>
       </div>
     </div>
   </div>
@@ -4081,12 +4082,19 @@ function changeCount(delta) {
 }
 
 // ============ INVENTORY ============
-const ITEM_ICONS = {'меч':'⚔️','лук':'🏹','арбалет':'🏹','стрел':'🏹','болт':'🏹','щит':'🛡️','доспех':'🛡️','брон':'🛡️','посох':'🪄','палочка':'🪄','зелье':'🧪','свиток':'📜','еда':'🍖','паёк':'🍖','вино':'🍷','фляга':'🍶','факел':'🕯️','лампа':'🏮','фонарь':'🏮','книга':'📖','кинжал':'🗡️','топор':'🪓','молот':'🔨','монета':'💰','кольцо':'💍','амулет':'🔮','фокусировка':'🔮','шлем':'⛑️','плащ':'🧥','одежда':'🧥','ключ':'🗝️','воровск':'🗝️','инструмент':'🛠️','верёвка':'🪢','спальник':'🛏️','мешок':'🎒','набор':'🎒'};
+// Ключевое слово в названии → имя файла в images/items/ (гравюрные пиктограммы, стиль ★Финал)
+const ITEM_ICONS = {'меч':'sword','топор':'sword','молот':'sword','копь':'sword','булав':'sword','кинжал':'dagger','нож':'dagger','лук':'bow','арбалет':'bow','стрел':'bow','болт':'bow','посох':'staff','палочка':'staff','жезл':'staff','щит':'shield','доспех':'armor','брон':'armor','кольчуг':'armor','зелье':'potion','эликсир':'potion','свиток':'scroll','книга':'book','том ':'book','сфера':'orb','фокусировка':'orb','кристалл':'orb','ключ':'key','отмычк':'lockpicks','воровск':'lockpicks','инструмент':'lockpicks','сундук':'chest','ларец':'chest','верёвка':'rope','веревка':'rope','цепь':'rope','факел':'torch','лампа':'torch','фонарь':'torch','свеча':'torch','палатка':'tent','спальник':'tent','еда':'food','паёк':'food','паек':'food','вино':'food','фляга':'food','котел':'food','монета':'coin','золот':'coin','кошел':'coin','кольцо':'ring','перстень':'ring','амулет':'amulet','талисман':'amulet','ожерель':'amulet','сапоги':'boots','ботинки':'boots','обувь':'boots','плащ':'cloak','одежда':'cloak','мантия':'cloak','накидка':'cloak','перчатк':'gloves','рукавиц':'gloves','шлем':'helmet','каска':'helmet','лютня':'lute','флейта':'lute','волынка':'lute','рожок':'horn','горн':'horn','кости':'dice','кубик':'dice','бомба':'bomb','граната':'bomb','порох':'bomb','карта':'map','мешок':'bag','набор':'bag','рюкзак':'bag','сумка':'bag','рог':'horn'};
 
 function getItemIcon(name) {
   const lower = name.toLowerCase();
   for(const [k,v] of Object.entries(ITEM_ICONS)) { if(lower.includes(k)) return v; }
-  return '🎒';
+  return 'bag';
+}
+
+// HTML иконки предмета: у старых сохранений в it.icon лежит эмодзи — пересчитываем ключ по названию
+function itemIconImg(it) {
+  const key = /^[a-z]+$/.test(it.icon || '') ? it.icon : getItemIcon(it.name);
+  return `<img class="item-pic" src="images/items/${key}.png" alt="">`;
 }
 
 function addItem() {
@@ -4108,7 +4116,7 @@ function showItemInfo(i) {
   const entry = all.find(e => e.name.toLowerCase() === q)
     || all.find(e => q.includes(e.name.toLowerCase()) || e.name.toLowerCase().includes(q));
   if(!entry) { showToast('В справочнике нет описания этого предмета'); return; }
-  document.getElementById('item-info-title').textContent = `${item.icon} ${entry.name}`;
+  document.getElementById('item-info-title').textContent = entry.name;
   const meta = [entry.itemType, entry.cost, entry.weight, entry.damage, entry.ac ? 'КД ' + entry.ac : null]
     .filter(Boolean).join(' · ');
   const props = (entry.properties && entry.properties.length) ? entry.properties.join(', ') : '';
@@ -4155,7 +4163,7 @@ function renderInventory() {
     return `
     <div class="inv-item${it.attuned?' special':''}">
       ${special}
-      <span class="inv-icon">${it.icon}</span>
+      <span class="inv-icon">${itemIconImg(it)}</span>
       <span class="inv-name" onclick="showItemInfo(${i})" title="Открыть справку">${esc(it.name)}${it.attuned?' <span style="color:var(--gold-light);font-size:11px">✨</span>':''}</span>
       <div style="display:flex;align-items:center;gap:6px">
         ${att}
