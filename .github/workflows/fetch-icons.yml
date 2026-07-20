@@ -2,7 +2,10 @@
 # (из контейнера сессии прямой доступ к CDN закрыт) и коммитит его в ветку.
 # Будет удалён после нарезки иконок.
 name: fetch-icons
-on: workflow_dispatch
+on:
+  push:
+    branches: ['claude/inventory-item-icons-is1k3h']
+    paths: ['.github/workflows/fetch-icons.yml']
 permissions:
   contents: write
 jobs:
