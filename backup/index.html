@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="D&D Герой">
 <meta name="theme-color" content="#0c0f13">
 <title>D&D Герой</title>
@@ -61,6 +61,7 @@
     --ink-light: #97a1ad;
     --crimson: #e04343;
     --crimson-light: #ff5c5c;
+    --accent: #ff5c5c; /* акцент интерфейса; перекрашивается под класс в applyClassTheme */
     --gold: #c9a03a;
     --gold-light: #f0c657;
     --stone: #12161c;
@@ -93,12 +94,14 @@
   }
 
   /* ---- APP SHELL ---- */
+  /* Высоту берём из реального window.innerHeight (JS ставит --app-h). На iOS в
+     standalone это надёжнее, чем 100vh/100dvh, которые оставляют чёрную полосу
+     снизу. Пока JS не отработал — фолбэк на 100dvh. */
   .app {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    height: -webkit-fill-available;
     height: 100dvh;
+    height: var(--app-h, 100dvh);
   }
 
   /* На планшете/десктопе не растягиваемся на всю ширину — лист по центру */
@@ -146,7 +149,7 @@
     transition: color 0.2s;
   }
 
-  .nav-btn.active { color: var(--crimson-light); }
+  .nav-btn.active { color: var(--accent); }
   .nav-btn svg { width: 22px; height: 22px; }
 
   /* ---- PAGE HEADER ---- */
@@ -193,7 +196,15 @@
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
     overscroll-behavior-y: contain;
-    background: var(--surface);
+    /* Тонкая текстура (гексы/печати) под полупрозрачным слоем цвета
+       поверхности: узор на грани видимости, швы тайла не заметны */
+    background:
+      linear-gradient(rgba(20,24,30,0.8), rgba(20,24,30,0.8)),
+      url('images/bg-texture.jpg') top left / 480px repeat,
+      var(--surface);
+    /* Запас снизу, чтобы плавающая кнопка d20 не перекрывала последний ряд
+       (поля/кнопки в самом низу вкладки) */
+    padding-bottom: 84px;
   }
 
   .section { padding: 16px; }
@@ -224,10 +235,11 @@
     margin: 0 auto 12px;
     cursor: pointer;
     position: relative;
-    overflow: hidden;
+    /* overflow:hidden нельзя — обрежет кованую рамку (::after) */
   }
 
   .char-portrait img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+  #portrait-emoji { position: relative; z-index: 1; }
 
   .char-name-input {
     font-family: 'Cinzel', serif;
@@ -922,38 +934,33 @@
   .primary-btn:active { transform: scale(0.97); background: var(--crimson-light); }
 
   /* ---- WELCOME SCREEN ---- */
+  /* Фон — полноэкранный арт (d20 на гримуаре). Текст сверху (там арт тёмный),
+     кнопка снизу; градиенты по краям для читаемости. */
   .welcome-bg {
-    background: radial-gradient(ellipse at 50% 30%, #1b2029 0%, #0c0f13 70%);
+    background:
+      linear-gradient(180deg, rgba(8,10,14,0.66) 0%, rgba(8,10,14,0.18) 20%, transparent 42%, transparent 74%, rgba(8,10,14,0.62) 100%),
+      url('images/welcome-art.jpg') center bottom / cover no-repeat,
+      #0c0f13;
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     padding: 40px 24px;
-    padding-top: calc(var(--safe-top) + 40px);
-    padding-bottom: calc(var(--safe-bottom) + 40px);
+    padding-top: calc(var(--safe-top) + 52px);
+    padding-bottom: calc(var(--safe-bottom) + 34px);
   }
+  .welcome-top, .welcome-bottom { display: flex; flex-direction: column; align-items: center; }
 
-  .welcome-art {
-    width: 148px;
-    height: 148px;
-    border-radius: 30px;
-    border: 2px solid var(--gold);
-    box-shadow: 0 0 50px rgba(240,192,64,0.25), 0 8px 30px rgba(0,0,0,0.6);
-    margin-bottom: 26px;
-    animation: breathe 3s ease-in-out infinite;
-  }
-  @keyframes breathe { 0%,100% { filter: drop-shadow(0 0 8px rgba(200,100,0,0.4)); } 50% { filter: drop-shadow(0 0 20px rgba(200,100,0,0.8)); } }
-
-  .welcome-title { font-family: 'Cinzel', serif; font-size: 32px; color: var(--gold-light); letter-spacing: 3px; text-align: center; margin-bottom: 12px; text-shadow: 0 0 30px rgba(240,192,64,0.5); }
+  .welcome-title { font-family: 'Cinzel', serif; font-size: 34px; color: var(--gold-light); letter-spacing: 3px; text-align: center; margin-bottom: 12px; text-shadow: 0 0 30px rgba(240,192,64,0.5), 0 2px 10px rgba(0,0,0,0.8); }
 
   .welcome-divider { display: flex; align-items: center; gap: 10px; width: 220px; margin-bottom: 12px; color: var(--gold); }
   .welcome-divider span { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gold)); }
   .welcome-divider span:last-child { background: linear-gradient(90deg, var(--gold), transparent); }
   .welcome-divider i { font-style: normal; font-size: 10px; }
 
-  .welcome-sub { font-family: 'Crimson Text', serif; font-style: italic; font-size: 16px; color: #8d97a3; text-align: center; margin-bottom: 40px; }
-  .welcome-version { margin-top: 28px; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 1px; color: #5b6572; }
+  .welcome-sub { font-family: 'Crimson Text', serif; font-style: italic; font-size: 17px; color: #b8c0ca; text-align: center; text-shadow: 0 1px 8px rgba(0,0,0,0.8); }
+  .welcome-version { margin-top: 14px; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 1px; color: #8d97a3; text-shadow: 0 1px 6px rgba(0,0,0,0.9); }
 
   .welcome-btn {
     background: linear-gradient(135deg, #e04343, #b32424);
@@ -1607,7 +1614,7 @@
     cursor: pointer;
     transition: all 0.2s;
   }
-  .subtab-btn.active { color: #ff6b6b; border-bottom-color: #ff6b6b; }
+  .subtab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 
   .xp-bar-track { height: 8px; background: var(--parchment-dark); border-radius: 4px; margin-top: 8px; overflow: hidden; }
   .xp-bar-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-light)); border-radius: 4px; transition: width 0.5s ease; }
@@ -1683,12 +1690,13 @@
   /* Портрет: двойное кольцо со свечением */
   .char-portrait {
     border: none;
-    box-shadow: 0 0 0 2px var(--gold), 0 0 0 5px var(--bg), 0 0 0 6px rgba(201,160,58,0.35), 0 8px 24px rgba(0,0,0,0.5), 0 0 30px rgba(201,160,58,0.15);
+    /* Золотое кольцо заменила кованая рамка (::after); оставляем мягкую тень */
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   }
 
   /* Заголовки секций: красный ромб-маркер */
   .section-title { display: flex; align-items: center; gap: 8px; }
-  .section-title::before { content: ''; width: 6px; height: 6px; background: var(--crimson); transform: rotate(45deg); flex-shrink: 0; }
+  .section-title::before { content: ''; width: 6px; height: 6px; background: var(--accent); transform: rotate(45deg); flex-shrink: 0; }
 
   /* Шапка: мягкое свечение за заголовком */
   .page-header { background: radial-gradient(ellipse 70% 130% at 50% 0%, #1b212b 0%, var(--stone) 75%); }
@@ -1725,8 +1733,22 @@
     pointer-events: none;
   }
   .hero-crest svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .hero-crest img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6)); }
   .crest-watermark { position: absolute; right: -16px; top: -10px; width: 130px; height: 130px; opacity: 0.16; transform: rotate(10deg); pointer-events: none; }
   .crest-watermark svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .crest-watermark img { width: 100%; height: 100%; object-fit: contain; }
+  /* Кованая рамка поверх круглого портрета (прозрачный центр) */
+  .char-portrait::after {
+    content: '';
+    position: absolute;
+    inset: -17px -16px -19px -16px;
+    background: url('images/frame.png') center / contain no-repeat;
+    pointer-events: none;
+    z-index: 3;
+  }
+  /* Виньетка под именем героя и на welcome */
+  .name-vignette { width: 200px; max-width: 70%; display: block; margin: 8px auto 0; opacity: 0.9; pointer-events: none; }
+  .empty-art { display: block; width: 116px; margin: 0 auto 10px; opacity: 0.9; }
   .hero-banner .char-name-input { border-bottom-color: rgba(255,255,255,0.25); }
 
   /* Сетка эмодзи в выборе портрета */
@@ -1749,9 +1771,109 @@
     top: 2px;
     width: 4px;
     height: 4px;
-    background: var(--crimson-light);
+    background: var(--accent);
     transform: rotate(45deg);
-    box-shadow: 0 0 8px rgba(255,92,92,0.9);
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* ============ ПАК «ЗА СТОЛОМ» ============ */
+
+  /* Плавающая кнопка быстрого d20 */
+  .fab-dice {
+    position: fixed;
+    right: 16px;
+    bottom: calc(var(--safe-bottom) + 70px);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #e04343, #b32424);
+    border: 2px solid var(--gold);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.5), 0 0 22px rgba(224,67,67,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 150;
+    transition: transform 0.12s;
+  }
+  .fab-dice:active { transform: scale(0.9); }
+  .fab-dice svg { width: 30px; height: 30px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linejoin: round; }
+  .fab-dice.hidden { display: none; }
+
+  /* Всплывающий результат быстрого броска */
+  .quick-roll {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--safe-bottom) + 80px);
+    transform: translateX(-50%) translateY(20px);
+    background: linear-gradient(180deg, #242b35, #161b22);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    padding: 16px 20px;
+    z-index: 160;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .quick-roll.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+  .quick-roll .qr-num { font-family: 'Cinzel', serif; font-size: 46px; line-height: 1; color: var(--gold-light); }
+  .quick-roll .qr-num.crit { color: #ffe27a; text-shadow: 0 0 18px rgba(255,226,122,0.9); }
+  .quick-roll .qr-num.fail { color: #e05050; }
+  .quick-roll .qr-label { font-size: 11px; color: var(--ink-light); margin-top: 2px; letter-spacing: 0.5px; }
+  .quick-roll .qr-actions { display: flex; gap: 6px; margin-top: 10px; }
+  .quick-roll .qr-actions button {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--ink);
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    padding: 7px 10px;
+    cursor: pointer;
+  }
+  .quick-roll .qr-actions button.adv { color: #8fd08f; border-color: rgba(48,128,48,0.5); }
+  .quick-roll .qr-actions button.dis { color: #d09090; border-color: rgba(128,48,48,0.5); }
+
+  /* Переключатели эффектов на вкладке кубиков */
+  .fx-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .fx-toggle {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--ink-light);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .fx-toggle.on { color: var(--gold-light); border-color: rgba(201,160,58,0.5); background: rgba(201,160,58,0.1); }
+
+  /* ============ ПЕЧАТЬ ЛИСТА ============ */
+  #print-sheet { display: none; }
+  @media print {
+    html, body { height: auto; overflow: visible; background: #fff; }
+    .app, .fab-dice, .quick-roll, .modal-overlay, .ai-overlay { display: none !important; }
+    #print-sheet {
+      display: block !important;
+      color: #111;
+      font-family: Georgia, 'Times New Roman', serif;
+      padding: 12px 18px;
+      font-size: 12pt;
+      line-height: 1.4;
+    }
+    #print-sheet h1 { font-size: 22pt; margin: 0 0 2px; border-bottom: 2px solid #333; }
+    #print-sheet h2 { font-size: 12pt; margin: 12px 0 3px; color: #7c1010; border-bottom: 1px solid #ccc; text-transform: uppercase; letter-spacing: 1px; }
+    #print-sheet .sub { color: #555; margin: 0 0 10px; font-style: italic; }
+    #print-sheet .abil { width: 100%; border-collapse: collapse; margin: 8px 0; text-align: center; }
+    #print-sheet .abil td { border: 1px solid #999; padding: 6px 2px; width: 16.6%; }
+    #print-sheet .small { font-size: 10pt; }
+    #print-sheet .foot { margin-top: 16px; text-align: center; color: #999; font-size: 9pt; }
   }
 </style>
 </head>
@@ -1761,12 +1883,15 @@
   <!-- WELCOME SCREEN -->
   <div class="screen active" id="screen-welcome">
     <div class="welcome-bg">
-      <img class="welcome-art" src="icons/icon-512.png" alt="D&D Герой">
-      <div class="welcome-title">D&D ГЕРОЙ</div>
-      <div class="welcome-divider"><span></span><i>◆</i><span></span></div>
-      <div class="welcome-sub">Книга приключений всегда с тобой</div>
-      <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-      <div class="welcome-version">версия 21</div>
+      <div class="welcome-top">
+        <div class="welcome-title">D&D ГЕРОЙ</div>
+        <img src="images/vignette.png" alt="" style="width:250px;max-width:75%;margin-bottom:4px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.7))">
+        <div class="welcome-sub">Книга приключений всегда с тобой</div>
+      </div>
+      <div class="welcome-bottom">
+        <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
+        <div class="welcome-version">версия 33</div>
+      </div>
     </div>
   </div>
 
@@ -1796,6 +1921,7 @@
               <img id="portrait-img" alt="" style="display:none">
             </div>
             <input class="char-name-input" id="char-name" type="text" value="Игрок" placeholder="Имя персонажа">
+            <img class="name-vignette" src="images/vignette.png" alt="">
           </div>
           <div class="section">
             <div class="char-meta">
@@ -1859,6 +1985,17 @@
               <option>Чужеземец</option><option>Артист</option><option>Отшельник</option>
             </select>
             <textarea class="notes-textarea" id="char-traits" placeholder="Черты характера, идеалы, привязанности, слабости..." rows="4" onchange="saveAll()"></textarea>
+          </div>
+
+          <!-- FEATURES -->
+          <div class="section" style="padding-top:0">
+            <div class="section-title">Особенности и умения</div>
+            <div id="features-list"></div>
+            <div class="add-item-row" style="flex-wrap:wrap;gap:6px;margin-top:10px">
+              <input class="add-input" id="feat-name" type="text" placeholder="Название (Тёмное зрение)" style="flex:2 1 150px">
+              <input class="add-input" id="feat-desc" type="text" placeholder="Описание (необязательно)" style="flex:3 1 180px">
+              <button class="add-btn" onclick="addFeature()">+</button>
+            </div>
           </div>
         </div>
 
@@ -1968,7 +2105,10 @@
 
           <!-- CLASS RESOURCES -->
           <div class="section" style="padding-top:0">
-            <div class="section-title">Ресурсы класса</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div class="section-title" style="margin:0">Ресурсы класса</div>
+              <button onclick="scanNotesForResources()" title="Найти счётчики в заметках" style="background:rgba(255,255,255,0.05);border:1px solid var(--line);border-radius:8px;color:var(--ink-light);font-size:11px;padding:6px 10px;cursor:pointer;white-space:nowrap">🔎 из заметок</button>
+            </div>
             <div id="resources-list"></div>
             <div class="add-item-row" style="flex-wrap:wrap;gap:6px;margin-top:10px">
               <input class="add-input" id="res-name" type="text" placeholder="Ки, Ярость, Очки чародейства..." style="flex:2 1 150px">
@@ -2055,6 +2195,10 @@
       </div>
       <div class="content">
         <div class="section">
+          <div class="fx-row">
+            <div class="fx-toggle on" id="fx-sound" onclick="toggleFx('sound')">🔊 Звук</div>
+            <div class="fx-toggle on" id="fx-vibro" onclick="toggleFx('vibro')">📳 Вибрация</div>
+          </div>
           <div class="dice-result-area">
             <div class="dice-result-number" id="dice-result">—</div>
             <div class="dice-result-label" id="dice-label">Выберите кубик</div>
@@ -2088,8 +2232,11 @@
           </div>
         </div>
         <div class="section" style="padding-top:0">
-          <div class="section-title">История бросков</div>
-          <div id="roll-history" style="display:flex;flex-direction:column;gap:6px;"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div class="section-title" style="border:none;margin:0">История бросков</div>
+            <button id="clear-history-btn" onclick="clearRollHistory()" style="display:none;background:none;border:1px solid var(--line);border-radius:8px;color:var(--ink-light);font-size:12px;padding:5px 10px;cursor:pointer">🗑 Очистить</button>
+          </div>
+          <div id="roll-history" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
         </div>
       </div>
     </div>
@@ -2394,6 +2541,22 @@
     </nav>
   </div><!-- end screen-main -->
 
+  <!-- Плавающая кнопка быстрого d20 -->
+  <div class="fab-dice hidden" id="fab-dice" onclick="quickRoll('norm')" title="Быстрый бросок к20">
+    <svg viewBox="0 0 32 32"><path d="M16 2 L28 9 L28 23 L16 30 L4 23 L4 9 Z"/><path d="M16 8.5 L24 21.5 L8 21.5 Z M16 2 L16 8.5 M28 9 L24 21.5 M4 9 L8 21.5 M16 30 L16 21.5" stroke-width="1.2"/></svg>
+  </div>
+
+  <!-- Результат быстрого броска -->
+  <div class="quick-roll" id="quick-roll">
+    <div class="qr-num" id="qr-num">—</div>
+    <div class="qr-label" id="qr-label">к20</div>
+    <div class="qr-actions">
+      <button onclick="quickRoll('norm')">к20</button>
+      <button class="adv" onclick="quickRoll('adv')">▲ преим.</button>
+      <button class="dis" onclick="quickRoll('dis')">▼ помеха</button>
+    </div>
+  </div>
+
 </div><!-- end app -->
 
 <!-- MODALS -->
@@ -2467,6 +2630,17 @@
   </div>
 </div>
 
+<!-- SCAN NOTES → RESOURCES -->
+<div class="modal-overlay" id="modal-scan" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Счётчики из заметок</div>
+    <div style="font-size:13px;color:var(--ink-light);margin-bottom:10px;line-height:1.5">Нашлись строки вида «Название: число». Отметь, какие превратить в счётчики ресурсов (восстановление — длинный отдых, можно поменять потом).</div>
+    <div id="scan-results" style="margin-bottom:12px"></div>
+    <button class="primary-btn" onclick="applyScannedResources()">Добавить выбранные</button>
+  </div>
+</div>
+
 <!-- ITEM INFO (справка из базы знаний по предмету инвентаря) -->
 <div class="modal-overlay" id="modal-item-info" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal-sheet">
@@ -2484,7 +2658,11 @@
     <div class="modal-handle"></div>
     <div class="modal-title">🗂 Мои герои</div>
     <div id="char-list-menu" style="margin-bottom:12px"></div>
-    <button class="primary-btn" onclick="newCharacter()" style="margin-bottom:8px">+ Новый герой</button>
+    <button class="primary-btn" onclick="openNewCharWizard()" style="margin-bottom:8px">+ Новый герой</button>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="primary-btn" style="flex:1;background:var(--stone)" onclick="shareCharacter()">🔗 Поделиться</button>
+      <button class="primary-btn" style="flex:1;background:var(--stone)" onclick="printCharacter()">🖨 Печать</button>
+    </div>
     <div style="display:flex;gap:8px">
       <button class="primary-btn" style="flex:1;background:var(--stone)" onclick="exportCharacters()">⬇ Экспорт</button>
       <button class="primary-btn" style="flex:1;background:var(--stone)" onclick="document.getElementById('import-file').click()">⬆ Импорт</button>
@@ -2492,6 +2670,62 @@
     <input type="file" id="import-file" accept="application/json" style="display:none" onchange="if(this.files[0])importCharacters(this.files[0]); this.value='';">
   </div>
 </div>
+
+<!-- МАСТЕР СОЗДАНИЯ ГЕРОЯ -->
+<div class="modal-overlay" id="modal-wizard" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Новый герой</div>
+    <div style="font-size:12px;color:var(--ink-light);margin-bottom:4px">Имя</div>
+    <input class="input-field" id="wiz-name" type="text" value="Новый герой" style="margin-bottom:10px">
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <div style="flex:1">
+        <div style="font-size:12px;color:var(--ink-light);margin-bottom:4px">Класс</div>
+        <select class="add-input" id="wiz-class" style="width:100%">
+          <option>Воин</option><option>Маг</option><option>Плут</option><option>Клерик</option>
+          <option>Паладин</option><option>Следопыт</option><option>Варвар</option><option>Бард</option>
+          <option>Монах</option><option>Чародей</option><option>Колдун</option><option>Друид</option>
+        </select>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:12px;color:var(--ink-light);margin-bottom:4px">Раса</div>
+        <select class="add-input" id="wiz-race" style="width:100%">
+          <option>Человек</option><option>Эльф</option><option>Дварф</option><option>Полурослик</option>
+          <option>Гном</option><option>Полуорк</option><option>Тифлинг</option><option>Драконорождённый</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+      <div class="section-title" style="margin:0;border:none">Характеристики</div>
+      <div style="font-size:12px;color:var(--ink-light)">Очков: <b id="wiz-points" style="font-family:Cinzel,serif">27</b></div>
+    </div>
+    <div style="font-size:11px;color:var(--ink-light);margin-bottom:6px;line-height:1.4">Покупка по очкам (8–15). Расовые бонусы добавишь потом на листе.</div>
+    <div id="wiz-abils" style="margin-bottom:12px"></div>
+    <button class="primary-btn" onclick="finishWizard()">Создать героя</button>
+    <button class="primary-btn" style="margin-top:8px;background:var(--stone);box-shadow:none" onclick="document.getElementById('modal-wizard').classList.remove('open');newCharacter()">Пропустить (пустой герой)</button>
+  </div>
+</div>
+
+<!-- SHARE / QR -->
+<div class="modal-overlay" id="modal-share" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Поделиться героем</div>
+    <div style="text-align:center;margin-bottom:10px">
+      <canvas id="share-qr" style="width:220px;height:220px;image-rendering:pixelated;border-radius:10px;background:#fff;padding:8px"></canvas>
+      <div id="share-qr-note" style="font-size:12px;color:var(--ink-light);margin-top:8px;line-height:1.4"></div>
+    </div>
+    <div style="font-size:12px;color:var(--ink-light);margin-bottom:4px">Код персонажа (без фото):</div>
+    <textarea id="share-code" readonly style="width:100%;height:56px;background:rgba(255,255,255,0.05);border:1px solid var(--line);border-radius:8px;color:var(--ink-light);font-size:11px;padding:8px;resize:none;-webkit-appearance:none"></textarea>
+    <button class="primary-btn" style="margin:8px 0" onclick="copyShareCode()">📋 Скопировать код</button>
+    <div style="font-size:12px;color:var(--ink-light);margin:10px 0 4px">Вставить код с другого устройства:</div>
+    <textarea id="import-code" placeholder="Вставь сюда код героя..." style="width:100%;height:56px;background:rgba(255,255,255,0.05);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-size:11px;padding:8px;resize:none;-webkit-appearance:none"></textarea>
+    <button class="primary-btn" style="margin-top:8px" onclick="importFromCode()">📥 Добавить из кода</button>
+  </div>
+</div>
+
+<!-- Печатная версия листа -->
+<div id="print-sheet"></div>
 
 <script>
 // ============ STATE ============
@@ -2529,6 +2763,7 @@ let state = {
   tempHP: 0,
   attacks: [],
   resources: [],
+  features: [],
   concentrationSpell: null,
   bonusSlots: [0,0,0,0,0,0,0,0,0],
   hitDice: { total: 1, used: 0, die: 8 }
@@ -2568,13 +2803,28 @@ function hexToRgba(hex, a) {
 }
 
 // Перекрасить баннер и герб под текущий класс
+// Осветлить цвет к белому на долю t (чтобы приглушённые классовые цвета читались как акцент)
+function lighten(hex, t) {
+  const n = parseInt(hex.slice(1), 16);
+  let r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+  r=Math.round(r+(255-r)*t); g=Math.round(g+(255-g)*t); b=Math.round(b+(255-b)*t);
+  return 'rgb('+r+','+g+','+b+')';
+}
+// Нарисованные гербы классов (золотая гравюра, PNG с прозрачностью)
+const CLASS_CREST_IMG = {'Воин':'voin','Маг':'mag','Плут':'plut','Клерик':'klerik','Паладин':'paladin','Следопыт':'sledopyt','Варвар':'varvar','Бард':'bard','Монах':'monah','Чародей':'charodey','Колдун':'koldun','Друид':'druid'};
+function crestImgTag(cls) {
+  const f = CLASS_CREST_IMG[cls];
+  return f ? `<img src="images/crests/${f}.png" alt="">` : (CLASS_CRESTS[cls] || '');
+}
 function applyClassTheme() {
   const cls = document.getElementById('char-class')?.value;
   const color = CLASS_THEMES[cls] || '#e04343';
   const banner = document.getElementById('hero-banner');
   if(banner) banner.style.background = `linear-gradient(165deg, ${hexToRgba(color,0.35)} 0%, ${hexToRgba(color,0.1)} 45%, rgba(20,24,30,0) 80%)`;
   const crest = document.getElementById('hero-crest');
-  if(crest) { crest.innerHTML = CLASS_CRESTS[cls] || ''; crest.style.color = color; }
+  if(crest) { crest.innerHTML = crestImgTag(cls); crest.style.color = color; }
+  // акцент интерфейса под класс
+  document.documentElement.style.setProperty('--accent', lighten(color, 0.22));
 }
 
 // HTML-escape для пользовательского ввода, вставляемого через innerHTML
@@ -2582,12 +2832,303 @@ function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// ============ QR-ЭНКОДЕР (встроенный, без зависимостей) ============
+// Компактный QR-энкодер: байтовый режим, уровень коррекции L, версии 1..25.
+// Возвращает 2D-массив 0/1 (модули) или null, если данные не влезают.
+// Автономный, без зависимостей — встраивается в приложение.
+var QR = (function(){
+  // EC-L: [ecPerBlock, blocks1, data1, blocks2, data2] для версий 1..25
+  var ECL = [
+    [7,1,19,0,0],[10,1,34,0,0],[15,1,55,0,0],[20,1,80,0,0],[26,1,108,0,0],
+    [18,2,68,0,0],[20,2,78,0,0],[24,2,97,0,0],[30,2,116,0,0],[18,2,68,2,69],
+    [20,4,81,0,0],[24,2,92,2,93],[26,4,107,0,0],[30,3,115,1,116],[22,5,87,1,88],
+    [24,5,98,1,99],[28,1,107,5,108],[30,5,120,1,121],[28,3,113,4,114],[28,3,107,5,108],
+    [28,4,116,4,117],[28,2,111,7,112],[30,4,121,5,122],[30,6,117,4,118],[26,8,106,4,107]
+  ];
+  // Позиции центров выравнивающих шаблонов по версиям (1..25)
+  var ALIGN = [
+    [],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],
+    [6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],
+    [6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],
+    [6,28,54,80,106],[6,32,58,84,110]
+  ];
+
+  // --- GF(256) ---
+  var EXP=new Array(512), LOG=new Array(256);
+  (function(){ var x=1; for(var i=0;i<255;i++){ EXP[i]=x; LOG[x]=i; x<<=1; if(x&0x100) x^=0x11d; } for(var i2=255;i2<512;i2++) EXP[i2]=EXP[i2-255]; })();
+  function gmul(a,b){ if(a===0||b===0) return 0; return EXP[LOG[a]+LOG[b]]; }
+  function genPoly(n){ var p=[1]; for(var i=0;i<n;i++){ var np=new Array(p.length+1).fill(0); for(var j=0;j<p.length;j++){ np[j]^=p[j]; np[j+1]^=gmul(p[j], EXP[i]); } p=np; } return p; }
+  function ecBytes(data, n){ var gen=genPoly(n); var res=data.concat(new Array(n).fill(0)); for(var i=0;i<data.length;i++){ var c=res[i]; if(c!==0){ for(var j=0;j<gen.length;j++) res[i+j]^=gmul(gen[j], c); } } return res.slice(data.length); }
+
+  function bch(fmt){ var g=0x537, d=fmt<<10; for(var i=4;i>=0;i--){ if(d & (1<<(i+10))) d^=g<<i; } return ((fmt<<10)|d)^0x5412; }
+  function bchVer(v){ var g=0x1f25, d=v<<12; for(var i=5;i>=0;i--){ if(d&(1<<(i+12))) d^=g<<i; } return (v<<12)|d; }
+
+  function build(text){
+    var bytes=[]; for(var i=0;i<text.length;i++){ var c=text.charCodeAt(i); if(c<128) bytes.push(c); else if(c<2048){ bytes.push(192|(c>>6)); bytes.push(128|(c&63)); } else { bytes.push(224|(c>>12)); bytes.push(128|((c>>6)&63)); bytes.push(128|(c&63)); } }
+    // выбор версии
+    var ver=-1, cap, spec;
+    for(var v=1; v<=25; v++){ spec=ECL[v-1]; var totalData=spec[1]*spec[2]+spec[3]*spec[4]; var lenBits=(v<10)?8:16; var need=Math.ceil((4+lenBits+bytes.length*8)/8); if(need<=totalData){ ver=v; cap=totalData; break; } }
+    if(ver<0) return null;
+    spec=ECL[ver-1];
+    var lenBits=(ver<10)?8:16;
+    // битовый поток
+    var bits=[];
+    function push(val,len){ for(var b=len-1;b>=0;b--) bits.push((val>>b)&1); }
+    push(4,4); push(bytes.length, lenBits);
+    for(var k=0;k<bytes.length;k++) push(bytes[k],8);
+    // терминатор
+    var termCap=cap*8; var pad=Math.min(4, termCap-bits.length); for(var t=0;t<pad;t++) bits.push(0);
+    while(bits.length%8!==0) bits.push(0);
+    var dataCw=[]; for(var b2=0;b2<bits.length;b2+=8){ var by=0; for(var q=0;q<8;q++) by=(by<<1)|bits[b2+q]; dataCw.push(by); }
+    var padBytes=[0xEC,0x11], pi=0; while(dataCw.length<cap){ dataCw.push(padBytes[pi&1]); pi++; }
+    // разбивка на блоки
+    var blocks=[], idx=0;
+    for(var gg=0; gg<2; gg++){ var nb=(gg===0)?spec[1]:spec[3]; var dc=(gg===0)?spec[2]:spec[4]; for(var bb=0;bb<nb;bb++){ var d=dataCw.slice(idx, idx+dc); idx+=dc; blocks.push({d:d, e:ecBytes(d, spec[0])}); } }
+    // чередование
+    var maxD=0, maxE=spec[0]; blocks.forEach(function(bl){ if(bl.d.length>maxD) maxD=bl.d.length; });
+    var out=[];
+    for(var c1=0;c1<maxD;c1++) blocks.forEach(function(bl){ if(c1<bl.d.length) out.push(bl.d[c1]); });
+    for(var c2=0;c2<maxE;c2++) blocks.forEach(function(bl){ if(c2<bl.e.length) out.push(bl.e[c2]); });
+    return { ver:ver, cw:out };
+  }
+
+  function place(ver, cw){
+    var n=17+4*ver;
+    var m=[], reserved=[];
+    for(var i=0;i<n;i++){ m.push(new Array(n).fill(null)); reserved.push(new Array(n).fill(false)); }
+    function finder(r,c){ for(var dr=-1;dr<=7;dr++) for(var dc=-1;dc<=7;dc++){ var rr=r+dr, cc=c+dc; if(rr<0||rr>=n||cc<0||cc>=n) continue; var inr=(dr>=0&&dr<=6&&(dc===0||dc===6))||(dc>=0&&dc<=6&&(dr===0||dr===6))||(dr>=2&&dr<=4&&dc>=2&&dc<=4); m[rr][cc]=inr?1:0; reserved[rr][cc]=true; } }
+    finder(0,0); finder(0,n-7); finder(n-7,0);
+    // тайминги
+    for(var t=8;t<n-8;t++){ if(!reserved[6][t]){ m[6][t]=(t%2===0)?1:0; reserved[6][t]=true; } if(!reserved[t][6]){ m[t][6]=(t%2===0)?1:0; reserved[t][6]=true; } }
+    // dark module
+    m[n-8][8]=1; reserved[n-8][8]=true;
+    // выравнивающие
+    var ac=ALIGN[ver-1];
+    for(var ai=0;ai<ac.length;ai++) for(var aj=0;aj<ac.length;aj++){ var r=ac[ai], c=ac[aj]; if((r<=8&&c<=8)||(r<=8&&c>=n-9)||(r>=n-9&&c<=8)) continue; for(var dr=-2;dr<=2;dr++) for(var dc=-2;dc<=2;dc++){ var v=(Math.max(Math.abs(dr),Math.abs(dc))!==1)?1:0; m[r+dr][c+dc]=v; reserved[r+dr][c+dc]=true; } }
+    // резерв формата
+    for(var f=0;f<=8;f++){ if(f!==6){ reserved[8][f]=true; reserved[f][8]=true; } }
+    for(var f2=0;f2<8;f2++){ reserved[8][n-1-f2]=true; reserved[n-1-f2][8]=true; }
+    reserved[8][n-8]=true;
+    // резерв версии
+    if(ver>=7){ for(var vi=0;vi<6;vi++) for(var vj=0;vj<3;vj++){ reserved[vi][n-11+vj]=true; reserved[n-11+vj][vi]=true; } }
+    // размещение данных зигзагом
+    var bitIdx=0, dirUp=true;
+    for(var col=n-1; col>0; col-=2){ if(col===6) col=5; for(var rowi=0; rowi<n; rowi++){ var row=dirUp?(n-1-rowi):rowi; for(var s=0;s<2;s++){ var cc=col-s; if(reserved[row][cc]) continue; var bit=0; if(bitIdx<cw.length*8){ var byte=cw[bitIdx>>3]; bit=(byte>>(7-(bitIdx&7)))&1; } m[row][cc]=bit; bitIdx++; } } dirUp=!dirUp; }
+    return { m:m, reserved:reserved, n:n };
+  }
+
+  function maskFn(k){ return [
+    function(r,c){return (r+c)%2===0;},
+    function(r,c){return r%2===0;},
+    function(r,c){return c%3===0;},
+    function(r,c){return (r+c)%3===0;},
+    function(r,c){return (Math.floor(r/2)+Math.floor(c/3))%2===0;},
+    function(r,c){return (r*c)%2+(r*c)%3===0;},
+    function(r,c){return ((r*c)%2+(r*c)%3)%2===0;},
+    function(r,c){return ((r+c)%2+(r*c)%3)%2===0;}
+  ][k]; }
+
+  function applyMask(base, reserved, n, k){ var f=maskFn(k); var m=[]; for(var r=0;r<n;r++){ m.push(base[r].slice()); for(var c=0;c<n;c++){ if(!reserved[r][c] && f(r,c)) m[r][c]^=1; } } return m; }
+
+  function putFormat(m, n, ecLevelBits, mask){ var fmt=(ecLevelBits<<3)|mask; var bits=bch(fmt); // 15 бит
+    for(var i=0;i<15;i++){ var b=(bits>>i)&1; // около верхнего-левого
+      // вертикаль по столбцу 8 (снизу вверх для i<7 у левого) — используем стандартную раскладку
+      if(i<6) m[i][8]=b; else if(i===6) m[7][8]=b; else if(i===7) m[8][8]=b; else if(i===8) m[8][7]=b; else m[8][14-i]=b;
+      // вторая копия
+      if(i<8) m[8][n-1-i]=b; else m[n-15+i][8]=b;
+    }
+    m[n-8][8]=1;
+  }
+  function putVersion(m, n, ver){ if(ver<7) return; var bits=bchVer(ver); for(var i=0;i<18;i++){ var b=(bits>>i)&1; var r=Math.floor(i/3), c=i%3; m[r][n-11+c]=b; m[n-11+c][r]=b; } }
+
+  function penalty(m,n){ var p=0;
+    // правило 1: подряд
+    for(var r=0;r<n;r++){ var run=1; for(var c=1;c<n;c++){ if(m[r][c]===m[r][c-1]){ run++; if(run===5)p+=3; else if(run>5)p++; } else run=1; } }
+    for(var c2=0;c2<n;c2++){ var run2=1; for(var r2=1;r2<n;r2++){ if(m[r2][c2]===m[r2-1][c2]){ run2++; if(run2===5)p+=3; else if(run2>5)p++; } else run2=1; } }
+    // правило 2: блоки 2x2
+    for(var r3=0;r3<n-1;r3++) for(var c3=0;c3<n-1;c3++){ var v=m[r3][c3]; if(v===m[r3][c3+1]&&v===m[r3+1][c3]&&v===m[r3+1][c3+1]) p+=3; }
+    // правило 3: шаблоны 1:1:3:1:1
+    var pat=[1,0,1,1,1,0,1];
+    function match(get){ for(var i=0;i<n;i++){ for(var j=0;j<=n-7;j++){ var ok=true; for(var k=0;k<7;k++) if(get(i,j+k)!==pat[k]){ok=false;break;} if(ok){ var before=true,after=true; for(var b=1;b<=4;b++){ if(j-b>=0&&get(i,j-b)!==0)before=false; if(j+7+b-1<n&&get(i,j+6+b)!==0)after=false; } if(before||after)p+=40; } } } }
+    match(function(i,j){return m[i][j];});
+    match(function(i,j){return m[j][i];});
+    // правило 4: баланс
+    var dark=0; for(var r4=0;r4<n;r4++) for(var c4=0;c4<n;c4++) if(m[r4][c4]) dark++;
+    var pct=dark*100/(n*n); p+=Math.floor(Math.abs(pct-50)/5)*10;
+    return p;
+  }
+
+  function generate(text){
+    var b=build(text); if(!b) return null;
+    var placed=place(b.ver, b.cw);
+    var best=null, bestPen=Infinity, bestMask=0;
+    for(var k=0;k<8;k++){ var mm=applyMask(placed.m, placed.reserved, placed.n, k); putFormat(mm, placed.n, 1, k); putVersion(mm, placed.n, b.ver); var pen=penalty(mm, placed.n); if(pen<bestPen){ bestPen=pen; best=mm; bestMask=k; } }
+    return best;
+  }
+  return { generate: generate };
+})();
+
+
+// ============ ЭФФЕКТЫ: ВИБРАЦИЯ + ЗВУК ============
+// Настройки глобальные (не привязаны к персонажу), хранятся в localStorage
+let fxSound = true, fxVibro = true;
+let _audioCtx = null;
+
+function loadFxSettings() {
+  try {
+    fxSound = localStorage.getItem('fx_sound') !== '0';
+    fxVibro = localStorage.getItem('fx_vibro') !== '0';
+  } catch(e) {}
+  const s = document.getElementById('fx-sound'), v = document.getElementById('fx-vibro');
+  if(s) s.classList.toggle('on', fxSound);
+  if(v) v.classList.toggle('on', fxVibro);
+}
+
+function toggleFx(kind) {
+  if(kind==='sound') { fxSound = !fxSound; try{localStorage.setItem('fx_sound', fxSound?'1':'0');}catch(e){}
+    document.getElementById('fx-sound').classList.toggle('on', fxSound); if(fxSound) playDiceSound(false,false); }
+  else { fxVibro = !fxVibro; try{localStorage.setItem('fx_vibro', fxVibro?'1':'0');}catch(e){}
+    document.getElementById('fx-vibro').classList.toggle('on', fxVibro); if(fxVibro) vibrate([15]); }
+}
+
+function vibrate(pattern) {
+  if(fxVibro && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e) {} }
+}
+
+// AudioContext создаётся лениво при первом жесте (требование iOS)
+function ensureAudio() {
+  if(!_audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(AC) _audioCtx = new AC();
+  }
+  if(_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+
+// Синтез короткого «стука кубика»; на крит — звонкий аккорд, на провал — глухой удар
+function playDiceSound(crit, fail) {
+  if(!fxSound) return;
+  const ctx = ensureAudio(); if(!ctx) return;
+  const t0 = ctx.currentTime;
+  // шумовой «клац» кубика
+  const dur = 0.16;
+  const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate*dur), ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0;i<d.length;i++){ const e=1-i/d.length; d[i]=(Math.random()*2-1)*e*e; }
+  const noise = ctx.createBufferSource(); noise.buffer = buf;
+  const nf = ctx.createBiquadFilter(); nf.type='bandpass'; nf.frequency.value=1800; nf.Q.value=0.8;
+  const ng = ctx.createGain(); ng.gain.value=0.35;
+  noise.connect(nf); nf.connect(ng); ng.connect(ctx.destination);
+  noise.start(t0);
+  // тональный акцент
+  const notes = crit ? [660, 880, 1320] : fail ? [140, 90] : [420];
+  notes.forEach((f,i)=>{
+    const o = ctx.createOscillator(); o.type = crit?'triangle':'sine'; o.frequency.value=f;
+    const g = ctx.createGain();
+    const st = t0 + i*(crit?0.07:0.0);
+    g.gain.setValueAtTime(0.0001, st);
+    g.gain.exponentialRampToValueAtTime(crit?0.18:0.12, st+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, st+(fail?0.35:0.25));
+    o.connect(g); g.connect(ctx.destination);
+    o.start(st); o.stop(st+0.4);
+  });
+}
+
+// Единый отклик на бросок: вибро + звук, различает крит/провал
+function rollFeedback(crit, fail) {
+  if(crit) vibrate([0,40,40,80]);
+  else if(fail) vibrate([0,120]);
+  else vibrate([0,25]);
+  playDiceSound(!!crit, !!fail);
+}
+
+// ============ БЫСТРЫЙ БРОСОК (плавающая кнопка) ============
+let _quickRollTimer = null;
+function quickRoll(mode) {
+  const r1 = Math.ceil(Math.random()*20), r2 = Math.ceil(Math.random()*20);
+  let kept, label, rolls;
+  if(mode==='adv') { kept = Math.max(r1,r2); label='к20 преимущество'; rolls=[r1,r2]; }
+  else if(mode==='dis') { kept = Math.min(r1,r2); label='к20 помеха'; rolls=[r1,r2]; }
+  else { kept = r1; label='к20'; rolls=[r1]; }
+  const crit = kept===20, fail = kept===1;
+  const bubble = document.getElementById('quick-roll');
+  const num = document.getElementById('qr-num');
+  num.textContent = kept;
+  num.className = 'qr-num' + (crit?' crit':fail?' fail':'');
+  document.getElementById('qr-label').textContent = label + (mode!=='norm'?` (${r1}, ${r2})`:'');
+  bubble.classList.add('show');
+  rollFeedback(crit, fail);
+  addRollHistory(mode==='norm'?'к20 (быстрый)':label, kept, rolls, 0, 20);
+  if(_quickRollTimer) clearTimeout(_quickRollTimer);
+  _quickRollTimer = setTimeout(()=>bubble.classList.remove('show'), 3500);
+}
+
+// ============ ОТМЕНА ИЗМЕНЕНИЯ HP ============
+let _hpUndoSnap = null;
+function snapHP() { _hpUndoSnap = { current: state.hp.current, temp: state.tempHP||0 }; }
+function undoHPChange() {
+  if(!_hpUndoSnap) return;
+  state.hp.current = _hpUndoSnap.current;
+  state.tempHP = _hpUndoSnap.temp;
+  const ti = document.getElementById('temp-hp'); if(ti) ti.value = state.tempHP;
+  _hpUndoSnap = null;
+  updateHPDisplay(); saveAll();
+  const t = document.getElementById('hp-undo-toast'); if(t) t.remove();
+  showToast('↩ Отменено');
+}
+function showHPUndoToast(text) {
+  const old = document.getElementById('hp-undo-toast'); if(old) old.remove();
+  const t = document.createElement('div');
+  t.id = 'hp-undo-toast';
+  t.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--stone);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-size:14px;z-index:500;display:flex;align-items:center;gap:12px;animation:fadeInUp 0.3s ease;max-width:92vw';
+  t.innerHTML = `<span>${esc(text)}</span><button onclick="undoHPChange()" style="background:rgba(224,67,67,0.2);border:1px solid var(--crimson);border-radius:8px;color:#f0a0a0;font-family:Cinzel,serif;font-size:12px;padding:6px 12px;cursor:pointer;white-space:nowrap">↩ ОТМЕНИТЬ</button>`;
+  document.body.appendChild(t);
+  setTimeout(()=>{ if(t.parentElement) t.remove(); }, 5000);
+}
+
+// ============ СВАЙПЫ МЕЖДУ ВКЛАДКАМИ ============
+const TAB_ORDER = ['character','spells','dice','inventory','notes','guide'];
+function activateTab(name) {
+  const btn = [...document.querySelectorAll('.nav-btn')].find(b => (b.getAttribute('onclick')||'').includes(`'${name}'`));
+  if(btn) switchTab(name, btn);
+}
+function currentTabName() {
+  const vis = TAB_ORDER.find(t => { const el=document.getElementById('tab-'+t); return el && el.style.display!=='none'; });
+  return vis || 'character';
+}
+function initSwipeNav() {
+  const scr = document.getElementById('screen-main');
+  if(!scr) return;
+  let x0=0, y0=0, tracking=false;
+  scr.addEventListener('touchstart', e => {
+    if(e.touches.length!==1) { tracking=false; return; }
+    const tgt = e.target;
+    // не мешаем вводу, спискам с горизонтальной прокруткой и открытым модалкам
+    if(tgt.closest('input,textarea,select,.subtabs,.ai-cat-row,.emoji-grid')) { tracking=false; return; }
+    if(document.querySelector('.modal-overlay.open, .ai-overlay.open')) { tracking=false; return; }
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; tracking=true;
+  }, {passive:true});
+  scr.addEventListener('touchend', e => {
+    if(!tracking) return; tracking=false;
+    const dx = e.changedTouches[0].clientX - x0;
+    const dy = e.changedTouches[0].clientY - y0;
+    if(Math.abs(dx) < 65 || Math.abs(dx) < Math.abs(dy)*2) return;
+    const idx = TAB_ORDER.indexOf(currentTabName());
+    const next = dx < 0 ? idx+1 : idx-1;
+    if(next >= 0 && next < TAB_ORDER.length) { activateTab(TAB_ORDER[next]); vibrate([8]); }
+  }, {passive:true});
+}
+
 // ============ INIT ============
 function startApp() {
   document.getElementById('screen-welcome').classList.remove('active');
   document.getElementById('screen-main').classList.add('active');
+  document.getElementById('fab-dice').classList.remove('hidden');
   initSpellSlots();
+  handleShareHash(); // импорт героя из ссылки #i=... (до загрузки — станет активным)
   loadData();
+  loadFxSettings();
+  initSwipeNav();
   setInterval(saveAll, 5000);
   setTimeout(maybeShowBackupReminder, 4000);
 }
@@ -2646,6 +3187,10 @@ function switchTab(tab, btn) {
   document.getElementById('tab-'+tab).style.display='flex';
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  // на вкладке кубиков плавающая кнопка не нужна
+  const fab = document.getElementById('fab-dice');
+  if(fab) fab.classList.toggle('hidden', tab==='dice');
+  const qr = document.getElementById('quick-roll'); if(qr) qr.classList.remove('show');
   if(tab==='guide') renderClassGuide();
 }
 
@@ -2813,9 +3358,11 @@ function rollConcentration(dmg) {
 }
 
 function changeHP(delta) {
-  if(delta<0) { applyDamage(-delta); return; }
+  snapHP();
+  if(delta<0) { applyDamage(-delta); showHPUndoToast(`${delta} HP`); return; }
   state.hp.current = Math.min(state.hp.max, state.hp.current+delta);
   updateHPDisplay(); saveAll();
+  showHPUndoToast(`+${delta} HP`);
 }
 
 function showHPModal(mode) {
@@ -2828,10 +3375,13 @@ function showHPModal(mode) {
 function applyHPChange() {
   const amt = parseInt(document.getElementById('modal-hp-amount').value)||0;
   document.getElementById('modal-hp').classList.remove('open');
-  if (hpModalMode==='damage') { applyDamage(amt); return; }
+  if(amt<=0) return;
+  snapHP();
+  if (hpModalMode==='damage') { applyDamage(amt); showHPUndoToast(`−${amt} HP`); return; }
   state.hp.current = Math.min(state.hp.max, state.hp.current+amt);
   updateHPDisplay();
   saveAll();
+  showHPUndoToast(`+${amt} HP`);
 }
 
 // ============ РЕСУРСЫ КЛАССА (ки, ярость, очки чародейства...) ============
@@ -2890,6 +3440,81 @@ function recoverResources(restType) {
   if(n) renderResources();
   return n;
 }
+
+// Найти в заметках строки вида «Название: N» и предложить сделать из них счётчики
+function scanNotesForResources() {
+  const ids = ['notes-campaign','notes-locations','notes-npc','notes-misc'];
+  const existing = new Set((state.resources||[]).map(r => r.name.toLowerCase()));
+  const found = [];
+  const seen = new Set();
+  ids.forEach(id => {
+    const el = document.getElementById(id); if(!el) return;
+    el.value.split('\n').forEach(line => {
+      const m = line.match(/^\s*(.+?)\s*[:：]\s*(\d{1,2})\s*$/);
+      if(!m) return;
+      const name = m[1].trim(), num = parseInt(m[2]);
+      if(name.length<2 || name.length>28 || num<1 || num>20) return;
+      if(/^\d+$/.test(name)) return;
+      const key = name.toLowerCase();
+      if(existing.has(key) || seen.has(key)) return;
+      seen.add(key);
+      found.push({ name, max: num });
+    });
+  });
+  if(!found.length) { showToast('В заметках не нашлось строк вида «Название: число»'); return; }
+  const el = document.getElementById('scan-results');
+  el.innerHTML = found.map((f,i)=>`
+    <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer">
+      <input type="checkbox" checked data-name="${esc(f.name)}" data-max="${f.max}" style="width:18px;height:18px">
+      <span style="flex:1;color:var(--ink)">${esc(f.name)}</span>
+      <span style="color:var(--gold-light);font-family:Cinzel,serif">${f.max}</span>
+    </label>`).join('');
+  document.getElementById('modal-scan').classList.add('open');
+}
+
+function applyScannedResources() {
+  const boxes = document.querySelectorAll('#scan-results input[type=checkbox]:checked');
+  if(!state.resources) state.resources = [];
+  let n = 0;
+  boxes.forEach(b => {
+    state.resources.push({ name: b.dataset.name, max: parseInt(b.dataset.max), used: 0, recover: 'long' });
+    n++;
+  });
+  document.getElementById('modal-scan').classList.remove('open');
+  renderResources(); saveAll();
+  if(n) showToast(`✓ Добавлено счётчиков: ${n}`);
+}
+
+// ============ ОСОБЕННОСТИ И УМЕНИЯ ============
+function renderFeatures() {
+  const el = document.getElementById('features-list'); if(!el) return;
+  const fs = state.features || [];
+  if(!fs.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:8px 0;font-size:13px"><img class="empty-art" src="images/empty/features.png" alt="" style="width:96px">Особенности расы и класса: Тёмное зрение, Ярость, Боевой стиль...</div>';
+    return;
+  }
+  el.innerHTML = fs.map((f,i)=>`
+    <div style="padding:10px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start">
+      <div style="flex:1;min-width:0">
+        <div style="font-family:Cinzel,serif;font-size:14px;color:var(--gold-light)">${esc(f.name)}</div>
+        ${f.desc?`<div style="font-size:13px;color:var(--ink-light);margin-top:2px;line-height:1.5">${esc(f.desc)}</div>`:''}
+      </div>
+      <button class="inv-delete" onclick="removeFeature(${i})">✕</button>
+    </div>`).join('');
+}
+
+function addFeature() {
+  const name = document.getElementById('feat-name').value.trim();
+  if(!name) return;
+  const desc = document.getElementById('feat-desc').value.trim();
+  if(!state.features) state.features = [];
+  state.features.push({ name, desc });
+  document.getElementById('feat-name').value = '';
+  document.getElementById('feat-desc').value = '';
+  renderFeatures(); saveAll();
+}
+
+function removeFeature(i) { state.features.splice(i,1); renderFeatures(); saveAll(); }
 
 // ============ ОТДЫХ И КОСТИ ХИТОВ ============
 function renderHitDice() {
@@ -2966,6 +3591,7 @@ function rollInitiative() {
   const total = roll+dex;
   document.getElementById('stat-init').textContent = total;
   addRollHistory('Инициатива', total, [roll], dex, 20);
+  rollFeedback(roll===20, roll===1);
   showToast(`⚡ Инициатива: ${roll}${dex>=0?'+':''}${dex} = ${total}`);
   setTimeout(()=> document.getElementById('stat-init').textContent = (dex>=0?'+':'')+dex, 3000);
 }
@@ -2976,6 +3602,7 @@ function rollCheck(label, bonus) {
   const roll = Math.ceil(Math.random()*20);
   const total = roll+bonus;
   addRollHistory(label, total, [roll], bonus, 20);
+  rollFeedback(roll===20, roll===1);
   showToast(`🎲 ${label}: ${roll}${bonus>=0?'+':''}${bonus} = ${total}${roll===20?' ⭐':roll===1?' 💀':''}`);
 }
 
@@ -3028,6 +3655,7 @@ function rollAttack(i) {
   if(crit) msg+=' ⭐КРИТ'; else if(fail) msg+=' 💀ПРОМАХ';
   if(dmg!=null) msg+=` | урон ${dmg}`;
   addRollHistory('Атака: '+a.name, toHit, [roll], a.bonus||0, 20);
+  rollFeedback(crit, fail);
   showToast(msg);
 }
 
@@ -3192,7 +3820,7 @@ function findSpellDetails(spellObj) {
 
 function renderSpellList() {
   const list = document.getElementById('spell-list');
-  if(!state.spells.length) { list.innerHTML='<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:20px">Заклинания не добавлены</div>'; return; }
+  if(!state.spells.length) { list.innerHTML='<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:20px"><img class="empty-art" src="images/empty/spells.png" alt="">Заклинания не добавлены</div>'; return; }
   const sorted = [...state.spells].sort((a,b)=>a.level-b.level);
   window._mySpellCache = sorted;
 
@@ -3209,18 +3837,30 @@ function renderSpellList() {
     const concBtn = d.concentration
       ? `<button onclick="event.stopPropagation();setConcentrationSpell('${esc(sp.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"))}')" title="Концентрация" style="background:${isConc?'#1a2a50':'none'};border:1px solid ${isConc?'#6080c0':'rgba(100,70,200,0.35)'};border-radius:6px;color:${isConc?'#9ab8f0':'#8878b0'};font-size:13px;cursor:pointer;padding:3px 6px;flex-shrink:0">🧿</button>`
       : '';
+    const si = state.spells.indexOf(sp);
+    const prepBtn = sp.level>0
+      ? `<button onclick="event.stopPropagation();togglePrepared(${si})" title="${sp.prepared?'Подготовлено':'Не подготовлено'}" style="background:${sp.prepared?'rgba(201,160,58,0.22)':'none'};border:1px solid ${sp.prepared?'var(--gold)':'var(--line)'};border-radius:6px;color:${sp.prepared?'var(--gold-light)':'var(--ink-light)'};font-size:12px;cursor:pointer;padding:3px 6px;flex-shrink:0">📖</button>`
+      : '';
     return `
-    <div class="spell-browser-card ${isConc?'concentrating':''}" id="myspell-${i}" onclick="${hasDetails ? `toggleMySpellCard(${i})` : ''}" style="${hasDetails ? 'cursor:pointer' : ''}">
+    <div class="spell-browser-card ${isConc?'concentrating':''}" id="myspell-${i}" onclick="${hasDetails ? `toggleMySpellCard(${i})` : ''}" style="${hasDetails ? 'cursor:pointer' : ''};opacity:${sp.level>0 && !sp.prepared ? '0.62' : '1'}">
       <div class="spell-level-badge">${sp.level===0?'З':sp.level}</div>
       <div class="spell-browser-info">
         <div class="spell-browser-name">${esc(sp.name)}</div>
         <div class="spell-browser-meta">${conc}${ritual}${metaParts.join(' · ')}</div>
         ${hasDetails ? `<div class="spell-browser-desc">${esc(d.description)}${higher}</div>` : ''}
       </div>
+      ${prepBtn}
       ${concBtn}
       <button onclick="event.stopPropagation();removeSpell(${state.spells.indexOf(sp)})" style="background:none;border:none;color:#a05050;font-size:16px;cursor:pointer;padding:2px;flex-shrink:0">✕</button>
     </div>`;
   }).join('');
+}
+
+function togglePrepared(i) {
+  const sp = state.spells[i]; if(!sp) return;
+  sp.prepared = !sp.prepared;
+  vibrate([10]);
+  renderSpellList(); saveAll();
 }
 
 function toggleMySpellCard(i) {
@@ -3266,6 +3906,7 @@ function rollDice(sides) {
   const isCrit = sides===20 && count===1 && rolls[0]===20;
   const isFail = sides===20 && count===1 && rolls[0]===1;
   animateDiceResult(el, total, sides, {crit:isCrit, fail:isFail});
+  rollFeedback(isCrit, isFail);
   const label = count>1?`${count}d${sides}${modVal?(' + '+modVal):''}`:`d${sides}${modVal?(' + '+modVal):''}`;
   document.getElementById('dice-label').textContent=label.toUpperCase();
   const detail = rolls.length>1?` (${rolls.join(' + ')}${modVal?(' + '+modVal):''})`:'';
@@ -3286,6 +3927,7 @@ function rollAdvantage() {
   const kept=Math.max(r1,r2);
   const best=kept+modVal;
   animateDiceResult(document.getElementById('dice-result'), best, sides, {crit:kept===20, fail:kept===1});
+  rollFeedback(kept===20, kept===1);
   document.getElementById('dice-label').textContent='d20 ПРЕИМУЩЕСТВО';
   document.getElementById('dice-history').textContent=`(${r1}, ${r2} → ${kept}${modVal?' + '+modVal:''})`;
   addRollHistory('d20 Преим.', best,[r1,r2],modVal,20);
@@ -3297,6 +3939,7 @@ function rollDisadvantage() {
   const kept=Math.min(r1,r2);
   const worst=kept+modVal;
   animateDiceResult(document.getElementById('dice-result'), worst, sides, {crit:kept===20, fail:kept===1});
+  rollFeedback(kept===20, kept===1);
   document.getElementById('dice-label').textContent='d20 ПОМЕХА';
   document.getElementById('dice-history').textContent=`(${r1}, ${r2} → ${kept}${modVal?' + '+modVal:''})`;
   addRollHistory('d20 Помеха', worst,[r1,r2],modVal,20);
@@ -3312,8 +3955,10 @@ function addRollHistory(label, total, rolls, modVal, sides) {
 
 function renderRollHistory() {
   const div=document.getElementById('roll-history');
+  const clearBtn=document.getElementById('clear-history-btn');
+  if(clearBtn) clearBtn.style.display = state.rollHistory.length ? 'block' : 'none';
   if(!state.rollHistory.length) {
-    div.innerHTML = '<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:16px 0">Здесь появятся твои броски — брось первый кубик!</div>';
+    div.innerHTML = '<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:16px 0"><img class="empty-art" src="images/empty/rolls.png" alt="">Здесь появятся твои броски — брось первый кубик!</div>';
     return;
   }
   div.innerHTML = state.rollHistory.slice(0,10).map(r=>`
@@ -3324,6 +3969,15 @@ function renderRollHistory() {
       </div>
       <div style="font-size:11px;color:#8d97a3">${r.time}</div>
     </div>`).join('');
+}
+
+function clearRollHistory() {
+  if(!state.rollHistory.length) return;
+  if(!confirm('Очистить историю бросков?')) return;
+  state.rollHistory = [];
+  renderRollHistory(); saveAll();
+  vibrate([8]);
+  showToast('🗑 История очищена');
 }
 
 function changeCount(delta) {
@@ -3373,20 +4027,48 @@ function changeQty(i,delta) {
   renderInventory(); saveAll();
 }
 
+// Требует ли предмет настройки (по данным из базы знаний или сохранённой детали)
+function itemRequiresAttunement(it) {
+  if(it.detail && it.detail.attunement) return true;
+  const q = it.name.toLowerCase().replace(/\s*\(.*\)$/,'');
+  const e = DB_MAGIC_ITEMS.find(m => m.name.toLowerCase()===q)
+    || DB_MAGIC_ITEMS.find(m => q.includes(m.name.toLowerCase()) || m.name.toLowerCase().includes(q));
+  return !!(e && e.attunement);
+}
+function attunedCount() { return state.inventory.filter(it => it.attuned).length; }
+
+function toggleAttune(i) {
+  const it = state.inventory[i]; if(!it) return;
+  if(!it.attuned && attunedCount() >= 3) { showToast('⚠ Максимум 3 настроенных предмета'); return; }
+  it.attuned = !it.attuned;
+  vibrate([10]);
+  renderInventory(); saveAll();
+}
+
 function renderInventory() {
   const list=document.getElementById('inv-list');
-  if(!state.inventory.length) {list.innerHTML='<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:20px">Инвентарь пуст</div>';return;}
-  list.innerHTML = state.inventory.map((it,i)=>`
+  if(!state.inventory.length) {list.innerHTML='<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:20px"><img class="empty-art" src="images/empty/inventory.png" alt="">Инвентарь пуст</div>';return;}
+  const anyAttune = state.inventory.some(itemRequiresAttunement);
+  const header = anyAttune
+    ? `<div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-bottom:8px;font-size:12px;color:var(--ink-light)">✨ Настройка: <b style="color:${attunedCount()>=3?'var(--crimson)':'var(--gold-light)'}">${attunedCount()}/3</b></div>`
+    : '';
+  list.innerHTML = header + state.inventory.map((it,i)=>{
+    const att = itemRequiresAttunement(it)
+      ? `<button onclick="toggleAttune(${i})" title="${it.attuned?'Настроен':'Настроить'}" style="background:${it.attuned?'rgba(201,160,58,0.22)':'none'};border:1px solid ${it.attuned?'var(--gold)':'var(--line)'};border-radius:6px;color:${it.attuned?'var(--gold-light)':'var(--ink-light)'};font-size:13px;cursor:pointer;padding:2px 6px;flex-shrink:0">✨</button>`
+      : '';
+    return `
     <div class="inv-item">
       <span class="inv-icon">${it.icon}</span>
-      <span class="inv-name" onclick="showItemInfo(${i})" title="Открыть справку">${esc(it.name)}</span>
+      <span class="inv-name" onclick="showItemInfo(${i})" title="Открыть справку">${esc(it.name)}${it.attuned?' <span style="color:var(--gold-light);font-size:11px">✨</span>':''}</span>
       <div style="display:flex;align-items:center;gap:6px">
-        <button onclick="changeQty(${i},-1)" style="background:none;border:1px solid var(--parchment-dark);border-radius:4px;width:24px;height:24px;color:var(--ink-light);font-size:14px;cursor:pointer">−</button>
+        ${att}
+        <button onclick="changeQty(${i},-1)" style="background:none;border:1px solid var(--line);border-radius:4px;width:24px;height:24px;color:var(--ink-light);font-size:14px;cursor:pointer">−</button>
         <span class="inv-qty">${it.qty}</span>
-        <button onclick="changeQty(${i},+1)" style="background:none;border:1px solid var(--parchment-dark);border-radius:4px;width:24px;height:24px;color:var(--ink-light);font-size:14px;cursor:pointer">+</button>
+        <button onclick="changeQty(${i},+1)" style="background:none;border:1px solid var(--line);border-radius:4px;width:24px;height:24px;color:var(--ink-light);font-size:14px;cursor:pointer">+</button>
         <button class="inv-delete" onclick="removeItem(${i})">✕</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ============ INSPIRATION & XP ============
@@ -3575,6 +4257,7 @@ function applyCharacter(data) {
   state.tempHP = d.tempHP || 0;
   state.attacks = d.attacks || [];
   state.resources = d.resources || [];
+  state.features = d.features || [];
   state.concentrationSpell = d.concentrationSpell || null;
   state.bonusSlots = (d.bonusSlots && d.bonusSlots.length===9) ? d.bonusSlots : new Array(9).fill(0);
   const fields = (data && data.fields) || {};
@@ -3611,7 +4294,7 @@ function blankCharacterData() {
       spells:[], spellSlots:[], inventory:[], conditions:[],
       dsSuccess:[false,false,false], dsFailure:[false,false,false],
       rollHistory:[], diceCount:1, portrait:'⚔️', portraitImg:null, inspiration:false,
-      attacks:[], resources:[], concentrationSpell:null,
+      attacks:[], resources:[], features:[], concentrationSpell:null,
       bonusSlots:[0,0,0,0,0,0,0,0,0], hitDice:{total:1,used:0,die:10}
     },
     fields: {
@@ -3646,17 +4329,72 @@ function renderCharMenu() {
   }).join('');
 }
 
-function newCharacter() {
+// Быстрое создание (пустой герой) — вызывается мастером и как запасной путь
+function newCharacter(data) {
   saveAll();
   const store = getStore();
   const id = genId();
-  const data = blankCharacterData();
+  data = data || blankCharacterData();
   store.list.push({ id, name: data.fields['char-name'], data });
   store.active = id;
   setStore(store);
   applyCharacter(data);
   renderCharMenu();
-  showToast('🆕 Новый герой создан');
+  showToast('🆕 Герой создан');
+}
+
+// ============ МАСТЕР СОЗДАНИЯ ГЕРОЯ ============
+const POINT_BUY_COST = {8:0,9:1,10:2,11:3,12:4,13:5,14:7,15:9};
+const POINT_BUY_TOTAL = 27;
+let wizardScores = [8,8,8,8,8,8];
+
+function openNewCharWizard() {
+  closeCharMenu();
+  wizardScores = [8,8,8,8,8,8];
+  document.getElementById('wiz-name').value = 'Новый герой';
+  renderWizard();
+  document.getElementById('modal-wizard').classList.add('open');
+}
+
+function wizardPointsUsed() { return wizardScores.reduce((s,v)=>s+POINT_BUY_COST[v],0); }
+
+function renderWizard() {
+  const used = wizardPointsUsed(), left = POINT_BUY_TOTAL - used;
+  document.getElementById('wiz-points').textContent = left;
+  document.getElementById('wiz-points').style.color = left<0 ? 'var(--crimson)' : 'var(--gold-light)';
+  document.getElementById('wiz-abils').innerHTML = ABILITIES.map((ab,i)=>{
+    const sc = wizardScores[i], m = mod(sc);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)">
+      <div style="flex:1;font-family:Cinzel,serif;font-size:14px;color:var(--ink)">${ABILITY_FULL[i]}</div>
+      <button class="count-btn" onclick="wizAdjust(${i},-1)">−</button>
+      <span style="font-family:Cinzel,serif;font-size:16px;color:var(--gold-light);min-width:44px;text-align:center">${sc} <span style="font-size:12px;color:var(--ink-light)">(${m>=0?'+':''}${m})</span></span>
+      <button class="count-btn" onclick="wizAdjust(${i},1)">+</button>
+    </div>`;
+  }).join('');
+}
+
+function wizAdjust(i, d) {
+  const next = wizardScores[i] + d;
+  if(next<8 || next>15) return;
+  const trial = wizardScores.slice(); trial[i]=next;
+  const used = trial.reduce((s,v)=>s+POINT_BUY_COST[v],0);
+  if(used > POINT_BUY_TOTAL) { showToast('Не хватает очков'); return; }
+  wizardScores[i]=next; vibrate([8]); renderWizard();
+}
+
+function finishWizard() {
+  const data = blankCharacterData();
+  data.state.abilities = wizardScores.slice();
+  data.fields['char-name'] = document.getElementById('wiz-name').value.trim() || 'Новый герой';
+  data.fields['char-class'] = document.getElementById('wiz-class').value;
+  data.fields['char-race'] = document.getElementById('wiz-race').value;
+  data.fields['char-level'] = '1';
+  // КД и кость хитов по классу
+  data.state.hitDice = { total:1, used:0, die: CLASS_HIT_DIE[data.fields['char-class']]||8 };
+  const con = mod(wizardScores[2]);
+  data.state.hp = { current: (CLASS_HIT_DIE[data.fields['char-class']]||8)+con, max: (CLASS_HIT_DIE[data.fields['char-class']]||8)+con };
+  document.getElementById('modal-wizard').classList.remove('open');
+  newCharacter(data);
 }
 
 function switchCharacter(id) {
@@ -3710,6 +4448,143 @@ function exportCharacters() {
   try { localStorage.setItem('dnd_last_export', String(Date.now())); } catch(e){}
   const rt = document.getElementById('backup-toast'); if(rt) rt.remove();
   showToast('⬇ Файл сохранён');
+}
+
+// ============ ПОДЕЛИТЬСЯ / QR / ПЕЧАТЬ ============
+// Компактная выгрузка активного персонажа: без фото, истории бросков и
+// того, что вычисляется при загрузке (ячейки). Пустые значения выбрасываем.
+function compactCharPayload() {
+  saveAll();
+  const store = getStore();
+  const c = store && store.list.find(x => x.id === store.active);
+  if(!c) return null;
+  const data = JSON.parse(JSON.stringify(c.data));
+  const s = data.state || {};
+  delete s.portraitImg; delete s.rollHistory; delete s.spellSlots; // spellSlots пересчитываются
+  ['conditions','attacks','resources','features','dsSuccess','dsFailure'].forEach(k=>{ if(Array.isArray(s[k]) && s[k].every(v=>!v)) delete s[k]; });
+  if(!s.concentrationSpell) delete s.concentrationSpell;
+  if(s.bonusSlots && s.bonusSlots.every(v=>!v)) delete s.bonusSlots;
+  if(!s.tempHP) delete s.tempHP;
+  if(!s.inspiration) delete s.inspiration;
+  if(s.diceCount===1) delete s.diceCount;
+  const f = data.fields || {};
+  Object.keys(f).forEach(k=>{ if(f[k]==='' || (/^coin-/.test(k) && f[k]==='0')) delete f[k]; });
+  const json = JSON.stringify({ n: c.name, d: data });
+  return btoa(unescape(encodeURIComponent(json)));
+}
+
+function parseCharPayload(b64) {
+  const json = decodeURIComponent(escape(atob(b64.trim())));
+  const obj = JSON.parse(json);
+  return { name: obj.n || (obj.d && obj.d.fields && obj.d.fields['char-name']) || 'Импорт', data: obj.d };
+}
+
+function shareCharacter() {
+  const payload = compactCharPayload();
+  if(!payload) { showToast('Нет активного персонажа'); return; }
+  const url = location.origin + location.pathname + '#i=' + payload;
+  document.getElementById('share-code').value = payload;
+  const canvas = document.getElementById('share-qr');
+  const note = document.getElementById('share-qr-note');
+  const m = (typeof QR !== 'undefined') ? QR.generate(url) : null;
+  if(m) {
+    const n = m.length, quiet = 4, cells = n + quiet*2, px = 5, size = cells*px;
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,size,size);
+    ctx.fillStyle = '#000';
+    for(let r=0;r<n;r++) for(let cc=0;cc<n;cc++) if(m[r][cc]) ctx.fillRect((cc+quiet)*px,(r+quiet)*px,px,px);
+    canvas.style.display = 'block';
+    note.textContent = 'Отсканируй камерой телефона — откроется приложение с этим героем';
+  } else {
+    canvas.style.display = 'none';
+    note.textContent = 'Персонаж великоват для QR — передай его кодом ниже (скопируй и вставь на другом устройстве).';
+  }
+  document.getElementById('modal-share').classList.add('open');
+}
+
+function copyShareCode() {
+  const ta = document.getElementById('share-code');
+  ta.select();
+  try { navigator.clipboard.writeText(ta.value); } catch(e) { try{document.execCommand('copy');}catch(e2){} }
+  showToast('📋 Код скопирован');
+}
+
+function importFromCode() {
+  const code = document.getElementById('import-code').value.trim();
+  if(!code) { showToast('Вставь код'); return; }
+  try {
+    const c = parseCharPayload(code);
+    if(!c.data) throw new Error('bad');
+    const store = getStore() || { active:null, list:[] };
+    const id = genId();
+    store.list.push({ id, name: c.name, data: c.data });
+    store.active = id;
+    setStore(store);
+    applyCharacter(c.data);
+    document.getElementById('import-code').value = '';
+    document.getElementById('modal-share').classList.remove('open');
+    renderCharMenu();
+    showToast('📥 Герой добавлен: ' + c.name);
+  } catch(e) { showToast('Не удалось прочитать код'); }
+}
+
+// Импорт по ссылке #i=... (скан камерой открывает приложение с данными)
+function handleShareHash() {
+  const h = location.hash || '';
+  const m = h.match(/^#i=(.+)$/);
+  if(!m) return false;
+  try {
+    const c = parseCharPayload(decodeURIComponent(m[1]));
+    if(!c.data) throw new Error('bad');
+    const store = getStore() || { active:null, list:[] };
+    const id = genId();
+    store.list.push({ id, name: c.name, data: c.data });
+    store.active = id;
+    setStore(store);
+    history.replaceState(null, '', location.pathname);
+    setTimeout(()=>showToast('📥 Герой получен: ' + c.name), 800);
+    return true;
+  } catch(e) { history.replaceState(null, '', location.pathname); return false; }
+}
+
+// ============ ПЕЧАТЬ ЛИСТА ============
+function printCharacter() {
+  saveAll();
+  const g = id => (document.getElementById(id)?.value || '');
+  const pb = profBonus();
+  const abilRows = ABILITIES.map((ab,i)=>{
+    const sc = state.abilities[i], m = modStr(sc);
+    return `<td><b>${ABILITY_FULL[i]}</b><br>${sc} (${m})</td>`;
+  }).join('');
+  const skillsHtml = SKILLS_DATA.map((sk,i)=>{
+    const ai = ABILITIES.indexOf(sk.attr);
+    const b = mod(state.abilities[ai]) + (state.skillProfs[i]?pb:0);
+    return `<span>${state.skillProfs[i]?'●':'○'} ${sk.name} ${b>=0?'+':''}${b}</span>`;
+  }).join(' · ');
+  const savesHtml = ABILITIES.map((ab,i)=>{
+    const b = mod(state.abilities[i]) + (state.saveProfs[i]?pb:0);
+    return `${state.saveProfs[i]?'●':'○'} ${ab} ${b>=0?'+':''}${b}`;
+  }).join('  ');
+  const spellsHtml = state.spells.length ? state.spells.slice().sort((a,b)=>a.level-b.level).map(s=>`${s.level===0?'З':s.level}· ${esc(s.name)}${s.prepared?' ✓':''}`).join('<br>') : '—';
+  const invHtml = state.inventory.length ? state.inventory.map(it=>`${esc(it.name)}${it.qty>1?' ×'+it.qty:''}${it.attuned?' ✨':''}`).join(', ') : '—';
+  const atkHtml = state.attacks.length ? state.attacks.map(a=>`${esc(a.name)} ${a.bonus>=0?'+':''}${a.bonus} (${esc(a.damage||'')})`).join('<br>') : '—';
+  const featHtml = (state.features||[]).length ? state.features.map(f=>`<b>${esc(f.name)}</b>${f.desc?': '+esc(f.desc):''}`).join('<br>') : '—';
+  document.getElementById('print-sheet').innerHTML = `
+    <h1>${esc(g('char-name'))}</h1>
+    <p class="sub">${esc(g('char-class'))} · уровень ${esc(g('char-level'))} · ${esc(g('char-race'))} · ${esc(g('char-bg'))}</p>
+    <table class="abil"><tr>${abilRows}</tr></table>
+    <div class="grid2">
+      <div><b>HP:</b> ${state.hp.current}/${state.hp.max} &nbsp; <b>КД:</b> ${esc(g('stat-ac'))} &nbsp; <b>Скорость:</b> ${esc(g('stat-speed'))} &nbsp; <b>Бонус мастерства:</b> +${pb}</div>
+    </div>
+    <h2>Спасброски</h2><p>${savesHtml}</p>
+    <h2>Навыки</h2><p class="small">${skillsHtml}</p>
+    <h2>Атаки</h2><p>${atkHtml}</p>
+    <h2>Заклинания</h2><p class="small">${spellsHtml}</p>
+    <h2>Особенности</h2><p class="small">${featHtml}</p>
+    <h2>Снаряжение</h2><p class="small">${invHtml}</p>
+    <p class="foot">D&D Герой</p>`;
+  window.print();
 }
 
 // ============ НАПОМИНАНИЕ О РЕЗЕРВНОЙ КОПИИ ============
@@ -3771,6 +4646,7 @@ function renderAll() {
   renderInventory();
   renderAttacks();
   renderResources();
+  renderFeatures();
   renderHitDice();
   renderRollHistory();
   updateXP();
@@ -4203,7 +5079,7 @@ function renderClassGuide() {
   container.innerHTML = `
     <div class="section">
       <div class="class-hero-card" style="border-color:${themeColor};background:linear-gradient(150deg,${hexToRgba(themeColor,0.3)} 0%, #14181e 75%);position:relative;overflow:hidden">
-        <div class="crest-watermark" style="color:${themeColor}">${CLASS_CRESTS[className]||''}</div>
+        <div class="crest-watermark" style="color:${themeColor}">${crestImgTag(className)}</div>
         <div class="class-hero-icon">${guide.icon}</div>
         <div class="class-hero-name">${className}</div>
         <div class="class-hero-sub">${guide.en} · ${level} уровень</div>
@@ -5437,11 +6313,36 @@ document.querySelectorAll('.modal-overlay').forEach(m=>{
   m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });
 });
 
+// Открыт по ссылке-приглашению — сразу входим в приложение, минуя экран приветствия
+if (location.hash.indexOf('#i=') === 0) {
+  window.addEventListener('load', () => { if(!document.getElementById('screen-main').classList.contains('active')) startApp(); });
+}
+
 // Register Service Worker for offline support
+// Высота оболочки = реальная видимая высота окна. На iOS standalone 100vh/100dvh
+// могут не совпадать с экраном и оставлять чёрную полосу снизу — берём innerHeight.
+function setAppHeight() {
+  document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px');
+}
+setAppHeight();
+window.addEventListener('resize', setAppHeight);
+window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 300));
+
 if ('serviceWorker' in navigator) {
+  // Новый воркер захватил управление — перезагружаемся один раз, чтобы сразу
+  // показать свежую версию (без ручного удаления приложения).
+  let swRefreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if(swRefreshing) return;
+    swRefreshing = true;
+    location.reload();
+  });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').then(reg => {
-      // Новая версия установилась поверх работающей — предложить перезапуск
+    // updateViaCache:'none' — сам sw.js всегда берётся из сети, а не из HTTP-кэша
+    // (иначе iOS может неделями не замечать новую версию).
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+      reg.update(); // активная проверка новой версии при запуске
+      setInterval(() => reg.update().catch(()=>{}), 60 * 60 * 1000); // и раз в час, пока открыто
       reg.addEventListener('updatefound', () => {
         const nw = reg.installing;
         if(!nw) return;

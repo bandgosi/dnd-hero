@@ -1659,6 +1659,92 @@
   }
   .modal-sheet { border-radius: 20px 20px 0 0; }
 
+  /* ============ ★ ФИНАЛ (v34): ювелирная доводка ============ */
+  /* Золочёные кромки: свет «стекает» по рамке карточек */
+  .combat-stat, .coin-card, .spell-slot-card, .ability-card,
+  .inv-item, .spell-browser-card, .inspiration-bar {
+    position: relative;
+    border-color: rgba(255,255,255,0.04);
+  }
+  .combat-stat::before, .coin-card::before, .spell-slot-card::before, .ability-card::before,
+  .inv-item::before, .spell-browser-card::before, .inspiration-bar::before {
+    content: ''; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none;
+    background: linear-gradient(165deg, rgba(240,198,87,0.40), rgba(255,255,255,0.05) 40%, rgba(240,198,87,0.18));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+  }
+
+  /* Шкала здоровья-«сосуд»: стекло, деления, алмазный маркер */
+  .hp-bar-track {
+    height: 14px; border-radius: 7px; position: relative; overflow: visible;
+    background: #240c0f;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(240,198,87,0.18);
+  }
+  .hp-bar-track::before {
+    content: ''; position: absolute; top: 2px; bottom: 2px; left: 0; right: 0; pointer-events: none;
+    background:
+      linear-gradient(rgba(240,198,87,0.26),rgba(240,198,87,0.26)) 25% 0/1px 100% no-repeat,
+      linear-gradient(rgba(240,198,87,0.26),rgba(240,198,87,0.26)) 50% 0/1px 100% no-repeat,
+      linear-gradient(rgba(240,198,87,0.26),rgba(240,198,87,0.26)) 75% 0/1px 100% no-repeat;
+  }
+  .hp-bar-fill {
+    position: relative; border-radius: 7px;
+    background: linear-gradient(180deg, #ff7b6b 0%, #e04343 40%, #7a1a1a 100%);
+    box-shadow: 0 0 12px rgba(224,67,67,0.55);
+  }
+  .hp-bar-fill::after {
+    content: ''; position: absolute; left: 2px; right: 2px; top: 2px; height: 4px; border-radius: 3px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0));
+  }
+  .hp-marker {
+    position: absolute; top: 50%; transform: translate(-50%,-50%) rotate(45deg);
+    width: 8px; height: 8px; background: var(--gold-light); border: 1px solid #8a6a1a;
+    box-shadow: 0 0 8px rgba(240,198,87,0.9); transition: left 0.3s ease; pointer-events: none; z-index: 2;
+  }
+
+  /* Заголовок секции: штрих-стрела уходит вправо */
+  .section-title::after {
+    content: ''; flex: 1; height: 9px; min-width: 26px; margin-left: 2px;
+    background:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='9'><path d='M0 4.5 H7 L11 1.5 L14.5 4.5 L11 7.5 L7 4.5' fill='none' stroke='%23C9A03A' stroke-width='1' opacity='0.75'/></svg>") right center no-repeat,
+      linear-gradient(90deg, rgba(201,160,58,0.5), rgba(201,160,58,0.10)) left center/calc(100% - 17px) 1px no-repeat;
+  }
+  .sect-pic { flex: none; opacity: 0.9; }
+
+  /* Металлические монеты */
+  .coin-metal { display: block; margin: 0 auto 4px; }
+
+  /* Количество предмета — капсула */
+  .inv-qty {
+    background: rgba(240,198,87,0.08); border-radius: 999px; padding: 2px 9px;
+    box-shadow: inset 0 0 0 1px rgba(240,198,87,0.4);
+    color: var(--gold-light); font-size: 13px; min-width: 0;
+  }
+
+  /* Чипы параметров заклинания */
+  .sp-chip {
+    display: inline-block; font-size: 10.5px; color: #cbbfe3;
+    background: rgba(122,92,198,0.14); border-radius: 6px; padding: 1.5px 7px; margin: 1px 3px 1px 0;
+    box-shadow: inset 0 0 0 1px rgba(122,92,198,0.35);
+  }
+
+  /* Особые карточки (настроен/подготовлено): корешок + гравированные уголки */
+  .special { overflow: visible; }
+  .cr {
+    position: absolute; width: 9px; height: 9px; pointer-events: none; opacity: 0.8;
+    border-left: 1.5px solid var(--gold); border-top: 1.5px solid var(--gold);
+  }
+  .cr.tl{top:3px;left:3px} .cr.tr{top:3px;right:3px;transform:rotate(90deg)}
+  .cr.br{bottom:3px;right:3px;transform:rotate(180deg)} .cr.bl{bottom:3px;left:3px;transform:rotate(270deg)}
+  .spn {
+    position: absolute; left: -1px; top: 10px; bottom: 10px; width: 2px; border-radius: 1px; pointer-events: none;
+    background: linear-gradient(180deg, rgba(240,198,87,0.75), rgba(240,198,87,0.15));
+  }
+  .spn::before {
+    content: ''; position: absolute; top: -4px; left: 50%; transform: translateX(-50%) rotate(45deg);
+    width: 5px; height: 5px; background: var(--gold-light);
+  }
+
   /* Фирменные срезанные углы DDB на статовых плитках */
   .combat-stat, .spell-slot-card, .dice-btn {
     border-radius: 4px;
@@ -1763,18 +1849,21 @@
   }
   .emoji-grid button.picked { background: rgba(224,67,67,0.2); border-color: var(--crimson); }
 
-  /* Навигация: активная вкладка с точкой-самоцветом */
+  /* Навигация: «уголёк» под активной вкладкой + свечение иконки */
   .nav-btn { position: relative; }
   .nav-btn.active::after {
     content: '';
     position: absolute;
-    top: 2px;
-    width: 4px;
+    bottom: 1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 16px;
     height: 4px;
-    background: var(--accent);
-    transform: rotate(45deg);
-    box-shadow: 0 0 8px var(--accent);
+    border-radius: 2px;
+    background: radial-gradient(ellipse, var(--accent), transparent 72%);
+    box-shadow: 0 0 10px var(--accent);
   }
+  .nav-btn.active svg { filter: drop-shadow(0 0 6px var(--accent)); }
 
   /* ============ ПАК «ЗА СТОЛОМ» ============ */
 
@@ -1890,7 +1979,7 @@
       </div>
       <div class="welcome-bottom">
         <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-        <div class="welcome-version">версия 33</div>
+        <div class="welcome-version">версия 34</div>
       </div>
     </div>
   </div>
@@ -2012,7 +2101,7 @@
               <div class="hp-display">
                 <div class="hp-current" id="hp-current">10</div>
                 <div class="hp-max">/ <input id="hp-max-input" type="number" min="1" value="10" onchange="onMaxHPChange()" style="font-family:Cinzel,serif;font-size:16px;color:#a05050;background:transparent;border:none;border-bottom:1px solid rgba(192,80,80,0.4);width:46px;text-align:center;-webkit-appearance:none"> макс.</div>
-                <div class="hp-bar-track"><div class="hp-bar-fill" id="hp-bar" style="width:100%"></div></div>
+                <div class="hp-bar-track"><div class="hp-bar-fill" id="hp-bar" style="width:100%"></div><div class="hp-marker" id="hp-marker" style="left:100%"></div></div>
               </div>
               <button class="icon-btn" onclick="changeHP(+1)" id="hp-plus">+</button>
             </div>
@@ -2093,7 +2182,7 @@
 
           <!-- ATTACKS -->
           <div class="section" style="padding-top:0">
-            <div class="section-title">⚔️ Атаки</div>
+            <div class="section-title"><svg class="sect-pic" width="14" height="14" viewBox="0 0 24 24"><path d="M4 3 L18 17 M21 20 L18 17 M14.5 17.5 L17.5 14.5 M20 3 L6 17 M3 20 L6 17 M9.5 17.5 L6.5 14.5" stroke="#F0C657" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg> Атаки</div>
             <div id="attacks-list" class="skills-list"></div>
             <div class="add-item-row" style="flex-wrap:wrap;gap:6px;margin-top:10px">
               <input class="add-input" id="atk-name" type="text" placeholder="Название (Длинный меч)" style="flex:2 1 130px">
@@ -2249,13 +2338,13 @@
       </div>
       <div class="content">
         <div class="section">
-          <div class="section-title">💰 Золото и монеты</div>
+          <div class="section-title"><svg class="sect-pic" width="14" height="14" viewBox="0 0 24 24"><path d="M7 8 C7 5 17 5 17 8 L19 16 C19 20 5 20 5 16 Z M9 8 h6" stroke="#F0C657" stroke-width="1.6" fill="none" stroke-linejoin="round"/></svg> Золото и монеты</div>
           <div class="currency-grid">
-            <div class="coin-card cp"><span class="coin-symbol">🟤</span><span class="coin-name">Медь</span><input class="coin-input" type="number" id="coin-cp" value="0" min="0" onchange="saveAll()"></div>
-            <div class="coin-card sp"><span class="coin-symbol">⚪</span><span class="coin-name">Серебро</span><input class="coin-input" type="number" id="coin-sp" value="0" min="0" onchange="saveAll()"></div>
-            <div class="coin-card ep"><span class="coin-symbol">🔵</span><span class="coin-name">Электрум</span><input class="coin-input" type="number" id="coin-ep" value="0" min="0" onchange="saveAll()"></div>
-            <div class="coin-card gp"><span class="coin-symbol">🟡</span><span class="coin-name">Золото</span><input class="coin-input" type="number" id="coin-gp" value="0" min="0" onchange="saveAll()"></div>
-            <div class="coin-card pp"><span class="coin-symbol">🔘</span><span class="coin-name">Платина</span><input class="coin-input" type="number" id="coin-pp" value="0" min="0" onchange="saveAll()"></div>
+            <div class="coin-card cp"><svg class="coin-metal" width="28" height="28" viewBox="0 0 34 34"><defs><radialGradient id="coinCp" cx="0.35" cy="0.3"><stop offset="0" stop-color="#e0996a"/><stop offset="0.6" stop-color="#B87333"/><stop offset="1" stop-color="#6e441e"/></radialGradient></defs><circle cx="17" cy="17" r="14" fill="url(#coinCp)"/><circle cx="17" cy="17" r="10.5" fill="none" stroke="#5c3919" stroke-width="0.9" opacity="0.8"/><path d="M17 3 v2.5 M17 28.5 v2.5 M3 17 h2.5 M28.5 17 h2.5" stroke="#e8b088" stroke-width="1.1" opacity="0.8"/></svg><span class="coin-name">Медь</span><input class="coin-input" type="number" id="coin-cp" value="0" min="0" onchange="saveAll()"></div>
+            <div class="coin-card sp"><svg class="coin-metal" width="28" height="28" viewBox="0 0 34 34"><defs><radialGradient id="coinSp" cx="0.35" cy="0.3"><stop offset="0" stop-color="#eef0f5"/><stop offset="0.6" stop-color="#b9bcc9"/><stop offset="1" stop-color="#70737f"/></radialGradient></defs><circle cx="17" cy="17" r="14" fill="url(#coinSp)"/><circle cx="17" cy="17" r="10.5" fill="none" stroke="#606470" stroke-width="0.9" opacity="0.8"/><path d="M17 3 v2.5 M17 28.5 v2.5 M3 17 h2.5 M28.5 17 h2.5" stroke="#fff" stroke-width="1.1" opacity="0.8"/></svg><span class="coin-name">Серебро</span><input class="coin-input" type="number" id="coin-sp" value="0" min="0" onchange="saveAll()"></div>
+            <div class="coin-card ep"><svg class="coin-metal" width="28" height="28" viewBox="0 0 34 34"><defs><radialGradient id="coinEp" cx="0.35" cy="0.3"><stop offset="0" stop-color="#c8f5e6"/><stop offset="0.6" stop-color="#6fc4a8"/><stop offset="1" stop-color="#33705b"/></radialGradient></defs><circle cx="17" cy="17" r="14" fill="url(#coinEp)"/><circle cx="17" cy="17" r="10.5" fill="none" stroke="#2b5c4b" stroke-width="0.9" opacity="0.8"/><path d="M17 3 v2.5 M17 28.5 v2.5 M3 17 h2.5 M28.5 17 h2.5" stroke="#d8fff0" stroke-width="1.1" opacity="0.8"/></svg><span class="coin-name">Электрум</span><input class="coin-input" type="number" id="coin-ep" value="0" min="0" onchange="saveAll()"></div>
+            <div class="coin-card gp"><svg class="coin-metal" width="28" height="28" viewBox="0 0 34 34"><defs><radialGradient id="coinGp" cx="0.35" cy="0.3"><stop offset="0" stop-color="#ffe6a8"/><stop offset="0.55" stop-color="#e9b83c"/><stop offset="1" stop-color="#8a6410"/></radialGradient></defs><circle cx="17" cy="17" r="14" fill="url(#coinGp)"/><circle cx="17" cy="17" r="14" fill="none" stroke="#fff0c0" stroke-width="1" opacity="0.8"/><circle cx="17" cy="17" r="10.5" fill="none" stroke="#7d6215" stroke-width="0.9" opacity="0.85"/><path d="M17 3 v2.5 M17 28.5 v2.5 M3 17 h2.5 M28.5 17 h2.5 M7 7 l1.8 1.8 M25.2 25.2 l1.8 1.8 M27 7 l-1.8 1.8 M8.8 25.2 L7 27" stroke="#fff0c0" stroke-width="1.1" opacity="0.85"/></svg><span class="coin-name">Золото</span><input class="coin-input" type="number" id="coin-gp" value="0" min="0" onchange="saveAll()"></div>
+            <div class="coin-card pp"><svg class="coin-metal" width="28" height="28" viewBox="0 0 34 34"><defs><radialGradient id="coinPp" cx="0.35" cy="0.3"><stop offset="0" stop-color="#ffffff"/><stop offset="0.6" stop-color="#dfe2ee"/><stop offset="1" stop-color="#8e93a6"/></radialGradient></defs><circle cx="17" cy="17" r="14" fill="url(#coinPp)"/><circle cx="17" cy="17" r="10.5" fill="none" stroke="#7d8296" stroke-width="0.9" opacity="0.8"/><path d="M17 3 v2.5 M17 28.5 v2.5 M3 17 h2.5 M28.5 17 h2.5" stroke="#fff" stroke-width="1.1"/></svg><span class="coin-name">Платина</span><input class="coin-input" type="number" id="coin-pp" value="0" min="0" onchange="saveAll()"></div>
           </div>
         </div>
         <div class="section" style="padding-top:0">
@@ -2280,15 +2369,15 @@
       </div>
       <div class="content">
         <div class="section">
-          <div class="section-title">📖 Заметки о кампании</div>
+          <div class="section-title"><svg class="sect-pic" width="14" height="14" viewBox="0 0 24 24"><path d="M3 5 c3-2 6-2 9 0 c3-2 6-2 9 0 v14 c-3-2 -6-2 -9 0 c-3-2 -6-2 -9 0 Z M12 5 v14" stroke="#F0C657" stroke-width="1.5" fill="none" stroke-linejoin="round"/></svg> Заметки о кампании</div>
           <textarea class="notes-textarea" id="notes-campaign" placeholder="Важные события, квесты, NPC..." rows="8" onchange="saveAll()" style="min-height:180px"></textarea>
         </div>
         <div class="section" style="padding-top:0">
-          <div class="section-title">🗺 Локации</div>
+          <div class="section-title"><svg class="sect-pic" width="14" height="14" viewBox="0 0 24 24"><path d="M3 5 L9 3 L15 5 L21 3 V19 L15 21 L9 19 L3 21 Z M9 3 V19 M15 5 V21" stroke="#F0C657" stroke-width="1.5" fill="none" stroke-linejoin="round"/></svg> Локации</div>
           <textarea class="notes-textarea" id="notes-locations" placeholder="Города, подземелья, достопримечательности..." rows="5" onchange="saveAll()" style="min-height:120px"></textarea>
         </div>
         <div class="section" style="padding-top:0">
-          <div class="section-title">👥 NPC</div>
+          <div class="section-title"><svg class="sect-pic" width="14" height="14" viewBox="0 0 24 24"><path d="M9 5 a3 3 0 1 1 0 6 a3 3 0 1 1 0-6 M3 19 c0-4 3-6 6-6 s6 2 6 6 M16.5 6 a2.5 2.5 0 1 1 0 5 M17 13.5 c2.5 0.5 4 2.3 4 5.5" stroke="#F0C657" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg> NPC</div>
           <textarea class="notes-textarea" id="notes-npc" placeholder="Имена, описания, отношения..." rows="5" onchange="saveAll()" style="min-height:120px"></textarea>
         </div>
         <div class="section" style="padding-top:0">
@@ -2369,7 +2458,7 @@
         <!-- RULES -->
         <div class="tab-content" id="guide-rules">
           <div class="section">
-            <div class="section-title">⚔️ Боевой раунд</div>
+            <div class="section-title"><svg class="sect-pic" width="14" height="14" viewBox="0 0 24 24"><path d="M4 3 L18 17 M21 20 L18 17 M14.5 17.5 L17.5 14.5 M20 3 L6 17 M3 20 L6 17 M9.5 17.5 L6.5 14.5" stroke="#F0C657" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg> Боевой раунд</div>
             <div class="guide-card">
               <div class="guide-step"><span class="guide-num">1</span><div><strong>Бросок инициативы</strong> — к20 + модификатор Ловкости. Определяет порядок ходов.</div></div>
               <div class="guide-step"><span class="guide-num">2</span><div><strong>Твой ход:</strong> Действие + Бонусное действие + Перемещение (30 фут.) + Реакция (вне хода)</div></div>
@@ -3293,6 +3382,7 @@ function updateHPDisplay() {
   if(mi && document.activeElement!==mi) mi.value = m;
   const pct = Math.max(0,Math.min(100,(c/Math.max(1,m))*100));
   document.getElementById('hp-bar').style.width = pct+'%';
+  const mk=document.getElementById('hp-marker'); if(mk) mk.style.left = pct+'%';
   // авто-сброс спасбросков от смерти, как только HP снова выше нуля
   if(c>0 && (state.dsSuccess.some(Boolean)||state.dsFailure.some(Boolean))) {
     state.dsSuccess=[false,false,false];
@@ -3841,12 +3931,17 @@ function renderSpellList() {
     const prepBtn = sp.level>0
       ? `<button onclick="event.stopPropagation();togglePrepared(${si})" title="${sp.prepared?'Подготовлено':'Не подготовлено'}" style="background:${sp.prepared?'rgba(201,160,58,0.22)':'none'};border:1px solid ${sp.prepared?'var(--gold)':'var(--line)'};border-radius:6px;color:${sp.prepared?'var(--gold-light)':'var(--ink-light)'};font-size:12px;cursor:pointer;padding:3px 6px;flex-shrink:0">📖</button>`
       : '';
+    const chips = metaParts.filter(Boolean).map(m=>`<span class="sp-chip">${m}</span>`).join('')
+      + (d.concentration?'<span class="sp-chip">🎯 конц.</span>':'')
+      + (d.ritual?'<span class="sp-chip">📿 ритуал</span>':'');
+    const specialSp = (sp.prepared && sp.level>0) ? '<i class="spn"></i><i class="cr tl"></i><i class="cr tr"></i><i class="cr br"></i><i class="cr bl"></i>' : '';
     return `
-    <div class="spell-browser-card ${isConc?'concentrating':''}" id="myspell-${i}" onclick="${hasDetails ? `toggleMySpellCard(${i})` : ''}" style="${hasDetails ? 'cursor:pointer' : ''};opacity:${sp.level>0 && !sp.prepared ? '0.62' : '1'}">
+    <div class="spell-browser-card ${isConc?'concentrating':''}${sp.prepared&&sp.level>0?' special':''}" id="myspell-${i}" onclick="${hasDetails ? `toggleMySpellCard(${i})` : ''}" style="${hasDetails ? 'cursor:pointer' : ''};opacity:${sp.level>0 && !sp.prepared ? '0.62' : '1'}">
+      ${specialSp}
       <div class="spell-level-badge">${sp.level===0?'З':sp.level}</div>
       <div class="spell-browser-info">
         <div class="spell-browser-name">${esc(sp.name)}</div>
-        <div class="spell-browser-meta">${conc}${ritual}${metaParts.join(' · ')}</div>
+        <div class="spell-browser-meta">${chips}</div>
         ${hasDetails ? `<div class="spell-browser-desc">${esc(d.description)}${higher}</div>` : ''}
       </div>
       ${prepBtn}
@@ -4056,8 +4151,10 @@ function renderInventory() {
     const att = itemRequiresAttunement(it)
       ? `<button onclick="toggleAttune(${i})" title="${it.attuned?'Настроен':'Настроить'}" style="background:${it.attuned?'rgba(201,160,58,0.22)':'none'};border:1px solid ${it.attuned?'var(--gold)':'var(--line)'};border-radius:6px;color:${it.attuned?'var(--gold-light)':'var(--ink-light)'};font-size:13px;cursor:pointer;padding:2px 6px;flex-shrink:0">✨</button>`
       : '';
+    const special = it.attuned ? '<i class="spn"></i><i class="cr tl"></i><i class="cr tr"></i><i class="cr br"></i><i class="cr bl"></i>' : '';
     return `
-    <div class="inv-item">
+    <div class="inv-item${it.attuned?' special':''}">
+      ${special}
       <span class="inv-icon">${it.icon}</span>
       <span class="inv-name" onclick="showItemInfo(${i})" title="Открыть справку">${esc(it.name)}${it.attuned?' <span style="color:var(--gold-light);font-size:11px">✨</span>':''}</span>
       <div style="display:flex;align-items:center;gap:6px">

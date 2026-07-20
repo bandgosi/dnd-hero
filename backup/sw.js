@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dnd-hero-v21';
+const CACHE_NAME = 'dnd-hero-v33';
 const ASSETS = [
   './',
   './index.html',
@@ -8,7 +8,27 @@ const ASSETS = [
   './fonts/cinzel-latin.woff2',
   './fonts/crimson-text-latin.woff2',
   './fonts/crimson-text-600-latin.woff2',
-  './fonts/crimson-text-italic-latin.woff2'
+  './fonts/crimson-text-italic-latin.woff2',
+  './images/welcome-art.jpg',
+  './images/bg-texture.jpg',
+  './images/vignette.png',
+  './images/frame.png',
+  './images/crests/voin.png',
+  './images/crests/mag.png',
+  './images/crests/plut.png',
+  './images/crests/klerik.png',
+  './images/crests/paladin.png',
+  './images/crests/sledopyt.png',
+  './images/crests/varvar.png',
+  './images/crests/bard.png',
+  './images/crests/monah.png',
+  './images/crests/charodey.png',
+  './images/crests/koldun.png',
+  './images/crests/druid.png',
+  './images/empty/spells.png',
+  './images/empty/inventory.png',
+  './images/empty/features.png',
+  './images/empty/rolls.png'
 ];
 
 // Install: pre-cache the app shell
@@ -29,26 +49,53 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: serve from cache first, fall back to network, then cache new requests
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
 
-  // Always go to network for the live spell/item API (Open5e) — never cache stale spell data
+  // Live spell/item API (Open5e) — network only, never cache
   if (url.hostname.includes('open5e.com')) {
     event.respondWith(
-      fetch(event.request).catch(() => new Response('{"results":[]}', { headers: { 'Content-Type': 'application/json' } }))
+      fetch(req).catch(() => new Response('{"results":[]}', { headers: { 'Content-Type': 'application/json' } }))
     );
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request)
+  // Приложение — это единственный index.html. Для навигаций и самого документа
+  // работаем ПО СЕТИ В ПЕРВУЮ ОЧЕРЕДЬ: онлайн всегда видно свежую версию, iOS
+  // не застревает на старом кэше. Кэш — только офлайн-запас.
+  const isHTML = req.mode === 'navigate' || req.destination === 'document' ||
+    url.pathname.endsWith('/') || url.pathname.endsWith('/index.html');
+
+  if (isHTML && url.origin === location.origin) {
+    event.respondWith(
+      fetch(req)
         .then((response) => {
-          if (response.ok && event.request.method === 'GET' && url.origin === location.origin) {
+          if (response && response.ok) {
             const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            caches.open(CACHE_NAME).then((cache) => cache.put('./index.html', clone));
+          }
+          return response;
+        })
+        .catch(async () =>
+          (await caches.match(req)) ||
+          (await caches.match('./index.html')) ||
+          (await caches.match('./'))
+        )
+    );
+    return;
+  }
+
+  // Остальное (шрифты, иконки, manifest) — из кэша, иначе из сети и кэшируем
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      if (cached) return cached;
+      return fetch(req)
+        .then((response) => {
+          if (response.ok && url.origin === location.origin) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
           }
           return response;
         })
