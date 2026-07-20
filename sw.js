@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dnd-hero-v34';
+const CACHE_NAME = 'dnd-hero-v35';
 const ASSETS = [
   './',
   './index.html',
@@ -11,7 +11,6 @@ const ASSETS = [
   './fonts/crimson-text-italic-latin.woff2',
   './images/welcome-art.jpg',
   './images/bg-texture.jpg',
-  './images/vignette.png',
   './images/frame.png',
   './images/crests/voin.png',
   './images/crests/mag.png',
