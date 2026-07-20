@@ -1,0 +1,21 @@
+# Временный workflow: скачивает сгенерированный лист иконок с CDN
+# (из контейнера сессии прямой доступ к CDN закрыт) и коммитит его в ветку.
+# Будет удалён после нарезки иконок.
+name: fetch-icons
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download icon sheet and push
+        run: |
+          curl -sSL --fail -o icon-sheet.png "https://d8j0ntlcm91z4.cloudfront.net/user_3GgKXy9yBXLJ3Q3t4nvhA9UPM6C/hf_20260720_153704_d315ce83-a411-4fc0-92c0-24d15bcdf3d7.png"
+          file icon-sheet.png
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add icon-sheet.png
+          git commit -m "temp: fetch generated icon sheet from CDN"
+          git push
