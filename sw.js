@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dnd-hero-v36';
+const CACHE_NAME = 'dnd-hero-v37';
 const ASSETS = [
   './',
   './index.html',
@@ -57,7 +57,37 @@ const ASSETS = [
   './images/items/lockpicks.png',
   './images/items/bomb.png',
   './images/items/map.png',
-  './images/items/bag.png'
+  './images/items/bag.png',
+  './images/ui/orb.png',
+  './images/ui/star.png',
+  './images/ui/sound.png',
+  './images/ui/vibro.png',
+  './images/ui/die.png',
+  './images/ui/bolt.png',
+  './images/ui/book.png',
+  './images/ui/target.png',
+  './images/ui/pack.png',
+  './images/ui/swords.png',
+  './images/ui/shield.png',
+  './images/ui/heart.png',
+  './images/ui/moon.png',
+  './images/ui/campfire.png',
+  './images/ui/skull.png',
+  './images/ui/trophy.png',
+  './images/ui/bulb.png',
+  './images/ui/scroll.png',
+  './images/ui/eye.png',
+  './images/ui/search.png',
+  './images/ui/camera.png',
+  './images/ui/trash.png',
+  './images/ui/link.png',
+  './images/ui/clipboard.png',
+  './images/ui/printer.png',
+  './images/ui/mask.png',
+  './images/ui/gem.png',
+  './images/ui/fire.png',
+  './images/ui/frost.png',
+  './images/ui/hat.png'
 ];
 
 // Install: pre-cache the app shell
