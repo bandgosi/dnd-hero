@@ -1,0 +1,26 @@
+# Временный workflow: скачивает сгенерированный лист UI-иконок с CDN
+# (из контейнера сессии прямой доступ к CDN закрыт) и коммитит его в ветку.
+# Будет удалён после нарезки иконок.
+name: fetch-icons
+on:
+  push:
+    branches: ['claude/inventory-item-icons-is1k3h']
+    paths: ['.github/workflows/fetch-icons.yml']
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/inventory-item-icons-is1k3h
+      - name: Download icon sheet and push
+        run: |
+          curl -sSL --fail -o ui-sheet.png "https://d8j0ntlcm91z4.cloudfront.net/user_3GgKXy9yBXLJ3Q3t4nvhA9UPM6C/hf_20260731_201033_665f9c3a-f3e8-4ec0-94e5-46a27cb37c4b.png"
+          file ui-sheet.png
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ui-sheet.png
+          git commit -m "temp: fetch generated UI icon sheet from CDN"
+          git push
