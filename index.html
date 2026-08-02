@@ -114,16 +114,6 @@
       border-right: 1px solid rgba(201,150,42,0.35);
       box-shadow: 0 0 80px rgba(0,0,0,0.7);
     }
-    /* Всё, что висит поверх (fixed), тоже держим в пределах колонки листа,
-       иначе на десктопе кнопка d20 парит в пустом фоне, а модалки растягиваются */
-    .fab-dice { right: calc(50% - 320px + 16px); }
-    .modal-sheet { max-width: 640px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
-    .ai-overlay {
-      max-width: 640px;
-      margin: 0 auto;
-      border-left: 1px solid rgba(201,150,42,0.35);
-      border-right: 1px solid rgba(201,150,42,0.35);
-    }
   }
 
   .screen { display: none; flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -832,7 +822,14 @@
     line-height: 1;
   }
 
-  .combat-stat-label { font-family: 'Cinzel', serif; font-size: 9px; color: var(--gold); letter-spacing: 1.5px; margin-top: 4px; }
+  .combat-stat-label { font-family: 'Cinzel', serif; font-size: 9px; color: var(--gold); letter-spacing: 1.5px; margin-top: 4px;
+    /* «ХАРАКТЕРИСТИКА» / «ПРОНИЦАТЕЛЬНОСТЬ» шире карточки на 320px — переносим,
+       иначе слово вылезает за сетку и тянет за собой горизонтальную прокрутку */
+    overflow-wrap: anywhere; }
+  /* На узких экранах ужимаем трекинг — тогда почти все подписи снова в одну строку */
+  @media (max-width: 360px) {
+    .combat-stat-label { font-size: 8px; letter-spacing: 0; }
+  }
 
   .conditions-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
   .condition-chip {
@@ -1411,6 +1408,7 @@
     color: #b3a3d6;
     letter-spacing: 0.5px;
     margin-top: 4px;
+    overflow-wrap: anywhere;
     font-family: 'Cinzel', serif;
   }
 
@@ -1817,7 +1815,9 @@
   }
 
   /* Заголовки секций: красный ромб-маркер */
-  .section-title { display: flex; align-items: center; gap: 8px; }
+  /* overflow:hidden — чтобы золотая стрелка (::after, min-width:26px) не выпирала
+     за секцию, когда заголовку в строке с кнопкой не хватает места */
+  .section-title { display: flex; align-items: center; gap: 8px; overflow: hidden; }
   .section-title::before { content: ''; width: 6px; height: 6px; background: var(--accent); transform: rotate(45deg); flex-shrink: 0; }
 
   /* Шапка: мягкое свечение за заголовком */
@@ -2007,6 +2007,21 @@
     #print-sheet .abil td { border: 1px solid #999; padding: 6px 2px; width: 16.6%; }
     #print-sheet .small { font-size: 10pt; }
     #print-sheet .foot { margin-top: 16px; text-align: center; color: #999; font-size: 9pt; }
+  }
+
+  /* ---- ШИРОКИЙ ЭКРАН: fixed-слои тоже держим в колонке листа ----
+     Стоит в самом конце: медиазапрос не добавляет специфичности, и правило
+     .fab-dice ниже по файлу иначе перебивало бы этот right. */
+  @media (min-width: 700px) {
+    .fab-dice { right: calc(50% - 320px + 16px); }
+    .quick-roll { left: 50%; }
+    .modal-sheet { max-width: 640px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+    .ai-overlay {
+      max-width: 640px;
+      margin: 0 auto;
+      border-left: 1px solid rgba(201,150,42,0.35);
+      border-right: 1px solid rgba(201,150,42,0.35);
+    }
   }
 </style>
 </head>
@@ -4158,7 +4173,7 @@ function changeCount(delta) {
 
 // ============ INVENTORY ============
 // Ключевое слово в названии → имя файла в images/items/ (гравюрные пиктограммы, стиль ★Финал)
-const ITEM_ICONS = {'меч':'sword','топор':'sword','молот':'sword','копь':'sword','булав':'sword','кинжал':'dagger','нож':'dagger','лук':'bow','арбалет':'bow','стрел':'bow','болт':'bow','посох':'staff','палочка':'staff','жезл':'staff','щит':'shield','доспех':'armor','брон':'armor','кольчуг':'armor','зелье':'potion','эликсир':'potion','свиток':'scroll','книга':'book','том ':'book','сфера':'orb','фокусировка':'orb','кристалл':'orb','ключ':'key','отмычк':'lockpicks','воровск':'lockpicks','инструмент':'lockpicks','сундук':'chest','ларец':'chest','верёвка':'rope','веревка':'rope','цепь':'rope','факел':'torch','лампа':'torch','фонарь':'torch','свеча':'torch','палатка':'tent','спальник':'tent','еда':'food','паёк':'food','паек':'food','вино':'food','фляга':'food','котел':'food','монета':'coin','золот':'coin','кошел':'coin','кольцо':'ring','перстень':'ring','амулет':'amulet','талисман':'amulet','ожерель':'amulet','сапоги':'boots','ботинки':'boots','обувь':'boots','плащ':'cloak','одежда':'cloak','мантия':'cloak','накидка':'cloak','перчатк':'gloves','рукавиц':'gloves','шлем':'helmet','каска':'helmet','лютня':'lute','флейта':'lute','волынка':'lute','рожок':'horn','горн':'horn','кости':'dice','кубик':'dice','бомба':'bomb','граната':'bomb','порох':'bomb','карта':'map','мешок':'bag','набор':'bag','рюкзак':'bag','сумка':'bag','рог':'horn'};
+const ITEM_ICONS = {'меч':'sword','клинок':'sword','топор':'sword','секир':'sword','молот':'sword','копь':'sword','булав':'sword','дубин':'sword','палиц':'sword','кистен':'sword','алебард':'sword','глеф':'sword','трезуб':'sword','вил':'sword','серп':'sword','сабл':'sword','рапир':'sword','шпаг':'sword','ятаган':'sword','кинжал':'dagger','нож':'dagger','стилет':'dagger','лук':'bow','арбалет':'bow','стрел':'bow','болт':'bow','дротик':'bow','праща':'bow','сюрикен':'bow','посох':'staff','палочка':'staff','жезл':'staff','шест':'staff','дубинк':'staff','щит':'shield','доспех':'armor','брон':'armor','кольчуг':'armor','зелье':'potion','эликсир':'potion','свиток':'scroll','книга':'book','том ':'book','сфера':'orb','фокусировка':'orb','кристалл':'orb','ключ':'key','отмычк':'lockpicks','воровск':'lockpicks','инструмент':'lockpicks','сундук':'chest','ларец':'chest','верёвка':'rope','веревка':'rope','цепь':'rope','факел':'torch','лампа':'torch','фонарь':'torch','свеча':'torch','палатка':'tent','спальник':'tent','еда':'food','паёк':'food','паек':'food','вино':'food','фляга':'food','котел':'food','монета':'coin','золот':'coin','кошел':'coin','кольцо':'ring','перстень':'ring','амулет':'amulet','талисман':'amulet','ожерель':'amulet','сапоги':'boots','ботинки':'boots','обувь':'boots','плащ':'cloak','одежда':'cloak','мантия':'cloak','накидка':'cloak','перчатк':'gloves','рукавиц':'gloves','шлем':'helmet','каска':'helmet','лютня':'lute','флейта':'lute','волынка':'lute','рожок':'horn','горн':'horn','кости':'dice','кубик':'dice','бомба':'bomb','граната':'bomb','порох':'bomb','карта':'map','мешок':'bag','набор':'bag','рюкзак':'bag','сумка':'bag','рог':'horn'};
 
 function getItemIcon(name) {
   const lower = name.toLowerCase();
@@ -4190,9 +4205,8 @@ function removeItem(i) { state.inventory.splice(i,1); renderInventory(); saveAll
 function showItemInfo(i) {
   const item = state.inventory[i]; if(!item) return;
   const all = [].concat(DB_WEAPONS, DB_ARMOR, DB_MAGIC_ITEMS, DB_GEAR);
-  const q = item.name.toLowerCase().replace(/\s*\(.*\)$/,''); // «Книга (оккультные знания)» → «книга»
-  const entry = all.find(e => e.name.toLowerCase() === q)
-    || all.find(e => q.includes(e.name.toLowerCase()) || e.name.toLowerCase().includes(q));
+  // «Книга (оккультные знания)» → «книга»
+  const entry = findDbEntry(item.name, all, true);
   if(!entry) { showToast('В справочнике нет описания этого предмета'); return; }
   document.getElementById('item-info-title').textContent = entry.name;
   const meta = [entry.itemType, entry.cost, entry.weight, entry.damage, entry.ac ? 'КД ' + entry.ac : null]
@@ -4208,12 +4222,28 @@ function changeQty(i,delta) {
   renderInventory(); saveAll();
 }
 
+// Название предмета → запись в справочнике. Ищем точное совпадение, а при его
+// отсутствии — вхождение имени из базы в название предмета («Кольцо защиты +1»
+// → «Кольцо защиты»), но НЕ наоборот: иначе «Кольцо» подтягивало «Кольцо защиты»
+// и предмет ошибочно начинал требовать настройки.
+// loose=true — можно и наоборот («Меч» → «Длинный меч»): для справки это удобно,
+// но для настройки недопустимо, поэтому по умолчанию выключено.
+function findDbEntry(name, db, loose) {
+  const q = (name||'').toLowerCase().replace(/\s*\(.*\)$/,'').trim();
+  if(!q) return null;
+  return db.find(e => e.name.toLowerCase() === q)
+    || db.filter(e => e.name.length >= 4 && q.includes(e.name.toLowerCase()))
+         .sort((a,b) => b.name.length - a.name.length)[0]
+    || (loose && q.length >= 4
+        ? db.filter(e => e.name.toLowerCase().includes(q)).sort((a,b) => a.name.length - b.name.length)[0]
+        : null)
+    || null;
+}
+
 // Требует ли предмет настройки (по данным из базы знаний или сохранённой детали)
 function itemRequiresAttunement(it) {
   if(it.detail && it.detail.attunement) return true;
-  const q = it.name.toLowerCase().replace(/\s*\(.*\)$/,'');
-  const e = DB_MAGIC_ITEMS.find(m => m.name.toLowerCase()===q)
-    || DB_MAGIC_ITEMS.find(m => q.includes(m.name.toLowerCase()) || m.name.toLowerCase().includes(q));
+  const e = findDbEntry(it.name, DB_MAGIC_ITEMS);
   return !!(e && e.attunement);
 }
 function attunedCount() { return state.inventory.filter(it => it.attuned).length; }
@@ -6347,7 +6377,7 @@ function openAISearch(mode) {
     knowledgeLevelFilter = -1;
     renderKnowledgeLevelRow();
   } else {
-    document.getElementById('ai-overlay-title').textContent = '⚔️ ПРЕДМЕТЫ И СНАРЯЖЕНИЕ';
+    document.getElementById('ai-overlay-title').innerHTML = uiIc('swords') + ' ПРЕДМЕТЫ И СНАРЯЖЕНИЕ';
     document.getElementById('ai-class-row').style.display = 'none';
     knowledgeItemCat = 'weapon';
     renderKnowledgeItemCatRow();
