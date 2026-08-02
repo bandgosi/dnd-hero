@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dnd-hero-v38';
+const CACHE_NAME = 'dnd-hero-v39';
 const ASSETS = [
   './',
   './index.html',
@@ -6,9 +6,6 @@ const ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './fonts/cinzel-latin.woff2',
-  './fonts/crimson-text-latin.woff2',
-  './fonts/crimson-text-600-latin.woff2',
-  './fonts/crimson-text-italic-latin.woff2',
   './images/welcome-art.jpg',
   './images/bg-texture.jpg',
   './images/crests/voin.png',
@@ -82,10 +79,8 @@ const ASSETS = [
   './images/ui/link.png',
   './images/ui/clipboard.png',
   './images/ui/printer.png',
-  './images/ui/mask.png',
   './images/ui/gem.png',
   './images/ui/fire.png',
-  './images/ui/frost.png',
   './images/ui/hat.png'
 ];
 

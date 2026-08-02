@@ -24,27 +24,6 @@
     font-display: swap;
     src: url('fonts/cinzel-latin.woff2') format('woff2');
   }
-  @font-face {
-    font-family: 'Crimson Text';
-    font-style: normal;
-    font-weight: 400;
-    font-display: swap;
-    src: url('fonts/crimson-text-latin.woff2') format('woff2');
-  }
-  @font-face {
-    font-family: 'Crimson Text';
-    font-style: normal;
-    font-weight: 600;
-    font-display: swap;
-    src: url('fonts/crimson-text-600-latin.woff2') format('woff2');
-  }
-  @font-face {
-    font-family: 'Crimson Text';
-    font-style: italic;
-    font-weight: 400;
-    font-display: swap;
-    src: url('fonts/crimson-text-italic-latin.woff2') format('woff2');
-  }
 
   :root {
     /* Тёмная палитра в духе D&D Beyond: графит + красный + приглушённое золото.
@@ -987,7 +966,9 @@
   .welcome-divider span:last-child { background: linear-gradient(90deg, var(--gold), transparent); }
   .welcome-divider i { font-style: normal; font-size: 10px; }
 
-  .welcome-sub { font-family: 'Crimson Text', serif; font-style: italic; font-size: 17px; color: #b8c0ca; text-align: center; text-shadow: 0 1px 8px rgba(0,0,0,0.8); }
+  /* Crimson Text убран: это латинский сабсет, а подпись целиком кириллическая —
+     все три файла (77 КБ прекэша) скачивались и не давали ни одного глифа */
+  .welcome-sub { font-family: serif; font-style: italic; font-size: 17px; color: #b8c0ca; text-align: center; text-shadow: 0 1px 8px rgba(0,0,0,0.8); }
   .welcome-version { margin-top: 14px; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 1px; color: #8d97a3; text-shadow: 0 1px 6px rgba(0,0,0,0.9); }
 
   .welcome-btn {
@@ -2038,7 +2019,7 @@
       </div>
       <div class="welcome-bottom">
         <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-        <div class="welcome-version">версия 38</div>
+        <div class="welcome-version">версия 39</div>
       </div>
     </div>
   </div>
@@ -4392,7 +4373,8 @@ function renderPortrait() {
 // Портрет считается «не выбранным», если это пусто, метка герба или дефолтный эмодзи класса
 function isDefaultPortrait(p) {
   if(!p || p === 'crest') return true;
-  return Object.values(CLASS_GUIDES).some(g => g.icon === p);
+  const cls = document.getElementById('char-class')?.value || '';
+  return !!(CLASS_GUIDES[cls] && CLASS_GUIDES[cls].icon === p);
 }
 
 function openPortraitPicker() {
@@ -4699,16 +4681,55 @@ function compactCharPayload() {
   if(!s.tempHP) delete s.tempHP;
   if(!s.inspiration) delete s.inspiration;
   if(s.diceCount===1) delete s.diceCount;
+  // Предметы и заклинания целиком лежат в локальной базе — в ссылку кладём только
+  // название и то, что игрок реально менял. Описания заклинаний и detail предметов
+  // раздували payload так, что QR почти никогда не влезал.
+  if(Array.isArray(s.inventory)) s.inventory = s.inventory.map(it => {
+    const o = { n: it.name };
+    if(it.qty && it.qty !== 1) o.q = it.qty;
+    if(it.attuned) o.a = 1;
+    return o;
+  });
+  if(Array.isArray(s.spells)) s.spells = s.spells.map(sp => {
+    if(!DB_SPELLS.some(d => d.name === sp.name)) return sp; // самодельное — оставляем как есть
+    const o = { n: sp.name };
+    if(sp.prepared) o.p = 1;
+    return o;
+  });
   const f = data.fields || {};
   Object.keys(f).forEach(k=>{ if(f[k]==='' || (/^coin-/.test(k) && f[k]==='0')) delete f[k]; });
   const json = JSON.stringify({ n: c.name, d: data });
   return btoa(unescape(encodeURIComponent(json)));
 }
 
+// Обратная развёртка сжатых списков. Старые ссылки хранят полные объекты
+// (с полем name) — они проходят насквозь без изменений.
+function expandCompactLists(data) {
+  const s = data && data.state;
+  if(!s) return data;
+  if(Array.isArray(s.inventory)) s.inventory = s.inventory.map(it =>
+    (it && it.n !== undefined)
+      ? { name: it.n, qty: it.q || 1, icon: getItemIcon(it.n), attuned: !!it.a }
+      : it);
+  if(Array.isArray(s.spells)) s.spells = s.spells.map(sp => {
+    if(!sp || sp.n === undefined) return sp;
+    const d = DB_SPELLS.find(x => x.name === sp.n);
+    if(!d) return { name: sp.n, level: 0, school: '', cast: '1 действие', prepared: !!sp.p };
+    return {
+      name: d.name, level: d.level, school: d.school, cast: d.castingTime,
+      castingTime: d.castingTime, range: d.range, duration: d.duration,
+      components: d.components, concentration: d.concentration, ritual: d.ritual,
+      damage: d.damage, saveType: d.saveType, description: d.description,
+      higherLevels: d.higherLevels, prepared: !!sp.p
+    };
+  });
+  return data;
+}
+
 function parseCharPayload(b64) {
   const json = decodeURIComponent(escape(atob(b64.trim())));
   const obj = JSON.parse(json);
-  return { name: obj.n || (obj.d && obj.d.fields && obj.d.fields['char-name']) || 'Импорт', data: obj.d };
+  return { name: obj.n || (obj.d && obj.d.fields && obj.d.fields['char-name']) || 'Импорт', data: expandCompactLists(obj.d) };
 }
 
 function shareCharacter() {
@@ -5174,6 +5195,67 @@ const CLASS_GUIDES = {
       { lvl:4, name:'Улучшение характеристик', desc:'Воин получает их чаще других — на 4, 6, 8, 12, 14, 16, 19 уровнях.' },
     ],
     tips: ['Используй Всплеск действий в первом же раунде — он восстанавливается на коротком отдыхе.','Воин на 5-м уровне получает вторую атаку за действие.']
+  },
+
+  'Плут': {
+    icon: '🗡️', en: 'Rogue', enKey: 'rogue',
+    desc: 'Плут бьёт редко, но больно, и делает то, чего не может никто: вскрывает, крадёт, исчезает.',
+    hitDie: 'к8',
+    mainStat: 'Ловкость',
+    armorProf: 'Лёгкие доспехи',
+    weaponProf: 'Простое оружие, ручные арбалеты, длинные мечи, рапиры, короткие мечи',
+    savingProf: 'Ловкость, Интеллект',
+    spellcasting: 'Нет (кроме Мистического ловкача)',
+    features: [
+      { lvl:1, name:'Скрытая атака', desc:'Раз в ход +1к6 урона, если у тебя преимущество или рядом с целью стоит союзник. Растёт до 10к6 к 19 уровню.' },
+      { lvl:1, name:'Экспертиза', desc:'Два навыка (или воровские инструменты) получают удвоенный бонус мастерства.' },
+      { lvl:2, name:'Хитрое действие', desc:'Бонусным действием — Рывок, Отход или Засада. Ударил и отскочил без провоцированной атаки.' },
+      { lvl:3, name:'Архетип плута', desc:'Вор, Убийца, Мистический ловкач и другие — задают стиль на всю игру.' },
+      { lvl:5, name:'Увёртливость', desc:'При успешном спасброске Ловкости урона нет вообще, при провале — половина.' },
+      { lvl:7, name:'Уклонение', desc:'Перебрасываешь проваленный спасбросок Ловкости раз в ход, если видишь источник.' },
+    ],
+    tips: ['Скрытая атака срабатывает раз в ход, а не раз за действие — атака по реакции тоже считается.','Союзник в 5 футах от цели даёт Скрытую атаку без всякой скрытности.','Хитрое действие «Отход» позволяет уйти из ближнего боя, не подставляясь.']
+  },
+
+  'Варвар': {
+    icon: '🪓', en: 'Barbarian', enKey: 'barbarian',
+    desc: 'Варвар входит в ярость и держит удар лучше всех: больше всего хитов и сопротивление урону.',
+    hitDie: 'к12',
+    mainStat: 'Сила (и Телосложение)',
+    armorProf: 'Лёгкие и средние доспехи, щиты',
+    weaponProf: 'Простое и воинское оружие',
+    savingProf: 'Сила, Телосложение',
+    spellcasting: 'Нет',
+    features: [
+      { lvl:1, name:'Ярость', desc:'Бонусным действием: +2 к урону рукопашным оружием по Силе и сопротивление дробящему, колющему и рубящему урону. Несколько раз за длинный отдых.' },
+      { lvl:1, name:'Защита без доспехов', desc:'Без доспехов КД = 10 + мод.ЛОВ + мод.ТЕЛ. Щит при этом можно.' },
+      { lvl:2, name:'Безрассудная атака', desc:'Преимущество на свои атаки Силой ценой преимущества врагов на атаки по тебе.' },
+      { lvl:2, name:'Чувство опасности', desc:'Преимущество на спасброски Ловкости против того, что ты видишь.' },
+      { lvl:3, name:'Путь варвара', desc:'Берсерк, Тотемный воин и другие пути.' },
+      { lvl:5, name:'Дополнительная атака и Быстрое передвижение', desc:'Две атаки за действие; +10 футов скорости без тяжёлого доспеха.' },
+    ],
+    tips: ['Ярость требует атаковать или получать урон каждый ход, иначе обрывается.','В ярости нельзя творить заклинания и концентрироваться на них.','Безрассудная атака почти всегда выгодна, когда ты и так держишь удар лучше всех.']
+  },
+
+  'Монах': {
+    icon: '👊', en: 'Monk', enKey: 'monk',
+    desc: 'Монах быстр, бьёт часто и тратит ки на трюки, которых нет ни у кого другого.',
+    hitDie: 'к8',
+    mainStat: 'Ловкость и Мудрость',
+    armorProf: 'Нет',
+    weaponProf: 'Простое оружие, короткие мечи',
+    savingProf: 'Сила, Ловкость',
+    spellcasting: 'Нет (кроме Пути четырёх стихий)',
+    features: [
+      { lvl:1, name:'Боевые искусства', desc:'Безоружный удар и монашеское оружие используют Ловкость, наносят 1к4 (растёт с уровнем) и дают бонусный безоружный удар.' },
+      { lvl:1, name:'Защита без доспехов', desc:'Без доспехов и щита КД = 10 + мод.ЛОВ + мод.МУД.' },
+      { lvl:2, name:'Ки', desc:'Очков ки = уровень монаха. Шквал ударов, Терпеливая оборона, Шаг ветра. Восстанавливаются на коротком отдыхе.' },
+      { lvl:2, name:'Движение без доспехов', desc:'+10 футов скорости без доспехов, дальше растёт; с 9 уровня — бег по стенам и воде.' },
+      { lvl:3, name:'Традиция монаха и Отражение снарядов', desc:'Реакцией снижаешь урон от дальнобойной атаки, а при полном поглощении — швыряешь снаряд обратно.' },
+      { lvl:4, name:'Медленное падение', desc:'Реакцией снижаешь урон от падения на пятикратный уровень монаха.' },
+      { lvl:5, name:'Дополнительная атака и Оглушающий удар', desc:'Две атаки за действие; за 1 ки цель проходит спасбросок Телосложения или ошеломлена до конца твоего следующего хода.' },
+    ],
+    tips: ['Ки восстанавливаются на коротком отдыхе — трать смелее, чем кажется.','Оглушающий удар выгоднее применять по цели со слабым Телосложением.','Доспех отключает и КД без доспехов, и Движение без доспехов — монаху он не нужен.']
   },
 };
 
