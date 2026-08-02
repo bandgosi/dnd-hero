@@ -43,6 +43,13 @@
     --accent: #ff5c5c; /* акцент интерфейса; перекрашивается под класс в applyClassTheme */
     --gold: #c9a03a;
     --gold-light: #f0c657;
+    /* Магия: фиолетовая ветка (заклинания, база знаний, гид). Раньше эти
+       оттенки были рассыпаны хексами по всему файлу. */
+    --magic: #6040c0;
+    --magic-deep: #3a2080;
+    --magic-edge: #8060e0;
+    --magic-light: #d0b0ff;
+    --magic-muted: #b3a3d6;
     --stone: #12161c;
     --stone-light: #2a313c;
     --shadow: rgba(0,0,0,0.5);
@@ -589,7 +596,7 @@
 
   .spell-slot-card {
     background: linear-gradient(135deg, #1a1040, #0d0820);
-    border: 1px solid #6040c0;
+    border: 1px solid var(--magic);
     border-radius: 10px;
     padding: 10px 8px;
     text-align: center;
@@ -602,7 +609,7 @@
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    border: 2px solid #6040c0;
+    border: 2px solid var(--magic);
     background: transparent;
     cursor: pointer;
     transition: all 0.2s;
@@ -618,7 +625,7 @@
   .res-dot.used { background: transparent; }
 
   .slot-dot.used { background: transparent; border-color: #3a2060; }
-  .slot-dot.available { background: #8060e0; box-shadow: 0 0 8px rgba(128,96,224,0.6); }
+  .slot-dot.available { background: var(--magic-edge); box-shadow: 0 0 8px rgba(128,96,224,0.6); }
   /* Дополнительные ячейки (предметы/черты) — золотые */
   .slot-dot.bonus { border-color: var(--gold); }
   .slot-dot.bonus.available { background: var(--gold-light); box-shadow: 0 0 8px rgba(240,192,64,0.6); }
@@ -634,7 +641,7 @@
     justify-content: center;
   }
   .add-slot-card .slot-level { color: #8878b0; }
-  .add-slot-card:active { border-color: #8060e0 !important; background: rgba(96,64,192,0.08) !important; }
+  .add-slot-card:active { border-color: var(--magic-edge) !important; background: rgba(96,64,192,0.08) !important; }
 
   .spell-list { display: flex; flex-direction: column; gap: 8px; }
 
@@ -652,20 +659,20 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #6040c0, #3a2080);
-    border: 1px solid #8060e0;
+    background: linear-gradient(135deg, var(--magic), var(--magic-deep));
+    border: 1px solid var(--magic-edge);
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: 'Cinzel', serif;
     font-size: 13px;
-    color: #d0b0ff;
+    color: var(--magic-light);
     flex-shrink: 0;
   }
 
   .spell-info { flex: 1; }
   .spell-name { font-family: 'Cinzel', serif; font-size: 14px; color: var(--parchment); }
-  .spell-meta { font-size: 12px; color: #b3a3d6; margin-top: 1px; font-style: italic; }
+  .spell-meta { font-size: 12px; color: var(--magic-muted); margin-top: 1px; font-style: italic; }
 
   .spell-school-tag {
     font-size: 10px;
@@ -805,10 +812,6 @@
     /* «ХАРАКТЕРИСТИКА» / «ПРОНИЦАТЕЛЬНОСТЬ» шире карточки на 320px — переносим,
        иначе слово вылезает за сетку и тянет за собой горизонтальную прокрутку */
     overflow-wrap: anywhere; }
-  /* На узких экранах ужимаем трекинг — тогда почти все подписи снова в одну строку */
-  @media (max-width: 360px) {
-    .combat-stat-label { font-size: 8px; letter-spacing: 0; }
-  }
 
   .conditions-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
   .condition-chip {
@@ -1351,7 +1354,7 @@
 
   .class-hero-card {
     background: linear-gradient(135deg, #1a1040, #0d0820);
-    border: 2px solid #6040c0;
+    border: 2px solid var(--magic);
     border-radius: 16px;
     padding: 20px;
     margin-bottom: 16px;
@@ -1360,7 +1363,7 @@
 
   .class-hero-icon { font-size: 52px; margin-bottom: 8px; }
   .class-hero-name { font-family: 'Cinzel', serif; font-size: 22px; color: var(--parchment); letter-spacing: 2px; }
-  .class-hero-sub { font-size: 13px; color: #b3a3d6; font-style: italic; margin-top: 4px; }
+  .class-hero-sub { font-size: 13px; color: var(--magic-muted); font-style: italic; margin-top: 4px; }
 
   .class-stat-grid {
     display: grid;
@@ -1380,13 +1383,13 @@
   .class-stat-val {
     font-family: 'Cinzel', serif;
     font-size: 22px;
-    color: #d0b0ff;
+    color: var(--magic-light);
     line-height: 1;
   }
 
   .class-stat-lbl {
     font-size: 9px;
-    color: #b3a3d6;
+    color: var(--magic-muted);
     letter-spacing: 0.5px;
     margin-top: 4px;
     overflow-wrap: anywhere;
@@ -1417,7 +1420,7 @@
   #spell-list .spell-browser-card {
     background: rgba(96,64,192,0.06);
     border: 1px solid rgba(100,70,200,0.35);
-    border-left: 3px solid #6040c0;
+    border-left: 3px solid var(--magic);
   }
   #spell-list .spell-browser-name { color: var(--ink); }
   #spell-list .spell-browser-meta { color: #6a4aa0; }
@@ -1426,7 +1429,7 @@
 
   .add-spell-mini {
     background: rgba(100,70,200,0.3);
-    border: 1px solid #6040c0;
+    border: 1px solid var(--magic);
     border-radius: 8px;
     color: #c0a0ff;
     font-family: 'Cinzel', serif;
@@ -1990,6 +1993,16 @@
     #print-sheet .foot { margin-top: 16px; text-align: center; color: #999; font-size: 9pt; }
   }
 
+  /* ---- УЗКИЙ ЭКРАН: ужимаем трекинг подписей, чтобы они влезали в строку ----
+     Тоже в конце файла: и .combat-stat-label, и .class-stat-lbl объявлены выше,
+     а медиазапрос не добавляет специфичности. */
+  @media (max-width: 360px) {
+    .combat-stat-label { font-size: 8px; letter-spacing: 0; }
+  }
+  @media (max-width: 420px) {
+    .class-stat-lbl { font-size: 8px; letter-spacing: 0; }
+  }
+
   /* ---- ШИРОКИЙ ЭКРАН: fixed-слои тоже держим в колонке листа ----
      Стоит в самом конце: медиазапрос не добавляет специфичности, и правило
      .fab-dice ниже по файлу иначе перебивало бы этот right. */
@@ -2152,7 +2165,7 @@
           </div>
 
           <div class="hp-section">
-            <div class="hp-label">⚔️ ОЧКИ ЗДОРОВЬЯ</div>
+            <div class="hp-label"><img class="ui-ic" src="images/ui/heart.png" alt=""> ОЧКИ ЗДОРОВЬЯ</div>
             <div class="hp-controls">
               <button class="icon-btn" onclick="changeHP(-1)" id="hp-minus">−</button>
               <div class="hp-display">
@@ -2165,7 +2178,7 @@
             <div style="display:flex;gap:8px;margin-top:12px">
               <button onclick="showHPModal('damage')" style="flex:1;padding:8px;background:rgba(180,30,30,0.3);border:1px solid #c03030;border-radius:8px;color:#e08080;font-family:Cinzel,serif;font-size:12px;cursor:pointer;letter-spacing:0.5px"><img class="ui-ic" src="images/ui/swords.png" alt=""> УРОН</button>
               <button onclick="showHPModal('heal')" style="flex:1;padding:8px;background:rgba(30,140,30,0.3);border:1px solid #308030;border-radius:8px;color:#80c080;font-family:Cinzel,serif;font-size:12px;cursor:pointer;letter-spacing:0.5px"><img class="ui-ic" src="images/ui/heart.png" alt=""> ЛЕЧЕНИЕ</button>
-              <button onclick="longRest()" style="flex:1;padding:8px;background:rgba(100,70,200,0.25);border:1px solid #6040c0;border-radius:8px;color:#c0a0ff;font-family:Cinzel,serif;font-size:12px;cursor:pointer;letter-spacing:0.5px"><img class="ui-ic" src="images/ui/moon.png" alt=""> ОТДЫХ</button>
+              <button onclick="longRest()" style="flex:1;padding:8px;background:rgba(100,70,200,0.25);border:1px solid var(--magic);border-radius:8px;color:#c0a0ff;font-family:Cinzel,serif;font-size:12px;cursor:pointer;letter-spacing:0.5px"><img class="ui-ic" src="images/ui/moon.png" alt=""> ОТДЫХ</button>
             </div>
           </div>
 
@@ -2269,7 +2282,7 @@
 
           <!-- REST / HIT DICE -->
           <div class="section" style="padding-top:0">
-            <div class="section-title">🛌 Отдых</div>
+            <div class="section-title"><img class="ui-ic" src="images/ui/campfire.png" alt=""> Отдых</div>
             <div style="display:flex;align-items:center;gap:10px;background:rgba(200,150,42,0.1);border:1px solid var(--gold);border-radius:10px;padding:10px 14px;margin-bottom:10px">
               <span style="font-size:20px"><img class="ui-ic" src="images/ui/die.png" alt=""></span>
               <div style="flex:1">
@@ -2280,7 +2293,7 @@
             </div>
             <div style="display:flex;gap:8px">
               <button onclick="shortRest()" style="flex:1;padding:10px;background:rgba(200,150,40,0.2);border:1px solid var(--gold);border-radius:8px;color:var(--gold);font-family:Cinzel,serif;font-size:12px;cursor:pointer;letter-spacing:0.5px"><img class="ui-ic" src="images/ui/campfire.png" alt=""> КОРОТКИЙ</button>
-              <button onclick="longRest()" style="flex:1;padding:10px;background:rgba(100,70,200,0.25);border:1px solid #6040c0;border-radius:8px;color:#c0a0ff;font-family:Cinzel,serif;font-size:12px;cursor:pointer;letter-spacing:0.5px"><img class="ui-ic" src="images/ui/moon.png" alt=""> ДЛИННЫЙ</button>
+              <button onclick="longRest()" style="flex:1;padding:10px;background:rgba(100,70,200,0.25);border:1px solid var(--magic);border-radius:8px;color:#c0a0ff;font-family:Cinzel,serif;font-size:12px;cursor:pointer;letter-spacing:0.5px"><img class="ui-ic" src="images/ui/moon.png" alt=""> ДЛИННЫЙ</button>
             </div>
           </div>
         </div>
@@ -2326,7 +2339,7 @@
         <div class="section" style="padding-top:0">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
             <div class="section-title" style="margin:0;flex:1;min-width:0">Список заклинаний</div>
-            <button onclick="openAISearch('spell')" style="background:linear-gradient(135deg,#4a2080,#6b35b0);border:1px solid #8060c0;border-radius:8px;color:#d0b0ff;font-family:Cinzel,serif;font-size:11px;padding:7px 12px;cursor:pointer;letter-spacing:0.5px"><img class="ui-ic" src="images/ui/orb.png" alt=""> БАЗА ЗНАНИЙ</button>
+            <button onclick="openAISearch('spell')" style="background:linear-gradient(135deg,#4a2080,#6b35b0);border:1px solid #8060c0;border-radius:8px;color:var(--magic-light);font-family:Cinzel,serif;font-size:11px;padding:7px 12px;cursor:pointer;letter-spacing:0.5px"><img class="ui-ic" src="images/ui/orb.png" alt=""> БАЗА ЗНАНИЙ</button>
           </div>
           <div class="spell-list" id="spell-list"></div>
         </div>
@@ -2407,7 +2420,7 @@
         <div class="section" style="padding-top:0">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
             <div class="section-title" style="margin:0;flex:1;min-width:0"><img class="ui-ic" src="images/ui/swords.png" alt=""> Предметы</div>
-            <button onclick="openAISearch('item')" style="background:linear-gradient(135deg,#4a2080,#6b35b0);border:1px solid #8060c0;border-radius:8px;color:#d0b0ff;font-family:Cinzel,serif;font-size:11px;padding:7px 12px;cursor:pointer;letter-spacing:0.5px"><img class="ui-ic" src="images/ui/orb.png" alt=""> БАЗА ЗНАНИЙ</button>
+            <button onclick="openAISearch('item')" style="background:linear-gradient(135deg,#4a2080,#6b35b0);border:1px solid #8060c0;border-radius:8px;color:var(--magic-light);font-family:Cinzel,serif;font-size:11px;padding:7px 12px;cursor:pointer;letter-spacing:0.5px"><img class="ui-ic" src="images/ui/orb.png" alt=""> БАЗА ЗНАНИЙ</button>
           </div>
           <div id="inv-list"></div>
           <div class="add-item-row">
@@ -2456,7 +2469,7 @@
         <button class="subtab-btn guide-sub" onclick="switchGuideTab('itembrowser',this)"><img class="ui-ic" src="images/ui/pack.png" alt=""> Снаряжение</button>
         <button class="subtab-btn guide-sub" onclick="switchGuideTab('rules',this)"><img class="ui-ic" src="images/ui/swords.png" alt=""> Правила</button>
         <button class="subtab-btn guide-sub" onclick="switchGuideTab('tips',this)"><img class="ui-ic" src="images/ui/bulb.png" alt=""> Советы</button>
-        <button class="subtab-btn guide-sub" onclick="switchGuideTab('aihelper',this)">🤖 Помощник</button>
+        <button class="subtab-btn guide-sub" onclick="switchGuideTab('aihelper',this)"><img class="ui-ic" src="images/ui/bulb.png" alt=""> Помощник</button>
       </div>
       <div class="content" id="guide-content">
 
@@ -2503,7 +2516,7 @@
           <div class="section">
             <div class="section-title">Каталог снаряжения</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px" id="item-cat-filter-btns">
-              <button class="level-filter-btn active-lf" data-cat="weapon" onclick="setItemCatFilter('weapon',this)">⚔️ Оружие</button>
+              <button class="level-filter-btn active-lf" data-cat="weapon" onclick="setItemCatFilter('weapon',this)"><img class="ui-ic" src="images/ui/swords.png" alt=""> Оружие</button>
               <button class="level-filter-btn" data-cat="armor" onclick="setItemCatFilter('armor',this)"><img class="ui-ic" src="images/ui/shield.png" alt=""> Доспехи</button>
               <button class="level-filter-btn" data-cat="magic" onclick="setItemCatFilter('magic',this)"><img class="ui-ic" src="images/ui/gem.png" alt=""> Магические</button>
               <button class="level-filter-btn" data-cat="gear" onclick="setItemCatFilter('gear',this)"><img class="ui-ic" src="images/ui/pack.png" alt=""> Снаряжение</button>
@@ -2547,7 +2560,7 @@
           </div>
 
           <div class="section" style="padding-top:0">
-            <div class="section-title">💀 Нулевые HP и смерть</div>
+            <div class="section-title"><img class="ui-ic" src="images/ui/skull.png" alt=""> Нулевые HP и смерть</div>
             <div class="guide-card">
               <div class="guide-step"><span class="guide-num">!</span><div><strong>При 0 HP</strong> — персонаж без сознания, падает. Начинаются спасброски от смерти.</div></div>
               <div class="guide-step"><span class="guide-num">✓</span><div><strong>3 успеха</strong> — стабилизируешься (остаёшься без сознания, но не умираешь).</div></div>
@@ -2558,7 +2571,7 @@
           </div>
 
           <div class="section" style="padding-top:0">
-            <div class="section-title">🛌 Виды отдыха</div>
+            <div class="section-title"><img class="ui-ic" src="images/ui/campfire.png" alt=""> Виды отдыха</div>
             <div class="guide-card">
               <div class="guide-step"><span class="guide-num" style="font-size:12px">КОР</span><div><strong>Короткий отдых</strong> (1 час) — тратишь Кости Хитов для восстановления HP. Некоторые классы восстанавливают способности.</div></div>
               <div class="guide-step"><span class="guide-num" style="font-size:12px">ДОЛ</span><div><strong>Долгий отдых</strong> (8 часов) — полностью восстанавливаешь HP, половину Костей Хитов, ячейки заклинаний, большинство способностей.</div></div>
@@ -2566,7 +2579,7 @@
           </div>
 
           <div class="section" style="padding-top:0">
-            <div class="section-title">☠️ Состояния</div>
+            <div class="section-title"><img class="ui-ic" src="images/ui/skull.png" alt=""> Состояния</div>
             <div class="guide-card">
               <div class="guide-row-info"><span class="guide-attr-tag" style="background:rgba(80,180,80,0.2);color:#60c060;border-color:#60c060">Отравлен</span><span>Помеха на броски атаки и проверки характеристик</span></div>
               <div class="guide-row-info"><span class="guide-attr-tag" style="background:rgba(180,80,180,0.2);color:#c060c0;border-color:#c060c0">Испуган</span><span>Помеха на атаки/проверки, не может приближаться к источнику страха</span></div>
@@ -2629,10 +2642,10 @@
         <!-- AI HELPER TAB -->
         <div class="tab-content" id="guide-aihelper">
           <div class="section">
-            <div style="background:linear-gradient(135deg,#1a1040,#0d0820);border:1px solid #6040c0;border-radius:14px;padding:16px;margin-bottom:16px;text-align:center">
-              <div style="font-size:32px;margin-bottom:8px">🤖</div>
-              <div style="font-family:Cinzel,serif;font-size:16px;color:#d0b0ff;letter-spacing:1px;margin-bottom:6px">ПОМОЩНИК ИСКАТЕЛЯ ПРИКЛЮЧЕНИЙ</div>
-              <div style="font-size:13px;color:#b3a3d6;font-style:italic">Задай вопрос по правилам D&D 5e</div>
+            <div style="background:linear-gradient(135deg,#1a1040,#0d0820);border:1px solid var(--magic);border-radius:14px;padding:16px;margin-bottom:16px;text-align:center">
+              <div style="font-size:32px;margin-bottom:8px"><img class="ui-ic" src="images/ui/orb.png" alt=""></div>
+              <div style="font-family:Cinzel,serif;font-size:16px;color:var(--magic-light);letter-spacing:1px;margin-bottom:6px">ПОМОЩНИК ИСКАТЕЛЯ ПРИКЛЮЧЕНИЙ</div>
+              <div style="font-size:13px;color:var(--magic-muted);font-style:italic">Задай вопрос по правилам D&D 5e</div>
             </div>
 
             <div style="display:flex;gap:8px;margin-bottom:12px">
@@ -2642,11 +2655,11 @@
 
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px" id="helper-cat-row">
               <button class="helper-cat active-hc" onclick="setHelperCat('all',this)">Все</button>
-              <button class="helper-cat" onclick="setHelperCat('combat',this)">⚔️ Бой</button>
+              <button class="helper-cat" onclick="setHelperCat('combat',this)"><img class="ui-ic" src="images/ui/swords.png" alt=""> Бой</button>
               <button class="helper-cat" onclick="setHelperCat('spells',this)"><img class="ui-ic" src="images/ui/orb.png" alt=""> Заклинания</button>
               <button class="helper-cat" onclick="setHelperCat('warlock',this)"><img class="ui-ic" src="images/ui/hat.png" alt=""> Колдун</button>
-              <button class="helper-cat" onclick="setHelperCat('rules',this)">📜 Правила</button>
-              <button class="helper-cat" onclick="setHelperCat('roleplay',this)">🎭 Отыгрыш</button>
+              <button class="helper-cat" onclick="setHelperCat('rules',this)"><img class="ui-ic" src="images/ui/scroll.png" alt=""> Правила</button>
+              <button class="helper-cat" onclick="setHelperCat('roleplay',this)"><img class="ui-ic" src="images/ui/mask.png" alt=""> Отыгрыш</button>
             </div>
 
             <div id="helper-answer-area"></div>
@@ -2802,7 +2815,7 @@
 <div class="modal-overlay" id="modal-chars">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
-    <div class="modal-title">🗂 Мои герои</div>
+    <div class="modal-title"><img class="ui-ic" src="images/ui/clipboard.png" alt=""> Мои герои</div>
     <div id="char-list-menu" style="margin-bottom:12px"></div>
     <button class="primary-btn" onclick="openNewCharWizard()" style="margin-bottom:8px">+ Новый герой</button>
     <div style="display:flex;gap:8px;margin-bottom:8px">
@@ -3332,7 +3345,7 @@ function renderPassives() {
   const el = document.getElementById('passive-block');
   if(!el) return;
   const pb = profBonus();
-  const want = [['Восприятие','👁'],['Анализ','🔍'],['Проницательность','🧠']];
+  const want = [['Восприятие',uiIc('eye')],['Анализ',uiIc('search')],['Проницательность',uiIc('bulb')]];
   el.innerHTML = want.map(([nm,ic])=>{
     const i = SKILLS_DATA.findIndex(s=>s.name===nm);
     if(i<0) return '';
@@ -5375,7 +5388,7 @@ function renderClassGuide() {
           return '<button onclick="quickSearchFromGuide(this)" data-spell="' + s + '" style="padding:5px 10px;background:rgba(100,70,200,0.18);border:1px solid rgba(100,70,200,0.5);border-radius:12px;color:#c9b8f0;font-size:12px;cursor:pointer">' + s + '</button>';
         }).join('');
         spellsHTML += '<div style="margin-bottom:10px">'
-          + '<div style="font-family:Cinzel,serif;font-size:11px;color:#d0b0ff;letter-spacing:1px;margin-bottom:6px">' + (l===0?'ЗАГОВОРЫ':l+' УРОВЕНЬ') + '</div>'
+          + '<div style="font-family:Cinzel,serif;font-size:11px;color:var(--magic-light);letter-spacing:1px;margin-bottom:6px">' + (l===0?'ЗАГОВОРЫ':l+' УРОВЕНЬ') + '</div>'
           + '<div style="display:flex;flex-wrap:wrap;gap:6px">' + spellBtns + '</div>'
           + '</div>';
       }
@@ -5474,8 +5487,8 @@ function browseSpells() {
   var html = '<div style="font-family:Cinzel,serif;font-size:11px;color:var(--gold);letter-spacing:1px;margin-bottom:12px">НАЙДЕНО: ' + list.length + ' ЗАКЛИНАНИЙ</div>';
 
   list.forEach(function(sp, i) {
-    var conc = sp.concentration ? '🎯 ' : '';
-    var ritual = sp.ritual ? '📿 ' : '';
+    var conc = sp.concentration ? uiIc('target') + ' ' : '';
+    var ritual = sp.ritual ? uiIc('scroll') + ' ' : '';
     var desc = (sp.description || '').substring(0, 280);
     if ((sp.description || '').length > 280) desc += '...';
 
@@ -5863,7 +5876,7 @@ function askHelper() {
 
   if (best.score === 0) {
     document.getElementById('helper-answer-area').innerHTML =
-      '<div class="helper-not-found">🤔 Не нашёл ответа на "' + esc(input.value) + '"<br><br>'
+      '<div class="helper-not-found">' + uiIc('search') + ' Не нашёл ответа на "' + esc(input.value) + '"<br><br>'
       + 'Попробуй переформулировать или выбери категорию ниже.<br>'
       + 'Например: "концентрация", "атака", "ячейки", "отдых"</div>';
     return;
@@ -5887,7 +5900,7 @@ function showHelperAnswer(id) {
   }
 
   var tipHTML = item.tip
-    ? '<div class="helper-tip-box">💡 <strong>Совет:</strong> ' + item.tip + '</div>'
+    ? '<div class="helper-tip-box">' + uiIc('bulb') + ' <strong>Совет:</strong> ' + item.tip + '</div>'
     : '';
 
   var html = '<div class="helper-answer-card">'
@@ -6537,7 +6550,7 @@ function renderKnowledgeList(list) {
   const container = document.getElementById('ai-results');
 
   if (!list.length) {
-    container.innerHTML = '<div class="ai-empty">😕 Ничего не найдено<br><span style="font-size:12px;color:var(--ink-light)">Попробуй другой класс, уровень или фильтр</span></div>';
+    container.innerHTML = '<div class="ai-empty">' + uiIc('search') + ' Ничего не найдено<br><span style="font-size:12px;color:var(--ink-light)">Попробуй другой класс, уровень или фильтр</span></div>';
     return;
   }
 
@@ -6545,8 +6558,8 @@ function renderKnowledgeList(list) {
 
   if (knowledgeMode === 'spell') {
     list.forEach(function(sp, i) {
-      var conc = sp.concentration ? '🎯 ' : '';
-      var ritual = sp.ritual ? '📿 ' : '';
+      var conc = sp.concentration ? uiIc('target') + ' ' : '';
+      var ritual = sp.ritual ? uiIc('scroll') + ' ' : '';
       var higher = sp.higherLevels ? '<br><br><em>На высоких уровнях:</em> ' + sp.higherLevels : '';
       html += '<div class="spell-browser-card" id="aikcard-' + i + '" onclick="toggleAiKCard(' + i + ')">';
       html += '<div class="spell-level-badge">' + (sp.level===0?'З':sp.level) + '</div>';

@@ -80,6 +80,7 @@ const ASSETS = [
   './images/ui/clipboard.png',
   './images/ui/printer.png',
   './images/ui/gem.png',
+  './images/ui/mask.png',
   './images/ui/fire.png',
   './images/ui/hat.png'
 ];
