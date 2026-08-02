@@ -114,6 +114,16 @@
       border-right: 1px solid rgba(201,150,42,0.35);
       box-shadow: 0 0 80px rgba(0,0,0,0.7);
     }
+    /* Всё, что висит поверх (fixed), тоже держим в пределах колонки листа,
+       иначе на десктопе кнопка d20 парит в пустом фоне, а модалки растягиваются */
+    .fab-dice { right: calc(50% - 320px + 16px); }
+    .modal-sheet { max-width: 640px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+    .ai-overlay {
+      max-width: 640px;
+      margin: 0 auto;
+      border-left: 1px solid rgba(201,150,42,0.35);
+      border-right: 1px solid rgba(201,150,42,0.35);
+    }
   }
 
   .screen { display: none; flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -196,12 +206,9 @@
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
     overscroll-behavior-y: contain;
-    /* Тонкая текстура (гексы/печати) под полупрозрачным слоем цвета
-       поверхности: узор на грани видимости, швы тайла не заметны */
-    background:
-      linear-gradient(rgba(20,24,30,0.8), rgba(20,24,30,0.8)),
-      url('images/bg-texture.jpg') top left / 480px repeat,
-      var(--surface);
+    /* Фон целиком задан ниже, в блоке «глубина и орнамент» — там же, где
+       зерно и красное свечение: два правила .content конфликтовали, и
+       текстура bg-texture.jpg просто не доезжала до экрана */
     /* Запас снизу, чтобы плавающая кнопка d20 не перекрывала последний ряд
        (поля/кнопки в самом низу вкладки) */
     padding-bottom: 84px;
@@ -287,7 +294,7 @@
     border: 1px solid var(--crimson);
   }
 
-  .hp-label { font-family: 'Cinzel', serif; font-size: 11px; color: #c06060; letter-spacing: 1px; margin-bottom: 8px; }
+  .hp-label { font-family: 'Cinzel', serif; font-size: 11px; color: #e08080; letter-spacing: 1px; margin-bottom: 8px; }
 
   .hp-controls {
     display: flex;
@@ -309,7 +316,7 @@
     text-shadow: 0 0 20px rgba(200,50,50,0.5);
   }
 
-  .hp-max { font-size: 16px; color: #a05050; }
+  .hp-max { font-size: 16px; color: #d98a8a; }
 
   .hp-bar-track {
     height: 6px;
@@ -347,7 +354,8 @@
   /* ---- ABILITY SCORES ---- */
   .abilities-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    /* minmax(0,1fr) — иначе длинное слово («ПРОНИЦАТЕЛЬНОСТЬ») не даёт колонке сжаться и сетка вылезает за экран на 320px */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
   }
 
@@ -404,6 +412,7 @@
   }
 
   .skill-prof {
+    position: relative;
     width: 18px;
     height: 18px;
     border: 2px solid var(--stone-light);
@@ -423,6 +432,17 @@
   }
 
   .skill-prof.proficient::after { content: ''; width: 8px; height: 8px; background: white; border-radius: 50%; }
+  /* Кружок владения — 18px, но палец попадает в область 44×34: промах по нему
+     раньше засчитывался как тап по строке и бросал кубик */
+  .skill-prof::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 34px;
+    transform: translate(-50%, -50%);
+  }
 
   .skill-name { flex: 1; font-size: 15px; color: var(--ink); }
   .skill-attr { font-size: 11px; color: var(--ink-light); font-style: italic; }
@@ -596,7 +616,7 @@
   .count-val { font-family: 'Cinzel', serif; font-size: 18px; color: var(--parchment); min-width: 20px; text-align: center; }
 
   /* ---- SPELLS ---- */
-  .spell-slots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+  .spell-slots-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
 
   .spell-slot-card {
     background: linear-gradient(135deg, #1a1040, #0d0820);
@@ -791,7 +811,7 @@
   }
 
   /* ---- COMBAT ---- */
-  .combat-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .combat-stats-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
 
   .combat-stat {
     background: var(--card);
@@ -854,9 +874,9 @@
     margin-bottom: 16px;
   }
 
-  .death-saves-title { font-family: 'Cinzel', serif; font-size: 12px; color: #a04040; letter-spacing: 1px; margin-bottom: 10px; }
+  .death-saves-title { font-family: 'Cinzel', serif; font-size: 12px; color: #e08a8a; letter-spacing: 1px; margin-bottom: 10px; }
   .ds-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-  .ds-label { font-size: 13px; color: #806060; width: 70px; }
+  .ds-label { font-size: 13px; color: #c49696; width: 70px; }
   .ds-dots { display: flex; gap: 8px; }
   .ds-dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid; cursor: pointer; transition: all 0.2s; }
   .ds-dot.success { border-color: #30b030; }
@@ -1074,6 +1094,7 @@
 
   .ai-search-input {
     flex: 1;
+    min-width: 0; /* иначе поле выталкивает кнопку за экран на 320px */
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(200,150,42,0.4);
     border-radius: 10px;
@@ -1082,7 +1103,7 @@
     color: var(--parchment);
     -webkit-appearance: none;
   }
-  .ai-search-input::placeholder { color: #605040; }
+  .ai-search-input::placeholder { color: #8a94a1; }
   .ai-search-input:focus { outline: none; border-color: var(--gold); }
 
   .ai-search-btn {
@@ -1141,7 +1162,7 @@
   .ai-empty {
     text-align: center;
     padding: 40px 20px;
-    color: #605040;
+    color: var(--ink-light);
     font-family: 'Cinzel', serif;
     font-size: 13px;
     letter-spacing: 1px;
@@ -1365,7 +1386,7 @@
 
   .class-stat-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
     margin: 16px 0;
   }
@@ -1646,11 +1667,15 @@
 
   /* ============ ГЛУБИНА И ОРНАМЕНТ (полировка в духе DDB) ============ */
 
-  /* Лёгкое зерно + красное свечение сверху вместо плоской заливки */
+  /* Красное свечение сверху + зерно + тонкая текстура (гексы/печати) под
+     полупрозрачным слоем цвета поверхности: узор на грани видимости,
+     швы тайла не заметны */
   .content {
     background:
       radial-gradient(ellipse 130% 50% at 50% -8%, rgba(224,67,67,0.06), transparent 60%),
       url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='linear' slope='0.04'/></feComponentTransfer></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
+      linear-gradient(rgba(20,24,30,0.82), rgba(20,24,30,0.82)),
+      url('images/bg-texture.jpg') top left / 480px repeat,
       var(--surface);
   }
 
@@ -1853,7 +1878,8 @@
   .hero-banner .char-name-input { border-bottom-color: rgba(255,255,255,0.25); }
 
   /* Сетка эмодзи в выборе портрета */
-  .emoji-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 14px; }
+  /* auto-fill вместо жёстких 5 колонок: на широком экране ячейки не раздувались бы до 150px */
+  .emoji-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 8px; margin-bottom: 14px; }
   .emoji-grid button {
     font-size: 26px;
     padding: 8px 0;
@@ -1899,9 +1925,11 @@
     justify-content: center;
     cursor: pointer;
     z-index: 150;
-    transition: transform 0.12s;
+    transition: transform 0.12s, opacity 0.2s;
   }
   .fab-dice:active { transform: scale(0.9); }
+  /* Пока вкладка едет под пальцем, кнопка приглушается и не закрывает строку */
+  .fab-dice.scrolling { opacity: 0.3; }
   .fab-dice svg { width: 30px; height: 30px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linejoin: round; }
   .fab-dice.hidden { display: none; }
 
@@ -2133,7 +2161,7 @@
               <button class="icon-btn" onclick="changeHP(-1)" id="hp-minus">−</button>
               <div class="hp-display">
                 <div class="hp-current" id="hp-current">10</div>
-                <div class="hp-max">/ <input id="hp-max-input" type="number" min="1" value="10" onchange="onMaxHPChange()" style="font-family:Cinzel,serif;font-size:16px;color:#a05050;background:transparent;border:none;border-bottom:1px solid rgba(192,80,80,0.4);width:46px;text-align:center;-webkit-appearance:none"> макс.</div>
+                <div class="hp-max">/ <input id="hp-max-input" type="number" min="1" value="10" onchange="onMaxHPChange()" style="font-family:Cinzel,serif;font-size:16px;color:#d98a8a;background:transparent;border:none;border-bottom:1px solid rgba(192,80,80,0.4);width:46px;text-align:center;-webkit-appearance:none"> макс.</div>
                 <div class="hp-bar-track"><div class="hp-bar-fill" id="hp-bar" style="width:100%"></div><div class="hp-marker" id="hp-marker" style="left:100%"></div></div>
               </div>
               <button class="icon-btn" onclick="changeHP(+1)" id="hp-plus">+</button>
@@ -2228,7 +2256,7 @@
           <!-- CLASS RESOURCES -->
           <div class="section" style="padding-top:0">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-              <div class="section-title" style="margin:0">Ресурсы класса</div>
+              <div class="section-title" style="margin:0;flex:1;min-width:0">Ресурсы класса</div>
               <button onclick="scanNotesForResources()" title="Найти счётчики в заметках" style="background:rgba(255,255,255,0.05);border:1px solid var(--line);border-radius:8px;color:var(--ink-light);font-size:11px;padding:6px 10px;cursor:pointer;white-space:nowrap">🔎 из заметок</button>
             </div>
             <div id="resources-list"></div>
@@ -2301,7 +2329,7 @@
         </div>
         <div class="section" style="padding-top:0">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <div class="section-title" style="margin:0">Список заклинаний</div>
+            <div class="section-title" style="margin:0;flex:1;min-width:0">Список заклинаний</div>
             <button onclick="openAISearch('spell')" style="background:linear-gradient(135deg,#4a2080,#6b35b0);border:1px solid #8060c0;border-radius:8px;color:#d0b0ff;font-family:Cinzel,serif;font-size:11px;padding:7px 12px;cursor:pointer;letter-spacing:0.5px"><img class="ui-ic" src="images/ui/orb.png" alt=""> БАЗА ЗНАНИЙ</button>
           </div>
           <div class="spell-list" id="spell-list"></div>
@@ -2355,7 +2383,7 @@
         </div>
         <div class="section" style="padding-top:0">
           <div style="display:flex;align-items:center;justify-content:space-between">
-            <div class="section-title" style="border:none;margin:0">История бросков</div>
+            <div class="section-title" style="border:none;margin:0;flex:1;min-width:0">История бросков</div>
             <button id="clear-history-btn" onclick="clearRollHistory()" style="display:none;background:none;border:1px solid var(--line);border-radius:8px;color:var(--ink-light);font-size:12px;padding:5px 10px;cursor:pointer"><img class="ui-ic" src="images/ui/trash.png" alt=""> Очистить</button>
           </div>
           <div id="roll-history" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
@@ -2382,7 +2410,7 @@
         </div>
         <div class="section" style="padding-top:0">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <div class="section-title" style="margin:0"><img class="ui-ic" src="images/ui/swords.png" alt=""> Предметы</div>
+            <div class="section-title" style="margin:0;flex:1;min-width:0"><img class="ui-ic" src="images/ui/swords.png" alt=""> Предметы</div>
             <button onclick="openAISearch('item')" style="background:linear-gradient(135deg,#4a2080,#6b35b0);border:1px solid #8060c0;border-radius:8px;color:#d0b0ff;font-family:Cinzel,serif;font-size:11px;padding:7px 12px;cursor:pointer;letter-spacing:0.5px"><img class="ui-ic" src="images/ui/orb.png" alt=""> БАЗА ЗНАНИЙ</button>
           </div>
           <div id="inv-list"></div>
@@ -2612,7 +2640,7 @@
             </div>
 
             <div style="display:flex;gap:8px;margin-bottom:12px">
-              <input id="ai-helper-input" type="text" placeholder="Например: как работает концентрация?" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(200,150,42,0.4);border-radius:10px;padding:12px 14px;font-size:16px;color:var(--parchment);-webkit-appearance:none" onkeydown="if(event.key==='Enter')askHelper()">
+              <input id="ai-helper-input" type="text" placeholder="Например: как работает концентрация?" style="flex:1;min-width:0;background:rgba(255,255,255,0.05);border:1px solid rgba(200,150,42,0.4);border-radius:10px;padding:12px 14px;font-size:16px;color:var(--parchment);-webkit-appearance:none" onkeydown="if(event.key==='Enter')askHelper()">
               <button onclick="askHelper()" style="background:linear-gradient(135deg,var(--crimson),#6b0f0f);border:1px solid var(--gold);border-radius:10px;padding:12px 18px;font-family:Cinzel,serif;font-size:13px;color:var(--gold-light);cursor:pointer;letter-spacing:0.5px;white-space:nowrap">Спросить</button>
             </div>
 
@@ -3218,6 +3246,20 @@ function currentTabName() {
   const vis = TAB_ORDER.find(t => { const el=document.getElementById('tab-'+t); return el && el.style.display!=='none'; });
   return vis || 'character';
 }
+// Кнопка d20 висит поверх контента и на длинных вкладках закрывает строку,
+// к которой игрок как раз прокручивает. Пока идёт скролл — приглушаем её.
+let _fabDimTimer = null;
+function initFabDimming() {
+  const fab = document.getElementById('fab-dice');
+  if(!fab) return;
+  const dim = () => {
+    fab.classList.add('scrolling');
+    clearTimeout(_fabDimTimer);
+    _fabDimTimer = setTimeout(() => fab.classList.remove('scrolling'), 450);
+  };
+  document.querySelectorAll('.content').forEach(c => c.addEventListener('scroll', dim, {passive:true}));
+}
+
 function initSwipeNav() {
   const scr = document.getElementById('screen-main');
   if(!scr) return;
@@ -3251,6 +3293,7 @@ function startApp() {
   loadData();
   loadFxSettings();
   initSwipeNav();
+  initFabDimming();
   setInterval(saveAll, 5000);
   setTimeout(maybeShowBackupReminder, 4000);
 }
@@ -4482,7 +4525,7 @@ function renderCharMenu() {
         <div style="font-family:Cinzel,serif;font-size:15px;color:var(--ink)">${esc(c.name||'Без имени')} ${active?'✓':''}</div>
         <div style="font-size:12px;color:var(--ink-light)">${esc(cls)} · ур.${esc(String(lvl))}</div>
       </div>
-      <button onclick="duplicateCharacter('${c.id}')" title="Копия" style="background:none;border:1px solid var(--parchment-dark);border-radius:6px;padding:6px 8px;cursor:pointer">⧉</button>
+      <button onclick="duplicateCharacter('${c.id}')" title="Копия" style="background:none;border:1px solid var(--parchment-dark);border-radius:6px;padding:6px 8px;cursor:pointer;color:var(--ink-light);font-size:15px;line-height:1">⧉</button>
       <button onclick="deleteCharacter('${c.id}')" title="Удалить" style="background:none;border:none;color:#c05050;font-size:18px;cursor:pointer">🗑</button>
     </div>`;
   }).join('');
@@ -5220,7 +5263,7 @@ function renderClassGuide() {
           return '<button onclick="quickSearchFromGuide(this)" data-spell="' + s + '" style="padding:5px 10px;background:rgba(100,70,200,0.18);border:1px solid rgba(100,70,200,0.5);border-radius:12px;color:#c9b8f0;font-size:12px;cursor:pointer">' + s + '</button>';
         }).join('');
         spellsHTML += '<div style="margin-bottom:10px">'
-          + '<div style="font-family:Cinzel,serif;font-size:11px;color:#5a2da0;letter-spacing:1px;margin-bottom:6px">' + (l===0?'ЗАГОВОРЫ':l+' УРОВЕНЬ') + '</div>'
+          + '<div style="font-family:Cinzel,serif;font-size:11px;color:#d0b0ff;letter-spacing:1px;margin-bottom:6px">' + (l===0?'ЗАГОВОРЫ':l+' УРОВЕНЬ') + '</div>'
           + '<div style="display:flex;flex-wrap:wrap;gap:6px">' + spellBtns + '</div>'
           + '</div>';
       }
@@ -5669,7 +5712,7 @@ function renderHelperQuestions() {
     ? QA_DB
     : QA_DB.filter(function(q) { return q.cat === currentHelperCat; });
 
-  var html = '<div style="font-family:Cinzel,serif;font-size:10px;color:#605040;letter-spacing:1px;margin-bottom:10px">ЧАСТЫЕ ВОПРОСЫ — нажми чтобы узнать</div>';
+  var html = '<div style="font-family:Cinzel,serif;font-size:10px;color:var(--ink-light);letter-spacing:1px;margin-bottom:10px">ЧАСТЫЕ ВОПРОСЫ — нажми чтобы узнать</div>';
   filtered.forEach(function(item) {
     html += '<div class="helper-q-item" onclick="showHelperAnswer(\'' + item.id + '\')">'
       + '<span class="helper-q-icon">' + item.icon + '</span>'
@@ -6382,7 +6425,7 @@ function renderKnowledgeList(list) {
   const container = document.getElementById('ai-results');
 
   if (!list.length) {
-    container.innerHTML = '<div class="ai-empty">😕 Ничего не найдено<br><span style="font-size:12px;color:#705040">Попробуй другой класс, уровень или фильтр</span></div>';
+    container.innerHTML = '<div class="ai-empty">😕 Ничего не найдено<br><span style="font-size:12px;color:var(--ink-light)">Попробуй другой класс, уровень или фильтр</span></div>';
     return;
   }
 
@@ -6459,7 +6502,7 @@ function addKnowledgeItem(i) {
 function showToast(msg) {
   const t = document.createElement('div');
   t.textContent = msg;
-  t.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--stone);color:var(--gold-light);border:1px solid var(--gold);border-radius:20px;padding:10px 20px;font-family:"Cinzel",serif;font-size:13px;letter-spacing:0.5px;z-index:500;white-space:nowrap;animation:fadeInUp 0.3s ease';
+  t.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--stone);color:var(--gold-light);border:1px solid var(--gold);border-radius:20px;padding:10px 20px;font-family:"Cinzel",serif;font-size:13px;letter-spacing:0.5px;z-index:500;max-width:min(92vw,420px);text-align:center;line-height:1.4;animation:fadeInUp 0.3s ease';
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2500);
 }
