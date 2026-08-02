@@ -94,7 +94,13 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
-  self.skipWaiting();
+  // Без skipWaiting: новый воркер ждёт, пока страница сама попросит его встать
+  // (кнопка «ОБНОВИТЬ» в тосте). Иначе версия подменяется под руками у игрока.
+});
+
+// Страница нажала «ОБНОВИТЬ» — активируемся; дальше controllerchange перезагрузит её
+self.addEventListener('message', (event) => {
+  if (event.data === 'skipWaiting') self.skipWaiting();
 });
 
 // Activate: clean up old caches

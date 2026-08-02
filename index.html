@@ -716,6 +716,8 @@
 
   .inv-icon { font-size: 20px; width: 32px; text-align: center; }
   .inv-icon .item-pic { width: 26px; height: 26px; display: block; margin: 0 auto; opacity: 0.92; }
+  /* Та же пиктограмма в кружке-бейдже каталога «Базы знаний» */
+  .spell-level-badge .item-pic { width: 22px; height: 22px; display: block; opacity: 0.95; }
   .inv-name { flex: 1; font-size: 15px; color: var(--ink); cursor: pointer; text-decoration: underline dotted rgba(90,58,26,0.35); text-underline-offset: 3px; }
   .inv-qty { font-family: 'Cinzel', serif; font-size: 14px; color: var(--crimson); min-width: 24px; text-align: right; }
   .inv-delete { background: none; border: none; color: #c05050; font-size: 18px; padding: 4px 8px; cursor: pointer; opacity: 0.6; }
@@ -4091,7 +4093,7 @@ function renderRollHistory() {
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.095)">
       <div style="font-family:Cinzel,serif;font-size:22px;color:${r.isCrit?'#f0c040':r.isFail?'#c03030':'var(--ink)'};min-width:36px;text-align:center">${r.total}</div>
       <div style="flex:1">
-        <div style="font-size:13px;color:var(--ink-light)">${r.label}${r.isCrit?' ⭐ КРИТ!':r.isFail?' 💀 ПРОВАЛ':''}</div>
+        <div style="font-size:13px;color:var(--ink-light)">${esc(r.label)}${r.isCrit?' ⭐ КРИТ!':r.isFail?' 💀 ПРОВАЛ':''}</div>
       </div>
       <div style="font-size:11px;color:#8d97a3">${r.time}</div>
     </div>`).join('');
@@ -4326,8 +4328,10 @@ function openPortraitPicker() {
   grid.innerHTML =
     `<button class="${crestPicked ? 'picked' : ''}" title="Герб класса" onclick="pickPortraitEmoji('crest')">`
     + crestImgTag(document.getElementById('char-class')?.value || '') + `</button>`
+    // …и только если герб НЕ выбран, подсвечиваем эмодзи: у дефолтных эмодзи класса
+    // подсветка иначе загоралась одновременно на гербе и на самом эмодзи
     + EMOJIS.map(e =>
-    `<button class="${state.portrait===e && !state.portraitImg ? 'picked' : ''}" onclick="pickPortraitEmoji('${e}')">${e}</button>`
+    `<button class="${!crestPicked && state.portrait===e && !state.portraitImg ? 'picked' : ''}" onclick="pickPortraitEmoji('${e}')">${e}</button>`
   ).join('');
   document.getElementById('portrait-remove-btn').style.display = state.portraitImg ? 'block' : 'none';
   document.getElementById('modal-portrait').classList.add('open');
@@ -4399,6 +4403,8 @@ function applyCharacter(data) {
   state.spells = d.spells || [];
   state.spellSlots = (d.spellSlots && d.spellSlots.length) ? d.spellSlots : (initSpellSlots(), state.spellSlots);
   state.inventory = d.inventory || [];
+  // Старые сохранения хранили в icon эмодзи или даже готовый HTML — нормализуем в ключ
+  state.inventory.forEach(it => { if(!/^[a-z]+$/.test(it.icon || '')) it.icon = getItemIcon(it.name || ''); });
   state.conditions = d.conditions || [];
   state.dsSuccess = d.dsSuccess || [false,false,false];
   state.dsFailure = d.dsFailure || [false,false,false];
@@ -5127,7 +5133,6 @@ function setItemCatFilter(cat, btn) {
   renderItemBrowser();
 }
 
-const ITEM_CAT_ICONS = { weapon: uiIc('swords'), armor: uiIc('shield'), magic: uiIc('gem'), gear: uiIc('pack') };
 const ITEM_CAT_LABELS = { weapon: 'Оружие', armor: 'Доспех', magic: 'Магия', gear: 'Снаряжение' };
 
 function renderItemBrowser() {
@@ -5157,7 +5162,7 @@ function renderItemBrowser() {
     }
 
     html += '<div class="spell-browser-card" id="itembcard-' + i + '" onclick="toggleItemBcard(' + i + ')">';
-    html += '<div class="spell-level-badge" style="background:linear-gradient(135deg,#8b1a1a,#6b0f0f);border-color:#c9962a">' + ITEM_CAT_ICONS[it.type] + '</div>';
+    html += '<div class="spell-level-badge" style="background:linear-gradient(135deg,#8b1a1a,#6b0f0f);border-color:#c9962a">' + itemIconImg({ name: it.name }) + '</div>';
     html += '<div class="spell-browser-info">';
     html += '<div class="spell-browser-name">' + it.name + '</div>';
     html += '<div class="spell-browser-meta">' + (it.itemType || ITEM_CAT_LABELS[it.type]) + ' · ' + subtitle + '</div>';
@@ -5178,8 +5183,7 @@ function toggleItemBcard(i) {
 function addItemFromBrowser(i) {
   var it = window._itemBrowserCache[i];
   if (!it) return;
-  var icon = uiIc(it.type === 'weapon' ? 'swords' : it.type === 'armor' ? 'shield' : it.type === 'magic' ? 'gem' : 'pack');
-  state.inventory.push({ name: it.name, qty: 1, icon: icon, detail: it });
+  state.inventory.push({ name: it.name, qty: 1, icon: getItemIcon(it.name), detail: it });
   renderInventory();
   saveAll();
   showToast('🎒 ' + it.name + ' добавлено!');
@@ -5267,8 +5271,17 @@ function renderClassGuide() {
 function quickSearchFromGuide(el) {
   var spellName = typeof el === 'string' ? el : el.dataset.spell;
   openAISearch('spell');
+  // Заклинание из гида может принадлежать не тому классу, что стоит в фильтре, —
+  // иначе после перехода список окажется пустым
+  const sp = DB_SPELLS.find(s => s.name === spellName);
+  const pick = sp && (sp.classes || []).find(c => KNOWLEDGE_CLASS_LIST.includes(c));
+  if (pick) {
+    knowledgeClassFilter = pick;
+    const sel = document.getElementById('ai-class-select');
+    if (sel) sel.value = pick;
+  }
   document.getElementById('ai-search-input').value = spellName;
-  doAISearch();
+  refreshKnowledgeList();
 }
 
 function setLevelFilter(lvl, btn) {
@@ -5695,7 +5708,7 @@ function askHelper() {
 
   if (best.score === 0) {
     document.getElementById('helper-answer-area').innerHTML =
-      '<div class="helper-not-found">🤔 Не нашёл ответа на "' + input.value + '"<br><br>'
+      '<div class="helper-not-found">🤔 Не нашёл ответа на "' + esc(input.value) + '"<br><br>'
       + 'Попробуй переформулировать или выбери категорию ниже.<br>'
       + 'Например: "концентрация", "атака", "ячейки", "отдых"</div>';
     return;
@@ -6399,7 +6412,7 @@ function renderKnowledgeList(list) {
       else subtitle = (it.cost || '') + (it.weight ? ' · ' + it.weight : '');
 
       html += '<div class="spell-browser-card" id="aikcard-' + i + '" onclick="toggleAiKCard(' + i + ')">';
-      html += '<div class="spell-level-badge" style="background:linear-gradient(135deg,#8b1a1a,#6b0f0f);border-color:#c9962a">' + (ITEM_CAT_ICONS[it.type]||'🎒') + '</div>';
+      html += '<div class="spell-level-badge" style="background:linear-gradient(135deg,#8b1a1a,#6b0f0f);border-color:#c9962a">' + itemIconImg({ name: it.name }) + '</div>';
       html += '<div class="spell-browser-info">';
       html += '<div class="spell-browser-name">' + it.name + '</div>';
       html += '<div class="spell-browser-meta">' + (it.itemType||'') + ' · ' + subtitle + '</div>';
@@ -6435,8 +6448,9 @@ function addKnowledgeSpell(i) {
 function addKnowledgeItem(i) {
   var it = _knowledgeCache[i];
   if (!it) return;
-  var icon = uiIc(it.type==='weapon'?'swords':it.type==='armor'?'shield':it.type==='magic'?'gem':'pack');
-  state.inventory.push({ name: it.name, qty: 1, icon: icon, detail: it });
+  // В icon кладём КЛЮЧ пиктограммы, а не готовый HTML: он уходит в localStorage
+  // и в payload QR-кода, а рисуется всё равно через itemIconImg()
+  state.inventory.push({ name: it.name, qty: 1, icon: getItemIcon(it.name), detail: it });
   renderInventory();
   saveAll();
   showToast('🎒 ' + it.name + ' добавлено!');
@@ -6453,7 +6467,7 @@ function showToast(msg) {
 // Enter key in AI search
 document.addEventListener('DOMContentLoaded', () => {
   const inp = document.getElementById('ai-search-input');
-  if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') doAISearch(); });
+  if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); filterKnowledgeList(); } });
 });
 
 // Add toast animation
@@ -6481,12 +6495,16 @@ setAppHeight();
 window.addEventListener('resize', setAppHeight);
 window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 300));
 
+let _swWaiting = null;
+
 if ('serviceWorker' in navigator) {
-  // Новый воркер захватил управление — перезагружаемся один раз, чтобы сразу
-  // показать свежую версию (без ручного удаления приложения).
+  // Страницей уже управлял воркер? При САМОЙ ПЕРВОЙ установке controllerchange
+  // срабатывает сразу после clients.claim(), и безусловная перезагрузка сбрасывала
+  // состояние запуска — в том числе импорт персонажа по ссылке #i=.
+  const hadController = !!navigator.serviceWorker.controller;
   let swRefreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if(swRefreshing) return;
+    if(!hadController || swRefreshing) return;
     swRefreshing = true;
     location.reload();
   });
@@ -6496,23 +6514,34 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
       reg.update(); // активная проверка новой версии при запуске
       setInterval(() => reg.update().catch(()=>{}), 60 * 60 * 1000); // и раз в час, пока открыто
+      if(reg.waiting && navigator.serviceWorker.controller) showUpdateToast(reg.waiting);
       reg.addEventListener('updatefound', () => {
         const nw = reg.installing;
         if(!nw) return;
         nw.addEventListener('statechange', () => {
-          if(nw.state === 'installed' && navigator.serviceWorker.controller) showUpdateToast();
+          if(nw.state === 'installed' && navigator.serviceWorker.controller) showUpdateToast(nw);
         });
       });
     }).catch(()=>{});
   });
 }
 
-function showUpdateToast() {
+// Новая версия не подменяет страницу под руками: воркер ждёт, пока игрок сам
+// нажмёт «ОБНОВИТЬ» (иначе можно потерять недописанную заметку или бросок).
+function applyUpdate() {
+  const t = document.getElementById('update-toast');
+  if(t) t.remove();
+  if(_swWaiting) _swWaiting.postMessage('skipWaiting');
+  else location.reload();
+}
+
+function showUpdateToast(worker) {
+  _swWaiting = worker || _swWaiting;
   if(document.getElementById('update-toast')) return;
   const t = document.createElement('div');
   t.id = 'update-toast';
   t.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--stone);color:var(--gold-light);border:1px solid var(--gold);border-radius:14px;padding:12px 16px;font-family:"Cinzel",serif;font-size:13px;z-index:500;display:flex;align-items:center;gap:12px;animation:fadeInUp 0.3s ease;max-width:92vw';
-  t.innerHTML = '<span>Доступно обновление</span><button onclick="location.reload()" style="background:linear-gradient(135deg,var(--crimson),#6b0f0f);border:1px solid var(--gold);border-radius:8px;color:var(--gold-light);font-family:Cinzel,serif;font-size:12px;padding:7px 12px;cursor:pointer;letter-spacing:0.5px">ОБНОВИТЬ</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#8a94a1;font-size:16px;cursor:pointer;padding:2px">✕</button>';
+  t.innerHTML = '<span>Доступно обновление</span><button onclick="applyUpdate()" style="background:linear-gradient(135deg,var(--crimson),#6b0f0f);border:1px solid var(--gold);border-radius:8px;color:var(--gold-light);font-family:Cinzel,serif;font-size:12px;padding:7px 12px;cursor:pointer;letter-spacing:0.5px">ОБНОВИТЬ</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#8a94a1;font-size:16px;cursor:pointer;padding:2px">✕</button>';
   document.body.appendChild(t);
 }
 </script>
