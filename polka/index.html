@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F7F4FF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Детская полка: сказки, часики и обучение чтению, письму и счёту">
+<title>Детская полка — сказки и игры</title>
+
+<!-- Шрифт грузится НЕблокирующе: без интернета страница рисуется сразу -->
+<link rel="stylesheet" media="print" onload="this.media='all'"
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap">
+
+<link rel="stylesheet" href="hub/hub.css">
+
+<!-- Установка на телефон: «Добавить на экран «Домой» -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Полка">
+</head>
+<body>
+
+<main id="hub" class="wrap"></main>
+
+<!-- Общий профиль ребёнка: имя и персонаж на все приложения -->
+<script src="shared/profile.js"></script>
+
+<!-- Оглавление. Должно загрузиться до проверок ниже: они зовут Hub.* -->
+<script src="hub/hub.js"></script>
+
+<!--
+  Проверка, какие приложения лежат рядом.
+  Каждое приложение кладёт рядом app.info.js и вызывает Hub.ready().
+  Если папки нет, срабатывает onerror — карточка объяснит, что делать,
+  вместо ошибки браузера. Это единственный способ проверить наличие
+  файла, когда страница открыта двойным кликом (fetch там запрещён).
+-->
+<script src="skazki/app.info.js"    onerror="window.Hub&&Hub.missing('skazki')"></script>
+<script src="chasiki/app.info.js"   onerror="window.Hub&&Hub.missing('chasiki')"></script>
+<script src="umnyashka/app.info.js" onerror="window.Hub&&Hub.missing('umnyashka')"></script>
+
+<!-- Оффлайн: после первого захода по сети всё работает без интернета.
+     Регистрируем только по http(s) — при открытии двойным кликом (file://) SW не нужен. -->
+<script>
+if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+
+</body>
+</html>

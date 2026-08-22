@@ -1,0 +1,97 @@
+/* =========================================================
+   tokens.css — дизайн-система «Умняшки».
+   Единственное место, где заданы цвета, размеры и тени.
+   ========================================================= */
+
+:root{
+  /* --- Цвет: тёплая светлая база, два акцента на блок --- */
+  --bg:            #F6F4FF;
+  --bg-warm:       #FFF9F2;
+  --surface:       #FFFFFF;
+  --surface-2:     #F4F1FF;
+
+  /* блок «Читаем и пишем» — фиолетово-розовый */
+  --read:          #7C5CE0;
+  --read-dark:     #5E3FC0;
+  --read-soft:     #EDE7FF;
+  --read-tint:     #F7F4FF;
+
+  /* блок «Математика» — бирюзово-синий.
+     Оттенки затемнены до контраста 4.5:1 с белым текстом на кнопках. */
+  --math:          #0E7F92;
+  --math-dark:     #0A6878;
+  --math-soft:     #DCF5F8;
+  --math-tint:     #F1FCFD;
+
+  /* общие акценты */
+  --sun:           #FFB300;
+  --sun-dark:      #D98E00;
+  --sun-soft:      #FFF3D6;
+  /* Зелёный — цвет главной кнопки «Дальше»; затемнён до 5.4:1 с белым */
+  --grass:         #177A45;
+  --grass-dark:    #0F5A31;
+  --grass-soft:    #E0F7EB;
+  --coral:         #FF7A66;      /* используется бережно, ошибки НЕ красные */
+  --coral-ink:     #C43C28;      /* тот же смысл, но читаемый на белом */
+  --peach:         #FFAB7B;
+  --peach-soft:    #FFF0E6;
+  --peach-ink:     #A34D18;      /* текст «попробуй ещё» на персиковом */
+  --sun-ink:       #8A5A00;      /* текст на жёлтом */
+  --sky:           #4C9AFF;
+
+  /* текст и линии */
+  --ink:           #2B2350;
+  --ink-2:         #574B7D;
+  --muted:         #6B6390;
+  --line:          #E4E0F2;
+  --line-2:        #CFC8E8;
+
+  /* --- Тени: «объёмные» кнопки как в детских играх --- */
+  --sh-sm:  0 2px 0 rgba(43,35,80,.10);
+  --sh:     0 6px 0 rgba(43,35,80,.08), 0 12px 28px rgba(43,35,80,.10);
+  --sh-lg:  0 10px 0 rgba(43,35,80,.08), 0 24px 50px rgba(43,35,80,.16);
+
+  /* --- Радиусы --- */
+  --r-xs: 12px;
+  --r-sm: 18px;
+  --r:    26px;
+  --r-lg: 34px;
+  --r-xl: 46px;
+
+  /* --- Отступы (шаг 4) --- */
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
+  --s5: 20px; --s6: 24px; --s8: 32px; --s10: 40px;
+
+  /* --- Типографика --- */
+  --font: 'Nunito', 'SF Pro Rounded', 'Segoe UI Rounded', 'Comic Sans MS',
+          system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+
+  --t-hero:  clamp(30px, 7vw, 52px);
+  --t-title: clamp(23px, 5.2vw, 36px);
+  --t-sub:   clamp(18px, 4.2vw, 25px);
+  --t-body:  clamp(15px, 3.6vw, 19px);
+  --t-small: 14px;
+
+  /* размер обучающего символа (буква/цифра) */
+  --glyph:   clamp(84px, 26vw, 168px);
+
+  /* --- Движение --- */
+  --dur-fast: .16s;
+  --dur:      .3s;
+  --dur-slow: .6s;
+  --ease:     cubic-bezier(.22,.8,.3,1);
+  --pop:      cubic-bezier(.34,1.56,.64,1);
+
+  /* --- Безопасные зоны --- */
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* минимальная площадь касания для детской руки */
+  --tap: 56px;
+}
+
+/* Тема блока: задаётся классом на экране, компоненты берут --accent */
+.t-read{ --accent: var(--read); --accent-dark: var(--read-dark); --accent-soft: var(--read-soft); --accent-tint: var(--read-tint); }
+.t-math{ --accent: var(--math); --accent-dark: var(--math-dark); --accent-soft: var(--math-soft); --accent-tint: var(--math-tint); }
+.t-sun { --accent: var(--sun);  --accent-dark: var(--sun-dark);  --accent-soft: var(--sun-soft);  --accent-tint: var(--sun-soft); }
+body   { --accent: var(--read); --accent-dark: var(--read-dark); --accent-soft: var(--read-soft); --accent-tint: var(--read-tint); }

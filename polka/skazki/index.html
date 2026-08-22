@@ -1,0 +1,1860 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Сказки про Давида и Луку</title>
+<link rel="stylesheet" media="print" onload="this.media='all'"
+      href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&family=Nunito:wght@400;700&display=swap">
+<!-- Общий профиль «Детской полки»: имя ребёнка на все приложения -->
+<script src="../shared/profile.js"></script>
+<style>
+  :root{
+    --sky1:#8fd3f4; --sky2:#c9ecff;
+    --grass:#7ec850; --grass-dark:#5faa3c;
+    --pitch:#57b04a; --pitch-dark:#4a9e3e;
+    --track:#e0955a;
+    --sun:#ffd54a;
+    --cat:#f2b53a; --cat-dark:#d99320;
+    --text:#3a2f22; --card:#fffaf0; --accent:#ff8a50;
+    --kit-white:#f5f5f2; --kit-red:#d8402f;
+    --dark:#141a38; --flame:#ffb347;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:'Nunito',sans-serif;
+    background:linear-gradient(180deg,#aee3ff 0%,#dff4ff 55%,#c8ecb0 100%);
+    color:var(--text);
+    min-height:100%;
+    display:flex;flex-direction:column;align-items:center;
+    overflow-x:hidden;overflow-y:auto;
+    padding:6px 0 18px;
+  }
+  body > *{flex-shrink:0}
+  h1{
+    font-family:'Comfortaa',cursive;
+    font-size:clamp(16px,4.6vw,27px);
+    font-weight:700;text-align:center;margin:8px 16px 0;
+    color:#2d5a1e;text-shadow:0 1px 0 #fff;
+  }
+  .subtitle{font-size:clamp(13px,3.6vw,16px);opacity:.7;margin-top:2px;text-align:center}
+
+  /* ===== ОГЛАВЛЕНИЕ ===== */
+  #menu{width:min(94vw,560px);margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .tale-card{
+    background:var(--card);
+    border:2px solid #f0dcae;
+    border-radius:20px;
+    padding:16px 12px 14px;
+    text-align:center;cursor:pointer;
+    box-shadow:0 5px 14px rgba(120,90,30,.14);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .tale-card:active{transform:scale(.96)}
+  .tale-cover{
+    font-size:44px;line-height:1;
+    width:76px;height:76px;margin:0 auto 10px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:50%;
+  }
+  .tale-num{font-size:11.5px;font-weight:700;color:#b8946a;letter-spacing:1px}
+  .tale-title{font-family:'Comfortaa',cursive;font-weight:700;font-size:clamp(13px,3.6vw,15.5px);color:#3a2f22;margin-top:3px;line-height:1.25}
+  .tale-scenes{font-size:12px;opacity:.6;margin-top:5px}
+
+  /* ===== СКАЗКА ===== */
+  #reader{display:none;flex-direction:column;align-items:center;width:100%}
+  .stage-wrap{width:min(94vw,560px);margin-top:8px}
+  .stage{
+    width:100%;aspect-ratio:10/9;
+    border-radius:26px;overflow:hidden;
+    background:linear-gradient(180deg,#6fc4f0 0%,#a5dcf5 45%,#d4f0ff 60%,#c8ecb0 60%);
+    box-shadow:0 12px 34px rgba(60,100,40,.28), inset 0 0 0 4px rgba(255,255,255,.55);
+  }
+  .stage svg{width:100%;height:100%;display:block}
+  .stage svg .anim, .stage svg .anim *{transform-box:fill-box}
+
+  .story{
+    margin:12px auto 8px;
+    width:min(94vw,560px);
+    background:var(--card);
+    border:2px solid #f0dcae;
+    border-radius:18px;
+    padding:13px 18px;
+    font-size:clamp(14.5px,4.1vw,18.5px);
+    line-height:1.45;text-align:center;
+    box-shadow:0 4px 14px rgba(120,90,30,.12);
+    animation:fadeIn .6s ease both;
+  }
+  .story b{color:#d97516}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  .controls{display:flex;gap:10px;margin:6px 0 12px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button{
+    font-family:'Comfortaa',cursive;
+    font-size:clamp(15px,4vw,18px);font-weight:700;
+    color:#4a2d0e;
+    background:linear-gradient(180deg,#ffe9a8,var(--sun));
+    border:none;border-radius:999px;padding:12px 26px;cursor:pointer;
+    box-shadow:0 4px 0 #d9a83f, 0 6px 16px rgba(255,213,74,.4);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  button:active{transform:translateY(3px);box-shadow:0 1px 0 #d9a83f}
+  button.ghost{background:#fff;color:var(--text);border:2px solid #d9cba8;box-shadow:0 3px 0 #d9cba8}
+  button.sound, button.home{padding:12px 16px;font-size:20px;line-height:1}
+  button.sound.off{filter:grayscale(1);opacity:.6}
+  .dots{display:flex;gap:8px;margin-bottom:4px}
+  .dots span{width:9px;height:9px;border-radius:50%;background:rgba(90,120,60,.3);transition:all .3s}
+  .dots span.on{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+  .hint{font-size:12.5px;opacity:.6;margin-top:2px;text-align:center}
+
+  /* ====== АНИМАЦИИ ====== */
+  .sway{animation:sway 3.4s ease-in-out infinite;transform-origin:center bottom}
+  @keyframes sway{0%,100%{transform:rotate(-1.5deg)}50%{transform:rotate(1.5deg)}}
+  .bob{animation:bob 3s ease-in-out infinite}
+  .bob.b2{animation-delay:-1.5s}
+  .bob.b3{animation-delay:-.8s}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  .breathe{animation:breathe 3.2s ease-in-out infinite;transform-origin:center bottom}
+  @keyframes breathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.025,.985)}}
+  .run{animation:run .4s ease-in-out infinite}
+  .run.r2{animation-delay:-.2s}
+  @keyframes run{0%,100%{transform:translateY(0) rotate(2deg)}50%{transform:translateY(-7px) rotate(2deg)}}
+  .tail{animation:tailw 2.6s ease-in-out infinite;transform-origin:left center}
+  @keyframes tailw{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(8deg)}}
+  .cloud1{animation:cloudm 40s linear infinite}
+  .cloud2{animation:cloudm 55s linear infinite;animation-delay:-30s}
+  @keyframes cloudm{from{transform:translateX(-120px)}to{transform:translateX(620px)}}
+  .sunrays{animation:spin 24s linear infinite;transform-origin:center}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinwheel{animation:spin 1.6s linear infinite;transform-origin:center}
+  .spinball{animation:spin 2.4s linear infinite;transform-origin:center}
+  .flapwing{animation:flap .5s ease-in-out infinite;transform-origin:right top}
+  @keyframes flap{0%,100%{transform:rotate(0)}50%{transform:rotate(-30deg)}}
+  .land{animation:land 2.8s ease-out forwards}
+  @keyframes land{0%{transform:translate(60px,-230px)}70%{transform:translate(6px,-16px)}100%{transform:translate(0,0)}}
+  .chase{animation:chase .45s ease-in-out infinite}
+  @keyframes chase{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+  .retreat{animation:retreat 2.2s ease-out forwards}
+  @keyframes retreat{to{transform:translateX(85px)}}
+  .brave{animation:brave 1.4s ease-out forwards;transform-origin:center bottom}
+  @keyframes brave{0%{transform:scale(1)}60%{transform:scale(1.12) translateY(-6px)}100%{transform:scale(1.1) translateY(-5px)}}
+  .tremble{animation:tremble .3s ease-in-out infinite}
+  @keyframes tremble{0%,100%{transform:translateX(0)}50%{transform:translateX(2.5px)}}
+  .cheer{animation:cheer 1.2s ease-in-out infinite}
+  .cheer.c2{animation-delay:-.6s}
+  .cheer.c3{animation-delay:-.3s}
+  @keyframes cheer{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+  .heart{animation:heartp 2.4s ease-in-out infinite;transform-origin:center}
+  .heart.h2{animation-delay:-1.2s}
+  @keyframes heartp{0%,100%{transform:scale(1);opacity:.75}50%{transform:scale(1.25);opacity:1}}
+  .rumble{animation:rumble 1.6s ease-in-out infinite;transform-origin:center}
+  @keyframes rumble{0%,100%{transform:scale(1)}20%{transform:scale(1.06)}40%{transform:scale(.98)}60%{transform:scale(1.04)}}
+  .blink{animation:blink 4s infinite;transform-origin:center}
+  @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+  .fly-by{animation:flyby 3s ease-in-out infinite}
+  @keyframes flyby{0%,100%{transform:translate(0,0)}50%{transform:translate(-18px,-10px)}}
+  .pass{animation:pass 3s ease-in-out infinite}
+  @keyframes pass{0%,100%{transform:translate(0,0)}25%{transform:translate(60px,-34px)}50%{transform:translate(120px,0)}75%{transform:translate(60px,-34px)}}
+  .kickleg{animation:kick 1.8s ease-in-out infinite;transform-origin:center top}
+  @keyframes kick{0%,55%,100%{transform:rotate(0)}70%{transform:rotate(-38deg)}82%{transform:rotate(6deg)}}
+  .shoot{animation:shoot 2.6s ease-in forwards}
+  @keyframes shoot{0%,30%{transform:translate(0,0)}75%{transform:translate(150px,-58px)}85%{transform:translate(158px,-48px)}100%{transform:translate(160px,-44px)}}
+  .shoot2{animation:shoot2 2.6s ease-in forwards}
+  @keyframes shoot2{0%,30%{transform:translate(0,0)}75%{transform:translate(-150px,-58px)}85%{transform:translate(-158px,-48px)}100%{transform:translate(-160px,-44px)}}
+  .wave{animation:wavef 1s ease-in-out infinite;transform-origin:left bottom}
+  @keyframes wavef{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(10deg)}}
+  .droop{animation:droop 1.6s ease-out forwards;transform-origin:center bottom}
+  @keyframes droop{to{transform:translateY(4px) scale(.98)}}
+  .tapeL{animation:tapeL 1.8s ease-out forwards;transform-origin:left center}
+  .tapeR{animation:tapeR 1.8s ease-out forwards;transform-origin:right center}
+  @keyframes tapeL{to{transform:rotate(38deg)}}
+  @keyframes tapeR{to{transform:rotate(-38deg)}}
+  .confetti{animation:conf 3s linear infinite}
+  .confetti.f2{animation-delay:-1s}
+  .confetti.f3{animation-delay:-2s}
+  @keyframes conf{0%{transform:translateY(-40px);opacity:0}15%{opacity:1}100%{transform:translateY(300px);opacity:0}}
+  .shine{animation:shine 2s ease-in-out infinite;transform-origin:center}
+  @keyframes shine{0%,100%{transform:scale(1);filter:none}50%{transform:scale(1.06);filter:drop-shadow(0 0 10px var(--sun))}}
+  .pop{animation:pop 1.2s ease-out forwards;transform-origin:center}
+  @keyframes pop{0%{transform:scale(0)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+  .balloon{animation:balloonk 3.6s ease-in-out infinite;transform-origin:center bottom}
+  .balloon.bl2{animation-delay:-1.2s}
+  .balloon.bl3{animation-delay:-2.4s}
+  @keyframes balloonk{0%,100%{transform:rotate(-4deg) translateY(0)}50%{transform:rotate(4deg) translateY(-6px)}}
+  .lidoff{animation:lidoff 1.6s ease-out forwards}
+  @keyframes lidoff{0%{transform:translate(0,0) rotate(0)}100%{transform:translate(46px,-70px) rotate(28deg);opacity:.9}}
+  .popup{animation:popup 1.6s ease-out forwards;transform-origin:center bottom}
+  @keyframes popup{0%,35%{transform:translateY(26px) scale(.6);opacity:0}75%{transform:translateY(-6px) scale(1.05);opacity:1}100%{transform:translateY(0) scale(1);opacity:1}}
+  .ride{animation:ridek .5s ease-in-out infinite}
+  .ride.rd2{animation-delay:-.25s}
+  @keyframes ridek{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+  .wheelie{animation:wheelie 2.6s ease-in-out infinite;transform-origin:16% 92%}
+  @keyframes wheelie{0%,100%{transform:rotate(0)}35%,65%{transform:rotate(-16deg)}}
+  /* прыжок с трамплина: разгон у подножия -> взлёт с вершины -> зависание -> приземление справа */
+  .jump{animation:jump 3.2s ease-in-out infinite}
+  @keyframes jump{
+    0%{transform:translate(-150px,52px) rotate(0deg)}
+    22%{transform:translate(-40px,6px) rotate(-20deg)}
+    38%{transform:translate(10px,-30px) rotate(-14deg)}
+    55%{transform:translate(60px,-58px) rotate(-4deg)}
+    72%{transform:translate(110px,-24px) rotate(8deg)}
+    88%,100%{transform:translate(150px,52px) rotate(0deg)}
+  }
+  /* трюк в полёте: как прыжок, но в высшей точке передок задран сильнее */
+  .wheelie2{animation:wheelie2 3.2s ease-in-out infinite}
+  @keyframes wheelie2{
+    0%{transform:translate(-150px,52px) rotate(0deg)}
+    22%{transform:translate(-40px,6px) rotate(-20deg)}
+    38%{transform:translate(10px,-30px) rotate(-24deg)}
+    55%{transform:translate(60px,-58px) rotate(-30deg)}
+    72%{transform:translate(110px,-24px) rotate(-6deg)}
+    88%,100%{transform:translate(150px,52px) rotate(0deg)}
+  }
+  /* сонные буквы z-z-z всплывают */
+  .zzz text{opacity:0;animation:zzz 3.4s linear infinite}
+  .zzz text:nth-child(2){animation-delay:1.7s}
+  @keyframes zzz{0%{opacity:0;transform:translate(0,0)}25%{opacity:1}100%{opacity:0;transform:translate(16px,-30px)}}
+  /* плавное катание вперёд-назад по кадру */
+  .roll{animation:roll 3.4s ease-in-out infinite}
+  .roll.rl2{animation-delay:-1.7s}
+  @keyframes roll{0%,100%{transform:translateX(-30px)}50%{transform:translateX(40px)}}
+  /* сальто на скейте: разгон, взлёт с сальто 360, приземление */
+  .flip{animation:flip 3.4s ease-in-out infinite}
+  @keyframes flip{
+    0%{transform:translate(-160px,50px) rotate(0deg)}
+    25%{transform:translate(-50px,4px) rotate(0deg)}
+    42%{transform:translate(0px,-64px) rotate(-140deg)}
+    58%{transform:translate(50px,-64px) rotate(-320deg)}
+    75%{transform:translate(110px,-6px) rotate(-360deg)}
+    90%,100%{transform:translate(160px,50px) rotate(-360deg)}
+  }
+  /* прыжок со ступенек: катит по верху, спрыгивает вниз-вправо */
+  .stairjump{animation:stairjump 3.4s ease-in-out infinite}
+  @keyframes stairjump{
+    0%{transform:translate(-120px,-40px)}
+    30%{transform:translate(-30px,-44px)}
+    46%{transform:translate(20px,-70px)}
+    66%{transform:translate(70px,-10px)}
+    82%,100%{transform:translate(120px,40px)}
+  }
+  /* сальто на роликах */
+  .rollflip{animation:rollflip 3.4s ease-in-out infinite}
+  @keyframes rollflip{
+    0%{transform:translate(-160px,48px) rotate(0deg)}
+    26%{transform:translate(-40px,4px) rotate(0deg)}
+    44%{transform:translate(6px,-60px) rotate(150deg)}
+    60%{transform:translate(52px,-60px) rotate(330deg)}
+    76%{transform:translate(112px,-4px) rotate(360deg)}
+    90%,100%{transform:translate(160px,48px) rotate(360deg)}
+  }
+  .flame{animation:flamek .45s ease-in-out infinite alternate;transform-origin:center bottom}
+  .flame.fl2{animation-delay:-.2s}
+  .flame.fl3{animation-delay:-.35s}
+  @keyframes flamek{from{transform:scale(1) rotate(-3deg)}to{transform:scale(1.18) rotate(3deg)}}
+  .glow{animation:glowk 2.4s ease-in-out infinite;transform-origin:center}
+  @keyframes glowk{0%,100%{opacity:.5}50%{opacity:.85}}
+  .darkblink{animation:blink 3.1s infinite;transform-origin:center}
+  .darkblink.d2{animation-delay:-1.1s}
+  .darkblink.d3{animation-delay:-2s}
+  .cakein{animation:cakein 3s ease-out forwards}
+  @keyframes cakein{0%{transform:translateX(-260px)}70%{transform:translateX(12px)}100%{transform:translateX(0)}}
+  .blowout{animation:blowout 2.4s ease-out forwards;transform-origin:center bottom}
+  @keyframes blowout{0%,55%{transform:scale(1);opacity:1}75%{transform:scale(1.4);opacity:.6}100%{transform:scale(0);opacity:0}}
+  .smoke{animation:smokek 2.8s ease-out forwards;opacity:0}
+  @keyframes smokek{0%,60%{opacity:0;transform:translateY(0)}75%{opacity:.7}100%{opacity:0;transform:translateY(-26px)}}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.01s !important;animation-iteration-count:1 !important}
+  }
+</style>
+</head>
+<body>
+
+<h1 id="pageTitle">📚 Сказки про Давида и Луку</h1>
+<div class="subtitle" id="pageSub">Выбери сказку!</div>
+
+<div id="menu"></div>
+
+<div id="reader">
+  <div class="stage-wrap"><div class="stage" id="stage"></div></div>
+  <div class="story" id="story"></div>
+  <div class="dots" id="dots"></div>
+  <div class="controls">
+    <button class="home ghost" id="btnHome" title="К оглавлению">📖</button>
+    <button class="ghost" id="btnBack">◀ Назад</button>
+    <button id="btnNext">Дальше ▶</button>
+    <button class="sound off" id="btnSound" title="Озвучка">🔇</button>
+  </div>
+  <div class="hint">🔊 Нажми на динамик — и сказка будет читаться вслух!</div>
+</div>
+
+<script>
+// ======================================================
+//                ОБЩАЯ БИБЛИОТЕКА ДЕТАЛЕЙ
+// ======================================================
+const sun = `
+<g transform="translate(430,62)">
+  <circle r="70" fill="url(#sunHalo)"/>
+  <g class="anim"><g class="sunrays" stroke="#ffe27a" stroke-width="5" stroke-linecap="round" opacity=".85">
+    <line x1="0" y1="-46" x2="0" y2="-34"/><line x1="0" y1="34" x2="0" y2="46"/>
+    <line x1="-46" y1="0" x2="-34" y2="0"/><line x1="34" y1="0" x2="46" y2="0"/>
+    <line x1="-32" y1="-32" x2="-24" y2="-24"/><line x1="24" y1="24" x2="32" y2="32"/>
+    <line x1="32" y1="-32" x2="24" y2="-24"/><line x1="-24" y1="24" x2="-32" y2="32"/>
+  </g></g>
+  <circle r="28" fill="url(#sunG)"/>
+  <circle cx="-9" cy="-9" r="9" fill="#fff6c9" opacity=".5"/>
+  <circle cx="-8" cy="-2" r="3" fill="#c98a30"/><circle cx="8" cy="-2" r="3" fill="#c98a30"/>
+  <path d="M-8,7 Q0,13 8,7" stroke="#c98a30" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <circle cx="-13" cy="4" r="3" fill="#ff9a76" opacity=".4"/><circle cx="13" cy="4" r="3" fill="#ff9a76" opacity=".4"/>
+</g>`;
+
+const clouds = `
+<g class="cloud1">
+  <g fill="#ffffff" opacity=".95">
+    <ellipse cx="70" cy="70" rx="40" ry="17"/><ellipse cx="98" cy="58" rx="28" ry="15"/><ellipse cx="46" cy="60" rx="24" ry="13"/>
+  </g>
+  <ellipse cx="70" cy="76" rx="46" ry="9" fill="#d4e6f2" opacity=".5"/>
+</g>
+<g class="cloud2">
+  <g fill="#ffffff" opacity=".8">
+    <ellipse cx="0" cy="130" rx="34" ry="13"/><ellipse cx="24" cy="120" rx="24" ry="12"/>
+  </g>
+</g>`;
+
+const skyBase = sun + clouds;
+
+const ground = `
+<path d="M0,300 Q90,268 200,286 Q320,304 400,278 Q450,264 500,282 L500,320 L0,320 Z" fill="#8fce68" opacity=".55"/>
+<path d="M0,312 Q120,288 260,304 Q380,318 500,296 L500,330 L0,330 Z" fill="#7bc158" opacity=".7"/>
+<rect x="0" y="300" width="500" height="150" fill="url(#grassG)"/>
+<path d="M0,300 Q40,292 80,300 Q120,308 160,300 Q200,292 240,300 Q280,308 320,300 Q360,292 400,300 Q440,308 500,300 L500,308 L0,308 Z" fill="#4f9e32" opacity=".45"/>
+<g stroke="#4f9e32" stroke-width="2" stroke-linecap="round" opacity=".5">
+  <path d="M40,318 q3,-8 6,0 M48,318 q3,-10 6,0 M120,326 q3,-8 6,0 M300,320 q3,-9 6,0 M360,330 q3,-8 6,0 M440,322 q3,-10 6,0"/>
+</g>
+<ellipse cx="80" cy="420" rx="60" ry="10" fill="#3f7d2c" opacity=".22"/>
+<ellipse cx="400" cy="430" rx="70" ry="10" fill="#3f7d2c" opacity=".22"/>`;
+
+const flowers = `
+<g>
+  <g transform="translate(60,340)"><line y2="14" stroke="#3f7d2c" stroke-width="2.5"/><circle r="5" fill="#ff8a50"/><circle r="2" fill="#ffd54a"/></g>
+  <g transform="translate(455,355)"><line y2="14" stroke="#3f7d2c" stroke-width="2.5"/><circle r="5" fill="#ff6b9d"/><circle r="2" fill="#ffd54a"/></g>
+  <g transform="translate(30,395)"><line y2="14" stroke="#3f7d2c" stroke-width="2.5"/><circle r="5" fill="#b48cff"/><circle r="2" fill="#ffd54a"/></g>
+</g>`;
+
+const house = (x=330,y=170,s=1) => `
+<g transform="translate(${x},${y}) scale(${s})">
+  <ellipse cx="70" cy="152" rx="82" ry="10" fill="#3f7d2c" opacity=".2"/>
+  <rect x="0" y="60" width="140" height="90" rx="6" fill="#ffe3b3" stroke="#d9a86a" stroke-width="3"/>
+  <rect x="0" y="60" width="140" height="16" rx="6" fill="#fff0d0" opacity=".7"/>
+  <rect x="110" y="63" width="30" height="87" fill="#e8c896" opacity=".5"/>
+  <polygon points="-12,62 70,0 152,62" fill="#e05a3a" stroke="#b8432a" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="70,0 152,62 116,62" fill="#c94a34" opacity=".6"/>
+  <polygon points="-12,62 70,0 74,10 -2,62" fill="#f07a5c" opacity=".5"/>
+  <rect x="55" y="95" width="34" height="55" rx="4" fill="#8a5a2e"/>
+  <rect x="55" y="95" width="34" height="55" rx="4" fill="#6a4420" opacity=".3"/>
+  <circle cx="83" cy="124" r="3" fill="#ffd54a"/>
+  <rect x="14" y="80" width="28" height="26" rx="4" fill="#bfe9ff" stroke="#8a5a2e" stroke-width="3"/>
+  <path d="M16,82 L40,82 L16,104 Z" fill="#fff" opacity=".35"/>
+  <line x1="28" y1="80" x2="28" y2="106" stroke="#8a5a2e" stroke-width="2.5"/>
+  <rect x="102" y="80" width="28" height="26" rx="4" fill="#bfe9ff" stroke="#8a5a2e" stroke-width="3"/>
+  <path d="M104,82 L128,82 L104,104 Z" fill="#fff" opacity=".35"/>
+  <line x1="116" y1="80" x2="116" y2="106" stroke="#8a5a2e" stroke-width="2.5"/>
+</g>`;
+
+const tree = (x,y,s=1) => `
+<g transform="translate(${x},${y}) scale(${s})">
+  <ellipse cx="4" cy="78" rx="42" ry="9" fill="#3f7d2c" opacity=".2"/>
+  <rect x="-8" y="30" width="16" height="48" rx="6" fill="#9a6636"/>
+  <rect x="-8" y="30" width="7" height="48" rx="6" fill="#b0794a"/>
+  <circle cx="0" cy="6" r="39" fill="#4f9e38"/>
+  <circle cx="-27" cy="23" r="27" fill="#59ac41"/>
+  <circle cx="27" cy="23" r="27" fill="#4a9636"/>
+  <circle cx="-8" cy="-6" r="30" fill="#63b84a"/>
+  <circle cx="12" cy="2" r="24" fill="#6fc255" opacity=".55"/>
+  <circle cx="-16" cy="-14" r="10" fill="#7dcf60" opacity=".5"/>
+  <circle cx="-10" cy="-8" r="5" fill="#e05a3a"/><circle cx="16" cy="6" r="5" fill="#e05a3a"/><circle cx="-2" cy="16" r="5" fill="#e05a3a"/>
+</g>`;
+
+const pitch = `
+<rect x="0" y="290" width="500" height="160" fill="var(--pitch)"/>
+<path d="M0,290 H500 M0,330 H500 M0,372 H500 M0,414 H500" stroke="var(--pitch-dark)" stroke-width="20" opacity=".25"/>
+<ellipse cx="250" cy="385" rx="80" ry="26" fill="none" stroke="#fff" stroke-width="3" opacity=".7"/>
+<line x1="250" y1="295" x2="250" y2="450" stroke="#fff" stroke-width="3" opacity=".6"/>
+<line x1="0" y1="296" x2="500" y2="296" stroke="#fff" stroke-width="3" opacity=".6"/>`;
+
+const goal = (x, flip=false) => `
+<g transform="translate(${x},0) ${flip?'scale(-1,1)':''}" stroke="#f0f0f5" stroke-width="5" fill="none" opacity=".95">
+  <path d="M0,405 L0,318 L64,310 L64,392"/>
+  <path d="M8,320 L8,398 M20,319 L20,397 M32,318 L32,396 M44,316 L44,394 M56,314 L56,392" stroke-width="1.4" opacity=".5"/>
+  <path d="M3,338 L61,332 M3,358 L61,352 M3,378 L61,372" stroke-width="1.4" opacity=".5"/>
+</g>`;
+
+const stand = (x=0,y=120) => `
+<g transform="translate(${x},${y})">
+  <rect x="20" y="60" width="460" height="76" rx="10" fill="#e8e0cc" stroke="#c9bc9c" stroke-width="3"/>
+  <rect x="20" y="52" width="460" height="16" rx="8" fill="#d8402f"/>
+  <g fill="#8a9ab8">
+    <circle cx="60" cy="92" r="9"/><circle cx="95" cy="92" r="9" fill="#d98a5f"/><circle cx="130" cy="92" r="9" fill="#b48cff"/>
+    <circle cx="370" cy="92" r="9" fill="#6fbf8f"/><circle cx="405" cy="92" r="9" fill="#d98a5f"/><circle cx="440" cy="92" r="9"/>
+    <circle cx="78" cy="118" r="9" fill="#6fbf8f"/><circle cx="113" cy="118" r="9"/><circle cx="388" cy="118" r="9" fill="#b48cff"/><circle cx="423" cy="118" r="9" fill="#d98a5f"/>
+  </g>
+  <text x="250" y="46" font-family="Comfortaa" font-size="22" font-weight="700" fill="#2d5a1e" text-anchor="middle">⚽ ТУРНИР ⚽</text>
+</g>`;
+
+const scoreboard = (score, minute='') => `
+<g transform="translate(196,66)">
+  <rect x="0" y="0" width="108" height="52" rx="10" fill="#2b3350" stroke="#1a2138" stroke-width="3"/>
+  <text x="54" y="26" font-family="Comfortaa" font-size="20" font-weight="700" fill="#ffd54a" text-anchor="middle">${score}</text>
+  <text x="54" y="44" font-family="Nunito" font-size="11" fill="#aeb8d8" text-anchor="middle">${minute}</text>
+</g>`;
+
+const track = `
+<rect x="0" y="290" width="500" height="30" fill="var(--grass)"/>
+<rect x="0" y="318" width="500" height="132" fill="var(--track)"/>
+<path d="M0,352 H500 M0,388 H500 M0,424 H500" stroke="#fff" stroke-width="3" opacity=".7" stroke-dasharray="18 14"/>
+<rect x="0" y="318" width="500" height="4" fill="#fff" opacity=".8"/>`;
+
+const arch = (label, x=250) => `
+<g transform="translate(${x},0)">
+  <rect x="-150" y="150" width="14" height="170" rx="6" fill="#c94a3a"/>
+  <rect x="136" y="150" width="14" height="170" rx="6" fill="#c94a3a"/>
+  <rect x="-160" y="118" width="320" height="44" rx="14" fill="#fff" stroke="#c94a3a" stroke-width="4"/>
+  <text x="0" y="148" font-family="Comfortaa" font-size="26" font-weight="700" fill="#c94a3a" text-anchor="middle">${label}</text>
+</g>`;
+
+const tape = (broken=false) => broken
+? `<g transform="translate(250,340)">
+     <g class="anim tapeL"><rect x="-146" y="-5" width="146" height="10" rx="5" fill="#ff5a6e"/></g>
+     <g class="anim tapeR"><rect x="0" y="-5" width="146" height="10" rx="5" fill="#ff5a6e"/></g>
+   </g>`
+: `<rect x="104" y="335" width="292" height="10" rx="5" fill="#ff5a6e"/>`;
+
+const garland = `
+<path d="M20,60 Q250,110 480,60" stroke="#8a5a2e" stroke-width="3" fill="none"/>
+<g>
+  ${[40,95,150,205,260,315,370,425].map((x,i)=>{
+    const colors=['#ff6b8a','#4a90d9','#ffd54a','#6fbf8f','#b48cff','#ff8a50'];
+    const y = 60 + 42*Math.sin(Math.PI*(x-20)/460)*1.05;
+    return `<polygon points="${x},${y+2} ${x+22},${y+2} ${x+11},${y+26}" fill="${colors[i%6]}"/>`;
+  }).join('')}
+</g>
+<text x="250" y="46" font-family="Comfortaa" font-size="21" font-weight="700" fill="#c94a3a" text-anchor="middle">🎉 С ДНЁМ РОЖДЕНИЯ! 🎉</text>`;
+
+const balloon = (x,y,color,cls='balloon') => `
+<g transform="translate(${x},${y})">
+  <g class="anim ${cls}">
+    <path d="M0,54 Q-3,30 0,10" stroke="#8a8a9a" stroke-width="1.8" fill="none"/>
+    <ellipse cx="0" cy="-10" rx="17" ry="21" fill="${color}"/>
+    <ellipse cx="-6" cy="-16" rx="5" ry="7" fill="#fff" opacity=".35"/>
+    <polygon points="-4,9 4,9 0,15" fill="${color}"/>
+  </g>
+</g>`;
+
+const gift = (x,y,s=1,color='#ff6b8a',ribbon='#ffd54a',open=false,content='') => `
+<g transform="translate(${x},${y}) scale(${s})">
+  ${open?`<g class="anim popup">${content}</g>`:''}
+  <rect x="-30" y="-24" width="60" height="46" rx="6" fill="${color}"/>
+  <rect x="-6" y="-24" width="12" height="46" fill="${ribbon}"/>
+  <g class="anim ${open?'lidoff':''}">
+    <rect x="-36" y="-40" width="72" height="18" rx="5" fill="${color}"/>
+    <rect x="-8" y="-40" width="16" height="18" fill="${ribbon}"/>
+    ${open?'':`<path d="M0,-40 Q-14,-58 -6,-60 Q2,-61 0,-44 Q-2,-61 6,-60 Q14,-58 0,-40" fill="${ribbon}"/>`}
+  </g>
+</g>`;
+
+const bike = (x,y,s=1,frame='#e04a3a') => `
+<g transform="translate(${x},${y}) scale(${s})">
+  <g class="anim"><g class="spinwheel">
+    <circle cx="-34" cy="0" r="20" fill="none" stroke="#2b3350" stroke-width="4"/>
+    <path d="M-34,-20 V20 M-54,0 H-14 M-48,-14 L-20,14 M-20,-14 L-48,14" stroke="#8a92aa" stroke-width="1.6"/>
+  </g></g>
+  <g class="anim"><g class="spinwheel">
+    <circle cx="34" cy="0" r="20" fill="none" stroke="#2b3350" stroke-width="4"/>
+    <path d="M34,-20 V20 M14,0 H54 M20,-14 L48,14 M48,-14 L20,14" stroke="#8a92aa" stroke-width="1.6"/>
+  </g></g>
+  <path d="M-34,0 L-8,-2 L4,-26 M-8,-2 L26,-24 M34,0 L26,-24 L26,-34 M-34,0 L-16,-30 L4,-26" stroke="${frame}" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M-22,-34 L-10,-34 L-16,-30" stroke="#2b3350" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M16,-34 L38,-40" stroke="#2b3350" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M26,-34 L26,-38 M16,-34 L38,-34" stroke="#2b3350" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="-8" cy="-2" r="5" fill="#2b3350"/>
+  <path d="M-8,-2 L-2,8" stroke="#2b3350" stroke-width="3.4" stroke-linecap="round"/>
+  <rect x="-6" y="6" width="10" height="4" rx="2" fill="#556"/>
+  <path d="M-54,0 h-8 M54,0 h8" stroke="#8a92aa" stroke-width="4" stroke-linecap="round"/>
+</g>`;
+
+// трамплин для прыжков
+const ramp = (x,y,s=1) => `
+<g transform="translate(${x},${y}) scale(${s})">
+  <path d="M-60,0 Q10,4 46,-52 L52,-52 L52,0 Z" fill="#8a5a3a"/>
+  <path d="M-60,0 Q10,4 46,-52" stroke="#c98a58" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <rect x="-60" y="0" width="112" height="8" fill="#6a4428"/>
+</g>`;
+
+// телевизор с мультиком (котик + голубь на экране)
+const tv = (x,y,s=1) => `
+<g transform="translate(${x},${y}) scale(${s})">
+  <rect x="-120" y="-78" width="240" height="150" rx="12" fill="#26223f"/>
+  <rect x="-110" y="-68" width="220" height="130" rx="6" fill="#bfe9ff"/>
+  <rect x="-110" y="-68" width="220" height="130" rx="6" fill="url(#tvglow)" opacity=".4"/>
+  <g transform="translate(-46,20) scale(.7)">
+    <ellipse cx="14" cy="-14" rx="42" ry="30" fill="var(--cat)"/>
+    <circle cx="-15" cy="-40" r="24" fill="var(--cat)"/>
+    <polygon points="-34,-54 -31,-72 -22,-58" fill="var(--cat)"/>
+    <polygon points="4,-54 1,-72 -8,-58" fill="var(--cat)"/>
+    <g class="anim"><g class="blink"><circle cx="-23" cy="-42" r="3.4" fill="#3a2a10"/><circle cx="-6" cy="-42" r="3.4" fill="#3a2a10"/></g></g>
+    <path d="M-20,-32 Q-15,-27 -10,-32" stroke="#5a3d10" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(52,6) scale(.7)">
+    <g class="anim bob"><path class="flapwing" d="M-4,-12 Q-26,-30 -40,-20 Q-26,-10 -8,-6 Z" fill="#9fb2c8"/>
+    <ellipse cx="0" cy="0" rx="20" ry="14" fill="#b8c9dd"/>
+    <circle cx="16" cy="-10" r="10" fill="#b8c9dd"/>
+    <circle cx="19" cy="-11" r="2.2" fill="#2b2b3a"/>
+    <polygon points="25,-10 33,-8 25,-5" fill="#ff9d3f"/></g>
+  </g>
+  <text x="0" y="52" font-size="14" text-anchor="middle">😹</text>
+  <rect x="-30" y="72" width="60" height="10" rx="4" fill="#26223f"/>
+  <rect x="-46" y="80" width="92" height="8" rx="4" fill="#1a1730"/>
+</g>`;
+
+// скейтборд (дека с колёсами), рисуется под ногами
+const skateboard = (x,y,s=1,color='#e04a3a') => `
+<g transform="translate(${x},${y}) scale(${s})">
+  <rect x="-26" y="-3" width="52" height="7" rx="3.5" fill="${color}"/>
+  <rect x="-26" y="-3" width="52" height="3" rx="1.5" fill="#fff" opacity=".25"/>
+  <circle cx="-16" cy="8" r="4.5" fill="#2b2b3a"/><circle cx="-16" cy="8" r="2" fill="#8a92aa"/>
+  <circle cx="16" cy="8" r="4.5" fill="#2b2b3a"/><circle cx="16" cy="8" r="2" fill="#8a92aa"/>
+  <rect x="-18" y="4" width="4" height="3" fill="#c9c9d9"/><rect x="14" y="4" width="4" height="3" fill="#c9c9d9"/>
+</g>`;
+
+// лестница из нескольких ступенек
+const steps = (x,y,s=1) => `
+<g transform="translate(${x},${y}) scale(${s})">
+  <rect x="0" y="0" width="120" height="14" fill="#c9b89a"/>
+  <rect x="18" y="-14" width="102" height="14" fill="#d6c6a8"/>
+  <rect x="36" y="-28" width="84" height="14" fill="#e0d2b6"/>
+  <rect x="54" y="-42" width="66" height="14" fill="#eaddc4"/>
+  <rect x="0" y="0" width="120" height="3" fill="#fff" opacity=".3"/>
+  <rect x="18" y="-14" width="102" height="3" fill="#fff" opacity=".3"/>
+  <rect x="36" y="-28" width="84" height="3" fill="#fff" opacity=".3"/>
+  <rect x="54" y="-42" width="66" height="3" fill="#fff" opacity=".3"/>
+</g>`;
+
+// парковая скамейка
+const bench = (x,y,s=1) => `
+<g transform="translate(${x},${y}) scale(${s})">
+  <rect x="-38" y="-2" width="76" height="8" rx="3" fill="#b0794a"/>
+  <rect x="-38" y="-24" width="76" height="7" rx="3" fill="#c08a58"/>
+  <rect x="-34" y="4" width="6" height="18" rx="2" fill="#5a4326"/>
+  <rect x="28" y="4" width="6" height="18" rx="2" fill="#5a4326"/>
+  <rect x="-34" y="-24" width="5" height="24" fill="#5a4326"/>
+  <rect x="29" y="-24" width="5" height="24" fill="#5a4326"/>
+</g>`;
+
+// куст для парка
+const bush = (x,y,s=1) => `
+<g transform="translate(${x},${y}) scale(${s})">
+  <ellipse cx="0" cy="14" rx="30" ry="7" fill="#3f7d2c" opacity=".2"/>
+  <circle cx="-14" cy="0" r="16" fill="#59ac41"/>
+  <circle cx="12" cy="2" r="18" fill="#4f9e38"/>
+  <circle cx="0" cy="-8" r="16" fill="#63b84a"/>
+  <circle cx="-4" cy="-6" r="8" fill="#7dcf60" opacity=".5"/>
+</g>`;
+
+// мальчик на скейте (профиль, лицом вправо). trick: 'ride'|'air'|'flip'
+const skateBoy = (x,y,opts={}) => {
+  const {hair='#9a7a50', style='david', s=1, cls='', deck='#e04a3a', crouch=false} = opts;
+  const hp = style==='david'
+    ? `<path d="M-11,-4 Q-13,-15 -2,-15 Q6,-17 12,-10 Q14,-6 11,-2 Q5,-8 -2,-7 Q-7,-7 -11,-4 Z" fill="${hair}"/>`
+    : `<path d="M-12,-3 Q-14,-16 -1,-16 Q8,-18 13,-9 Q14,-4 11,-1 Q6,-9 -1,-8 Q-8,-8 -11,-2 Z" fill="${hair}"/>`;
+  const legs = crouch
+    ? `<path d="M-2,-8 Q-12,-2 -16,6" stroke="#e8b98a" stroke-width="7" fill="none" stroke-linecap="round"/>
+       <path d="M2,-8 Q10,-2 15,6" stroke="#f0c49a" stroke-width="7.5" fill="none" stroke-linecap="round"/>
+       <ellipse cx="-17" cy="7" rx="6" ry="3.5" fill="#2b3350"/><ellipse cx="16" cy="7" rx="6" ry="3.5" fill="#2b3350"/>`
+    : `<path d="M-3,-8 Q-14,0 -16,8" stroke="#e8b98a" stroke-width="7" fill="none" stroke-linecap="round"/>
+       <path d="M3,-8 Q13,0 15,8" stroke="#f0c49a" stroke-width="7.5" fill="none" stroke-linecap="round"/>
+       <ellipse cx="-17" cy="9" rx="6" ry="3.5" fill="#2b3350"/><ellipse cx="16" cy="9" rx="6" ry="3.5" fill="#2b3350"/>`;
+  return `
+<g transform="translate(${x},${y}) scale(${s})">
+  <g class="anim ${cls}">
+    ${skateboard(0,10,1,deck)}
+    ${legs}
+    <path d="M-8,-30 Q-2,-16 -2,-6 L4,-6 Q6,-18 2,-30 Z" fill="url(#blueG)"/>
+    <path d="M-6,-28 Q6,-34 20,-30" stroke="#4a90d9" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <circle cx="22" cy="-30" r="4.5" fill="#f0c49a"/>
+    <path d="M-6,-28 Q-16,-24 -22,-18" stroke="#3f78b8" stroke-width="6.5" fill="none" stroke-linecap="round"/>
+    <circle cx="-23" cy="-17" r="4.5" fill="#e8b98a"/>
+    <g transform="translate(-3,-44)">
+      <circle cx="0" cy="0" r="12" fill="url(#skinG)"/>
+      <ellipse cx="12" cy="1" rx="3" ry="4" fill="#eec39a"/>
+      ${hp}
+      <path d="M-12,-3 Q-1,-15 11,-6 L10,0 Q-1,-8 -11,1 Z" fill="#ffd54a"/>
+      <g class="blink"><circle cx="6" cy="0" r="2.2" fill="#3a2a1a"/><circle cx="11" cy="1" r="2.2" fill="#3a2a1a"/></g>
+      <path d="M6,6 Q9,9 12,6" stroke="#8a4a3a" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <circle cx="5" cy="4" r="2" fill="#f2917c" opacity=".5"/>
+    </g>
+  </g>
+</g>`;
+};
+
+// ролик (ботинок с 4 колёсами)
+const rollerSkate = (x,y,s=1) => `
+<g transform="translate(${x},${y}) scale(${s})">
+  <path d="M-10,-8 L10,-8 Q13,-8 13,-3 L13,2 L-12,2 Z" fill="#f5f5f2" stroke="#c9c9d9" stroke-width="1.2"/>
+  <rect x="-12" y="-10" width="16" height="5" rx="2" fill="var(--kit-red)"/>
+  <circle cx="-8" cy="5" r="3.4" fill="#2b2b3a"/><circle cx="-8" cy="5" r="1.4" fill="#ffd54a"/>
+  <circle cx="0" cy="5" r="3.4" fill="#2b2b3a"/><circle cx="0" cy="5" r="1.4" fill="#ffd54a"/>
+  <circle cx="8" cy="5" r="3.4" fill="#2b2b3a"/><circle cx="8" cy="5" r="1.4" fill="#ffd54a"/>
+</g>`;
+
+// мальчик на роликах (профиль, лицом вправо), лёгкий наклон вперёд
+const rollerBoy = (x,y,opts={}) => {
+  const {hair='#5a3d24', style='luka', s=1, cls=''} = opts;
+  const hp = style==='david'
+    ? `<path d="M-11,-4 Q-13,-15 -2,-15 Q6,-17 12,-10 Q14,-6 11,-2 Q5,-8 -2,-7 Q-7,-7 -11,-4 Z" fill="${hair}"/>`
+    : `<path d="M-12,-3 Q-14,-16 -1,-16 Q8,-18 13,-9 Q14,-4 11,-1 Q6,-9 -1,-8 Q-8,-8 -11,-2 Z" fill="${hair}"/>`;
+  return `
+<g transform="translate(${x},${y}) scale(${s})">
+  <g class="anim ${cls}">
+    <!-- задняя нога отведена назад, передняя вперёд -->
+    <path d="M-2,-30 Q-10,-18 -18,-10" stroke="#e8b98a" stroke-width="7" fill="none" stroke-linecap="round"/>
+    ${rollerSkate(-20,-6,1)}
+    <path d="M2,-30 Q10,-16 16,-8" stroke="#f0c49a" stroke-width="7.5" fill="none" stroke-linecap="round"/>
+    ${rollerSkate(18,-4,1)}
+    <path d="M-8,-52 Q-2,-38 -2,-28 L4,-28 Q6,-40 2,-52 Z" fill="url(#greenBody)"/>
+    <path d="M-4,-50 Q8,-54 22,-48" stroke="#3f9e5f" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <circle cx="24" cy="-48" r="4.5" fill="#f0c49a"/>
+    <path d="M-4,-50 Q-14,-46 -20,-40" stroke="#2d7a44" stroke-width="6.5" fill="none" stroke-linecap="round"/>
+    <circle cx="-21" cy="-39" r="4.5" fill="#e8b98a"/>
+    <g transform="translate(-3,-66)">
+      <circle cx="0" cy="0" r="12" fill="url(#skinG)"/>
+      <ellipse cx="12" cy="1" rx="3" ry="4" fill="#eec39a"/>
+      ${hp}
+      <path d="M-12,-3 Q-1,-15 11,-6 L10,0 Q-1,-8 -11,1 Z" fill="#ffd54a"/>
+      <g class="blink"><circle cx="6" cy="0" r="2.2" fill="#3a2a1a"/><circle cx="11" cy="1" r="2.2" fill="#3a2a1a"/></g>
+      <path d="M6,6 Q9,9 12,6" stroke="#8a4a3a" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <circle cx="5" cy="4" r="2" fill="#f2917c" opacity=".5"/>
+    </g>
+  </g>
+</g>`;
+};
+
+const rideBike = (x,y,opts={}) => {
+  const {hair='#9a7a50', style='david', s=1, cls='', frame='#e04a3a', wheelie=false} = opts;
+  const hairPath = style==='david'
+    ? `<path d="M-11,-4 Q-13,-15 -2,-15 Q6,-17 12,-10 Q14,-6 11,-2 Q5,-8 -2,-7 Q-7,-7 -11,-4 Z" fill="${hair}"/>`
+    : `<path d="M-12,-3 Q-14,-16 -1,-16 Q8,-18 13,-9 Q14,-4 11,-1 Q6,-9 -1,-8 Q-8,-8 -11,-2 Z" fill="${hair}"/>`;
+  return `
+<g transform="translate(${x},${y})">
+  <g class="anim ${cls}">
+    <g class="anim ${wheelie?'wheelie':''}">
+      <g transform="scale(${s})">
+        ${bike(0,0,1,frame)}
+        <!-- СЕДОК профиль, лицом вправо.
+             Велосипед: седло(-16,-30), педали(-8,0), руль(30,-36).
+             Таз садим на седло (-15,-28). -->
+        <g>
+          <!-- дальняя нога: бедро вниз-вперёд, голень к педали -->
+          <path d="M-13,-25 Q-13,-16 -10,-11 Q-8,-5 -8,0" stroke="#d98a48" stroke-width="6" fill="none" stroke-linecap="round"/>
+          <ellipse cx="-8" cy="1" rx="5.5" ry="3.2" fill="#2b3350"/>
+          <!-- дальняя рука -->
+          <path d="M-6,-37 L22,-34" stroke="#3f78b8" stroke-width="6" fill="none" stroke-linecap="round"/>
+          <!-- туловище: наклонённая майка, таз(-15,-26) -> плечи(-7,-41) -->
+          <path d="M-16,-24 Q-14,-38 -7,-43 L1,-38 Q-4,-31 -9,-21 Z" fill="#4a90d9"/>
+          <!-- ближняя нога -->
+          <path d="M-11,-25 Q-10,-15 -9,-10 Q-9,-4 -9,1" stroke="#eec39a" stroke-width="7" fill="none" stroke-linecap="round"/>
+          <ellipse cx="-9" cy="2" rx="6" ry="3.2" fill="#2b3350"/>
+          <!-- ближняя рука к рулю -->
+          <path d="M-6,-39 L26,-35" stroke="#4a90d9" stroke-width="6.5" fill="none" stroke-linecap="round"/>
+          <circle cx="28" cy="-35" r="4.5" fill="#eec39a"/>
+          <!-- голова над плечами -->
+          <g transform="translate(-6,-54)">
+            <circle cx="0" cy="0" r="12" fill="#eec39a"/>
+            <ellipse cx="12" cy="1" rx="3" ry="4" fill="#eec39a"/>
+            ${hairPath}
+            <path d="M-12,-3 Q-1,-15 11,-6 L10,0 Q-1,-8 -11,1 Z" fill="#e04a3a"/>
+            <g class="blink"><circle cx="6" cy="0" r="2.2" fill="#3a2a1a"/><circle cx="11" cy="1" r="2.2" fill="#3a2a1a"/></g>
+            <path d="M6,6 Q9,9 12,6" stroke="#8a4a3a" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <circle cx="5" cy="4" r="2" fill="#f2a68c" opacity=".5"/>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+</g>`;
+};
+
+const cake = (x,y,s=1,opts={}) => {
+  const {lit=true, blow=false, cls='', glowOn=true} = opts;
+  const candles = [-30,-15,0,15,30,-22,-7,8].map((cx,i)=>{
+    const cy = i<5 ? -58 : -34;
+    const colors=['#ff6b8a','#4a90d9','#6fbf8f','#b48cff','#ff8a50','#ffd54a','#ff6b8a','#4a90d9'];
+    return `
+    <g transform="translate(${cx},${cy})">
+      <rect x="-2.5" y="0" width="5" height="16" rx="2" fill="${colors[i]}"/>
+      <line x1="0" y1="0" x2="0" y2="-3" stroke="#8a5a2e" stroke-width="1.5"/>
+      ${lit?`<g class="anim"><path class="flame ${i%3===1?'fl2':i%3===2?'fl3':''} ${blow?'blowout':''}" d="M0,-3 Q-4,-9 0,-15 Q4,-9 0,-3" fill="var(--flame)"/><circle cx="0" cy="-9" r="2" fill="#fff3c9" class="${blow?'blowout':''}"/></g>
+      ${blow?`<g class="anim"><path class="smoke" d="M0,-8 Q-3,-14 0,-20 Q3,-24 1,-28" stroke="#aab" stroke-width="2" fill="none" stroke-linecap="round"/></g>`:''}`:''}
+    </g>`;
+  }).join('');
+  return `
+<g transform="translate(${x},${y}) scale(${s})">
+  <g class="anim ${cls}">
+    ${glowOn&&lit?`<circle class="anim glow" r="95" cy="-40" fill="url(#cakeglow)"/>`:''}
+    <ellipse cx="0" cy="12" rx="62" ry="12" fill="#f0e0c9" stroke="#d9c9a8" stroke-width="2"/>
+    <path d="M-48,-14 h96 v22 a48,10 0 0 1 -96,0 Z" fill="#f2a68c"/>
+    <path d="M-48,-14 a48,10 0 0 0 96,0 a48,10 0 0 0 -96,0" fill="#ffd9c4"/>
+    <path d="M-48,-12 q6,10 12,0 q6,10 12,0 q6,10 12,0 q6,10 12,0 q6,10 12,0 q6,10 12,0 q6,10 12,0 q6,10 12,0 V-14 h-96 Z" fill="#fff" opacity=".85"/>
+    <path d="M-36,-38 h72 v18 a36,8 0 0 1 -72,0 Z" fill="#c98a48"/>
+    <path d="M-36,-38 a36,8 0 0 0 72,0 a36,8 0 0 0 -72,0" fill="#e8b070"/>
+    <circle cx="-24" cy="-6" r="4" fill="#e04a3a"/><circle cx="0" cy="-4" r="4" fill="#e04a3a"/><circle cx="24" cy="-6" r="4" fill="#e04a3a"/>
+    ${candles}
+  </g>
+</g>`;
+};
+
+const cutlet = (x,y,s=1) => `
+<g transform="translate(${x},${y}) scale(${s})">
+  <ellipse cx="0" cy="6" rx="20" ry="7" fill="#fffaf0" stroke="#e8d9b8" stroke-width="2"/>
+  <ellipse cx="0" cy="-1" rx="14" ry="8" fill="#b8763a"/>
+  <ellipse cx="0" cy="-3" rx="14" ry="7" fill="#c98a48"/>
+  <path d="M-8,-4 h4 M2,-6 h5 M-3,0 h4" stroke="#a05f28" stroke-width="1.6" stroke-linecap="round"/>
+  <g opacity=".7"><path d="M-4,-12 q2,-4 0,-8 M4,-12 q2,-4 0,-8" stroke="#cabba0" stroke-width="1.8" fill="none" stroke-linecap="round"/></g>
+</g>`;
+
+const ball = (x,y,r=14,cls='',spin=true) => `
+<g transform="translate(${x},${y})">
+  <g class="anim ${cls}">
+    <g class="anim ${spin?'spinball':''}">
+      <circle r="${r}" fill="#fff" stroke="#c9c9d9" stroke-width="2"/>
+      <polygon points="0,-6 5.5,-1.8 3.5,4.8 -3.5,4.8 -5.5,-1.8" fill="#2b3350"/>
+      <path d="M0,${-r} L0,-6 M5.5,-1.8 L${r*0.8},${-r*0.45} M3.5,4.8 L${r*0.55},${r*0.8} M-3.5,4.8 L${-r*0.55},${r*0.8} M-5.5,-1.8 L${-r*0.8},${-r*0.45}" stroke="#2b3350" stroke-width="1.6"/>
+    </g>
+  </g>
+</g>`;
+
+const cup = (x,y,s=1,cls='shine') => `
+<g transform="translate(${x},${y}) scale(${s})">
+  <g class="anim ${cls}">
+    <path d="M-20,-40 L20,-40 L16,-8 Q10,4 0,4 Q-10,4 -16,-8 Z" fill="var(--sun)" stroke="#d9a83f" stroke-width="2.5"/>
+    <path d="M-20,-36 Q-36,-34 -32,-20 Q-29,-10 -16,-12" fill="none" stroke="#d9a83f" stroke-width="4"/>
+    <path d="M20,-36 Q36,-34 32,-20 Q29,-10 16,-12" fill="none" stroke="#d9a83f" stroke-width="4"/>
+    <rect x="-6" y="4" width="12" height="10" fill="#d9a83f"/>
+    <rect x="-16" y="14" width="32" height="8" rx="3" fill="#b8863a"/>
+    <text x="0" y="-18" font-size="14" text-anchor="middle">⭐</text>
+  </g>
+</g>`;
+
+const medal = (x,y,s=1) => `
+<g transform="translate(${x},${y}) scale(${s})">
+  <g class="anim shine">
+    <path d="M-8,-18 L0,-6 L8,-18" stroke="var(--kit-red)" stroke-width="6" fill="none"/>
+    <circle r="11" fill="var(--sun)" stroke="#d9a83f" stroke-width="2.5"/>
+    <text y="4" font-size="11" text-anchor="middle">⭐</text>
+  </g>
+</g>`;
+
+const hearts = (x,y) => `
+<g transform="translate(${x},${y})" fill="#ff6b8a">
+  <g class="anim"><path class="heart" d="M0,4 C-6,-4 -14,2 -8,9 L0,16 L8,9 C14,2 6,-4 0,4 Z"/></g>
+  <g class="anim"><path class="heart h2" d="M28,-6 C23,-12 16,-7 21,-2 L28,4 L34,-2 C39,-7 33,-12 28,-6 Z" opacity=".8"/></g>
+</g>`;
+
+const emoji = (x,y,size,char,cls='') => `
+<g transform="translate(${x},${y})"><g class="anim ${cls}"><text font-size="${size}" text-anchor="middle">${char}</text></g></g>`;
+
+const confetti = `
+<g>
+  <g class="confetti"><circle cx="80" cy="0" r="5" fill="#ff6b8a"/><circle cx="200" cy="-20" r="5" fill="#4a90d9"/><circle cx="330" cy="-8" r="5" fill="#ffd54a"/></g>
+  <g class="confetti f2"><circle cx="140" cy="0" r="5" fill="#6fbf8f"/><circle cx="270" cy="-14" r="5" fill="#b48cff"/><circle cx="420" cy="-4" r="5" fill="#ff8a50"/></g>
+  <g class="confetti f3"><circle cx="50" cy="-10" r="5" fill="#ffd54a"/><circle cx="240" cy="0" r="5" fill="#ff6b8a"/><circle cx="390" cy="-18" r="5" fill="#4a90d9"/></g>
+</g>`;
+
+const darkEyes = (x,y,s=1,cls='darkblink') => `
+<g transform="translate(${x},${y}) scale(${s})">
+  <g class="anim ${cls}">
+    <ellipse cx="-9" cy="0" rx="7" ry="9" fill="#fff"/>
+    <ellipse cx="9" cy="0" rx="7" ry="9" fill="#fff"/>
+    <circle cx="-9" cy="1" r="3.4" fill="#2b2b3a"/>
+    <circle cx="9" cy="1" r="3.4" fill="#2b2b3a"/>
+  </g>
+</g>`;
+
+// Глобальные градиенты/фильтры — подставляются в начало каждой сцены
+const DEFS = `<defs>
+  <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#6fc4f0"/>
+    <stop offset="55%" stop-color="#a5dcf5"/>
+    <stop offset="100%" stop-color="#d4f0ff"/>
+  </linearGradient>
+  <radialGradient id="sunG" cx="42%" cy="38%" r="65%">
+    <stop offset="0%" stop-color="#fff3b0"/>
+    <stop offset="60%" stop-color="#ffd54a"/>
+    <stop offset="100%" stop-color="#f7b733"/>
+  </radialGradient>
+  <radialGradient id="sunHalo" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#fff3b0" stop-opacity=".55"/>
+    <stop offset="100%" stop-color="#fff3b0" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="grassG" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#8ed85e"/>
+    <stop offset="100%" stop-color="#5fa838"/>
+  </linearGradient>
+  <linearGradient id="catG" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#f8c451"/>
+    <stop offset="100%" stop-color="#e09a24"/>
+  </linearGradient>
+  <linearGradient id="catBelly" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#fff2d4"/>
+    <stop offset="100%" stop-color="#ffe0a8"/>
+  </linearGradient>
+  <linearGradient id="skinG" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#f6d0a8"/>
+    <stop offset="100%" stop-color="#e8b98a"/>
+  </linearGradient>
+  <linearGradient id="blueG" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#5aa5e8"/>
+    <stop offset="100%" stop-color="#3f7ec4"/>
+  </linearGradient>
+  <linearGradient id="greenBody" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#5cbf7a"/>
+    <stop offset="100%" stop-color="#348a52"/>
+  </linearGradient>
+  <linearGradient id="whiteG" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#ffffff"/>
+    <stop offset="100%" stop-color="#e4e6ee"/>
+  </linearGradient>
+  <linearGradient id="greyG" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#c2cadd"/>
+    <stop offset="100%" stop-color="#98a2ba"/>
+  </linearGradient>
+  <linearGradient id="pigeonG" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#cdd9e8"/>
+    <stop offset="100%" stop-color="#a6b8ce"/>
+  </linearGradient>
+  <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#2a3a1a" flood-opacity="0.18"/>
+  </filter>
+</defs>`;
+
+// мягкая тень-эллипс под героем (кладётся ПЕРЕД фигурой)
+const shadow = (x,y,rx=42,op=.16) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${rx*0.24}" fill="#1e3a10" opacity="${op}"/>`;
+
+const glowDefs = `
+<defs>
+  <radialGradient id="cakeglow">
+    <stop offset="0%" stop-color="#ffd97d" stop-opacity=".7"/>
+    <stop offset="60%" stop-color="#ffd97d" stop-opacity=".25"/>
+    <stop offset="100%" stop-color="#ffd97d" stop-opacity="0"/>
+  </radialGradient>
+</defs>`;
+
+// градиент свечения ТВ-экрана всегда доступен для сцены с мультиком
+const tvDefs = `<defs><linearGradient id="tvglow" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0%" stop-color="#fff6cf"/><stop offset="100%" stop-color="#ffd9b0" stop-opacity="0"/>
+</linearGradient></defs>`;
+
+const darkBg = `<rect x="0" y="0" width="500" height="450" fill="var(--dark)"/>
+<rect x="0" y="330" width="500" height="120" fill="#0e1229"/>`;
+
+// ======================================================
+//                       ГЕРОИ
+// ======================================================
+const barsik = (x,y,opts={}) => {
+  const {scale=1, cls='', mood='happy', flip=false, flag=false, hat=false} = opts;
+  const eyes = mood==='sad'
+    ? `<path d="M-34,-56 Q-30,-60 -26,-56" stroke="#5a3d10" stroke-width="3" fill="none" stroke-linecap="round"/>
+       <path d="M-12,-56 Q-8,-60 -4,-56" stroke="#5a3d10" stroke-width="3" fill="none" stroke-linecap="round"/>
+       <path d="M-36,-48 q-2,6 -1,10" stroke="#7ec8f4" stroke-width="3" fill="none" stroke-linecap="round"/>`
+    : mood==='brave'
+    ? `<path d="M-38,-62 L-24,-56 M-2,-56 L-14,-62" stroke="#5a3d10" stroke-width="3.5" stroke-linecap="round"/>
+       <circle cx="-30" cy="-52" r="4" fill="#3a2a10"/><circle cx="-8" cy="-52" r="4" fill="#3a2a10"/>`
+    : `<g class="blink"><circle cx="-30" cy="-54" r="4.5" fill="#3a2a10"/><circle cx="-8" cy="-54" r="4.5" fill="#3a2a10"/>
+       <circle cx="-28.5" cy="-55.5" r="1.5" fill="#fff"/><circle cx="-6.5" cy="-55.5" r="1.5" fill="#fff"/></g>`;
+  const mouth = mood==='sad'
+    ? `<path d="M-24,-38 Q-19,-42 -14,-38" stroke="#5a3d10" stroke-width="2.6" fill="none" stroke-linecap="round"/>`
+    : mood==='brave'
+    ? `<path d="M-26,-40 L-19,-36 L-12,-40" stroke="#5a3d10" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+       <path d="M-23,-37 l0,4 M-15,-37 l0,4" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>`
+    : `<path d="M-26,-40 Q-19,-33 -12,-40" stroke="#5a3d10" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+  return `
+<g transform="translate(${x},${y}) ${flip?'scale(-1,1)':''} scale(${scale})">
+  <ellipse cx="8" cy="24" rx="56" ry="11" fill="#1e3a10" opacity=".16"/>
+  <g class="anim ${cls}">
+   <g class="anim breathe">
+    <g class="tail">
+      <path d="M42,-18 Q78,-26 84,-58 Q86,-70 76,-72" stroke="url(#catG)" stroke-width="16" fill="none" stroke-linecap="round"/>
+      <path d="M78,-64 Q82,-70 76,-72" stroke="var(--cat-dark)" stroke-width="16" fill="none" stroke-linecap="round"/>
+    </g>
+    ${flag?`<g transform="translate(-58,-70)"><g class="anim wave">
+      <line x1="0" y1="0" x2="0" y2="40" stroke="#8a5a2e" stroke-width="4" stroke-linecap="round"/>
+      <path d="M0,0 L34,7 L0,16 Z" fill="var(--kit-red)"/>
+      <text x="3" y="12" font-size="7.5" fill="#fff" font-family="Comfortaa" font-weight="700" textLength="25" lengthAdjust="spacingAndGlyphs">ЮНИТИ</text>
+    </g></g>`:''}
+    <ellipse cx="14" cy="-14" rx="52" ry="38" fill="url(#catG)"/>
+    <ellipse cx="4" cy="-30" rx="30" ry="16" fill="#ffd57a" opacity=".45"/>
+    <path d="M-6,-40 Q14,-50 36,-40" stroke="var(--cat-dark)" stroke-width="7" fill="none" stroke-linecap="round" opacity=".6"/>
+    <path d="M4,-28 Q20,-36 38,-28" stroke="var(--cat-dark)" stroke-width="7" fill="none" stroke-linecap="round" opacity=".6"/>
+    <ellipse cx="10" cy="0" rx="30" ry="20" fill="url(#catBelly)"/>
+    <ellipse cx="-16" cy="20" rx="11" ry="8" fill="url(#catG)"/>
+    <ellipse cx="42" cy="20" rx="11" ry="8" fill="url(#catG)"/>
+    <path d="M-19,20 v-5 M-13,20 v-5 M39,20 v-5 M45,20 v-5" stroke="var(--cat-dark)" stroke-width="1.6"/>
+    <circle cx="-19" cy="-50" r="30" fill="url(#catG)"/>
+    <circle cx="-27" cy="-58" r="12" fill="#ffd57a" opacity=".4"/>
+    <polygon points="-44,-68 -40,-92 -26,-74" fill="url(#catG)"/>
+    <polygon points="6,-68 2,-92 -12,-74" fill="url(#catG)"/>
+    <polygon points="-40,-72 -38,-84 -31,-75" fill="#ffb0a0"/>
+    <polygon points="2,-72 0,-84 -7,-75" fill="#ffb0a0"/>
+    ${hat?`<g transform="translate(-19,-76) rotate(-8)"><polygon points="0,-26 -13,4 13,4" fill="#b48cff"/><circle cy="-26" r="4" fill="#ffd54a"/><circle cx="-5" cy="-4" r="2" fill="#ffd54a"/><circle cx="5" cy="-12" r="2" fill="#ff6b8a"/></g>`:''}
+    <path d="M-40,-60 Q-19,-68 2,-60" stroke="var(--cat-dark)" stroke-width="5" fill="none" stroke-linecap="round" opacity=".5"/>
+    ${eyes}
+    <polygon points="-19,-46 -23,-42 -15,-42" fill="#ff9a76"/>
+    ${mouth}
+    <path d="M-46,-44 h-12 M-46,-40 h-11 M8,-44 h12 M8,-40 h11" stroke="#8a6a30" stroke-width="1.8" stroke-linecap="round" opacity=".8"/>
+   </g>
+  </g>
+</g>`;
+};
+
+const pigeon = (x,y,opts={}) => {
+  const {scale=1, cls='', flying=false, bag=false, hat=false} = opts;
+  return `
+<g transform="translate(${x},${y}) scale(${scale})">
+  <g class="anim ${cls}">
+    <path class="${flying?'flapwing':''}" d="M-4,-14 Q-30,-34 -46,-24 Q-30,-12 -8,-8 Z" fill="#9fb2c8"/>
+    <ellipse cx="0" cy="0" rx="24" ry="17" fill="url(#pigeonG)"/>
+    <ellipse cx="-6" cy="-6" rx="12" ry="7" fill="#e2eaf5" opacity=".5"/>
+    <path d="M-22,4 Q-32,10 -38,8 Q-30,16 -20,12 Z" fill="#8fa5be"/>
+    <circle cx="20" cy="-12" r="12" fill="url(#pigeonG)"/>
+    <circle cx="16" cy="-16" r="4" fill="#e2eaf5" opacity=".5"/>
+    ${hat?`<g transform="translate(20,-22) rotate(6)"><polygon points="0,-14 -7,2 7,2" fill="#ff6b8a"/><circle cy="-14" r="2.6" fill="#ffd54a"/></g>`:''}
+    <circle cx="24" cy="-14" r="2.6" fill="#2b2b3a"/>
+    <circle cx="24.8" cy="-14.8" r=".9" fill="#fff"/>
+    <polygon points="30,-12 40,-9 30,-6" fill="#ff9d3f"/>
+    <path d="M14,-2 Q20,4 16,8" stroke="#8fa5be" stroke-width="3" fill="none"/>
+    ${flying?'':'<path d="M-4,16 v6 M6,16 v6" stroke="#ff9d3f" stroke-width="3" stroke-linecap="round"/>'}
+    ${bag?`
+    <g transform="translate(-2,10)">
+      <path d="M-14,-22 Q0,-30 14,-22" stroke="#c9702e" stroke-width="3.4" fill="none"/>
+      <rect x="-11" y="-8" width="22" height="16" rx="3" fill="#e08a3c" stroke="#c9702e" stroke-width="2"/>
+      <rect x="-8" y="-5" width="16" height="10" rx="2" fill="#fffaf0"/>
+      <path d="M-8,-5 L0,1 L8,-5" stroke="#d9a86a" stroke-width="1.6" fill="none"/>
+    </g>`:''}
+  </g>
+</g>`;
+};
+
+const kitten = (x,y,opts={}) => {
+  const {scale=1, cls='', mood='happy', hat=false} = opts;
+  const face = mood==='scared'
+    ? `<circle cx="-8" cy="-24" r="3.4" fill="#2b2b3a"/><circle cx="6" cy="-24" r="3.4" fill="#2b2b3a"/>
+       <ellipse cx="-1" cy="-16" rx="3" ry="2.4" fill="#ffb0a0"/>
+       <path d="M-6,-11 Q-1,-14 4,-11" stroke="#4a4a5a" stroke-width="2" fill="none" stroke-linecap="round"/>`
+    : `<g class="blink"><circle cx="-8" cy="-24" r="3" fill="#2b2b3a"/><circle cx="6" cy="-24" r="3" fill="#2b2b3a"/></g>
+       <ellipse cx="-1" cy="-17" rx="3" ry="2.4" fill="#ffb0a0"/>
+       <path d="M-7,-12 Q-1,-8 5,-12" stroke="#4a4a5a" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+  return `
+<g transform="translate(${x},${y}) scale(${scale})">
+  <ellipse cx="4" cy="18" rx="26" ry="5" fill="#1e3a10" opacity=".15"/>
+  <g class="anim ${cls}">
+   <g class="anim breathe">
+    <path d="M20,-4 Q36,-10 38,-26" stroke="#98a2ba" stroke-width="8" fill="none" stroke-linecap="round" class="tail"/>
+    <ellipse cx="4" cy="0" rx="24" ry="17" fill="url(#greyG)"/>
+    <ellipse cx="2" cy="6" rx="14" ry="9" fill="#eef1f8"/>
+    <ellipse cx="-10" cy="14" rx="6" ry="4.5" fill="#98a2ba"/>
+    <ellipse cx="18" cy="14" rx="6" ry="4.5" fill="#98a2ba"/>
+    <circle cx="-1" cy="-22" r="16" fill="url(#greyG)"/>
+    <circle cx="-7" cy="-27" r="6" fill="#e0e6f2" opacity=".5"/>
+    <polygon points="-15,-32 -13,-46 -4,-36" fill="#aab2c8"/>
+    <polygon points="13,-32 11,-46 2,-36" fill="#aab2c8"/>
+    <polygon points="-12,-34 -11,-41 -7,-36" fill="#ffb0a0"/>
+    ${hat?`<g transform="translate(-1,-36) rotate(4)"><polygon points="0,-16 -8,3 8,3" fill="#6fbf8f"/><circle cy="-16" r="3" fill="#ffd54a"/></g>`:''}
+    ${face}
+    <path d="M-15,-18 h-7 M13,-18 h7" stroke="#7a8298" stroke-width="1.4" stroke-linecap="round"/>
+   </g>
+  </g>
+</g>`;
+};
+
+const dog = (x,y,opts={}) => {
+  const {scale=1, cls='', mood='angry', flip=false} = opts;
+  const face = mood==='angry'
+    ? `<path d="M18,-58 L32,-52" stroke="#4a3220" stroke-width="4" stroke-linecap="round"/>
+       <circle cx="28" cy="-46" r="4.5" fill="#2b1d10"/>
+       <path d="M34,-30 L42,-34 L50,-30" stroke="#4a3220" stroke-width="3" fill="none" stroke-linecap="round"/>
+       <path d="M37,-32 l0,5 M45,-32 l0,5" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>`
+    : `<path d="M20,-56 Q26,-60 32,-56" stroke="#4a3220" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+       <circle cx="28" cy="-48" r="4" fill="#2b1d10"/>
+       <path d="M36,-32 Q42,-28 48,-32" stroke="#4a3220" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+  return `
+<g transform="translate(${x},${y}) ${flip?'scale(-1,1)':''} scale(${scale})">
+  <g class="anim ${cls}">
+    <path d="M-58,-10 Q-76,-18 -74,-38" stroke="#8a5a2e" stroke-width="13" fill="none" stroke-linecap="round" class="tail"/>
+    <ellipse cx="-14" cy="-16" rx="52" ry="34" fill="#a06a38"/>
+    <ellipse cx="-16" cy="-4" rx="30" ry="17" fill="#c99a68"/>
+    <ellipse cx="-42" cy="14" rx="11" ry="9" fill="#a06a38"/>
+    <ellipse cx="12" cy="14" rx="11" ry="9" fill="#a06a38"/>
+    <circle cx="26" cy="-44" r="27" fill="#a06a38"/>
+    <path d="M6,-62 Q-4,-48 4,-34 Q12,-42 14,-56 Z" fill="#7a4a20"/>
+    <path d="M46,-62 Q56,-48 48,-34 Q40,-42 38,-56 Z" fill="#7a4a20"/>
+    <ellipse cx="42" cy="-34" rx="14" ry="11" fill="#c99a68"/>
+    <ellipse cx="50" cy="-38" rx="6" ry="5" fill="#3a2a1a"/>
+    ${face}
+  </g>
+</g>`;
+};
+
+// Универсальный мальчик: kit 'casual'|'sport', foe null|'blue'|'green'
+const boy = (x, y, opts={}) => {
+  const {hair='#8a6a45', style='david', scale=1, cls='', arms='down', smile='big',
+         sad=false, kit='casual', foe=null, kickLeg=false, bib='', pose='stand', hat=false} = opts;
+  const sport = kit==='sport' || foe;
+  const shirt = foe==='blue' ? '#4a6ad9' : foe==='green' ? '#3f9e5f' : sport ? 'url(#whiteG)' : 'url(#blueG)';
+  const armC  = foe==='blue' ? '#4a6ad9' : foe==='green' ? '#3f9e5f' : sport ? '#f0f0ee' : '#4a90d9';
+  const trim  = foe==='blue' ? '#2d47a8' : foe==='green' ? '#2d7a44' : sport ? 'var(--kit-red)' : '#fff';
+  const shorts= foe==='blue' ? '#2d47a8' : foe==='green' ? '#2d7a44' : 'var(--kit-red)';
+  const hairPath = style==='david'
+    ? `<path d="M-16,-58 Q-20,-74 -4,-77 Q6,-81 16,-73 Q24,-67 20,-56 Q10,-63 -2,-62 Q-10,-62 -16,-58 Z" fill="${hair}"/>
+       <path d="M-2,-76 Q8,-79 15,-71" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".22"/>`
+    : style==='luka'
+    ? `<path d="M-17,-57 Q-23,-76 -2,-79 Q10,-83 19,-71 Q25,-63 20,-55 Q14,-66 2,-65 Q-8,-66 -12,-60 Q-15,-58 -17,-57 Z" fill="${hair}"/>
+       <path d="M-4,-76 Q2,-82 8,-76" stroke="${hair}" stroke-width="5" fill="none" stroke-linecap="round"/>
+       <path d="M2,-77 Q10,-80 17,-70" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".18"/>`
+    : `<path d="M-17,-58 Q-19,-77 0,-78 Q19,-77 17,-58 Q8,-64 0,-63 Q-8,-64 -17,-58 Z" fill="${hair}"/>`;
+  const mouth = sad
+    ? `<path d="M-6,-34 Q0,-39 6,-34" stroke="#8a4a3a" stroke-width="2.2" fill="none" stroke-linecap="round"/>`
+    : smile==='big'
+    ? `<path d="M-7,-38 Q0,-31 7,-38" stroke="#8a4a3a" stroke-width="2.4" fill="none" stroke-linecap="round"/>`
+    : `<path d="M-5,-37 Q0,-33 5,-37" stroke="#8a4a3a" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+  const armsSvg = arms==='up'
+    ? `<path d="M-14,-24 Q-26,-38 -24,-52" stroke="${armC}" stroke-width="9" fill="none" stroke-linecap="round"/>
+       <path d="M14,-24 Q26,-38 24,-52" stroke="${armC}" stroke-width="9" fill="none" stroke-linecap="round"/>
+       <circle cx="-24" cy="-54" r="5" fill="#f0c49a"/><circle cx="24" cy="-54" r="5" fill="#f0c49a"/>`
+    : arms==='hold'
+    ? `<path d="M-14,-24 Q-22,-12 -20,0" stroke="${armC}" stroke-width="9" fill="none" stroke-linecap="round"/>
+       <path d="M14,-24 Q30,-18 36,-12" stroke="${armC}" stroke-width="9" fill="none" stroke-linecap="round"/>
+       <circle cx="-20" cy="2" r="5" fill="#f0c49a"/><circle cx="38" cy="-11" r="5" fill="#f0c49a"/>`
+    : arms==='hold-l'
+    ? `<path d="M-14,-24 Q-30,-18 -36,-12" stroke="${armC}" stroke-width="9" fill="none" stroke-linecap="round"/>
+       <path d="M14,-24 Q22,-12 20,0" stroke="${armC}" stroke-width="9" fill="none" stroke-linecap="round"/>
+       <circle cx="-38" cy="-11" r="5" fill="#f0c49a"/><circle cx="20" cy="2" r="5" fill="#f0c49a"/>`
+    : `<path d="M-14,-24 Q-22,-12 -20,0" stroke="${armC}" stroke-width="9" fill="none" stroke-linecap="round"/>
+       <path d="M14,-24 Q22,-12 20,0" stroke="${armC}" stroke-width="9" fill="none" stroke-linecap="round"/>
+       <circle cx="-20" cy="2" r="5" fill="#f0c49a"/><circle cx="20" cy="2" r="5" fill="#f0c49a"/>`;
+  const sportLegs = pose==='sit'
+    ? `<g>
+        <rect x="2" y="18" width="24" height="9" rx="4" fill="#eec39a"/>
+        <rect x="20" y="16" width="16" height="11" rx="4" fill="#fff"/>
+        <ellipse cx="40" cy="22" rx="6" ry="8" fill="#2b3350"/>
+        <rect x="2" y="30" width="26" height="9" rx="4" fill="#eec39a"/>
+        <rect x="22" y="28" width="16" height="11" rx="4" fill="#fff"/>
+        <ellipse cx="42" cy="34" rx="6" ry="8" fill="#2b3350"/>
+      </g>`
+    : `<g>
+        <rect x="-13" y="26" width="9" height="22" rx="4" fill="#eec39a"/>
+        <rect x="-14" y="36" width="11" height="16" rx="4" fill="#fff"/>
+        <rect x="-14" y="38" width="11" height="3" fill="${trim}"/>
+        <ellipse cx="-8" cy="55" rx="10" ry="5" fill="#2b3350"/>
+      </g>
+      <g class="${kickLeg?'kickleg':''}">
+        <rect x="4" y="26" width="9" height="22" rx="4" fill="#eec39a"/>
+        <rect x="3" y="36" width="11" height="16" rx="4" fill="#fff"/>
+        <rect x="3" y="38" width="11" height="3" fill="${trim}"/>
+        <ellipse cx="10" cy="55" rx="10" ry="5" fill="#2b3350"/>
+      </g>`;
+  const casualLegs = `
+    <rect x="-13" y="26" width="9" height="24" rx="4" fill="#3a5a8a"/>
+    <rect x="4" y="26" width="9" height="24" rx="4" fill="#3a5a8a"/>
+    <ellipse cx="-8" cy="52" rx="10" ry="5" fill="#2b3350"/>
+    <ellipse cx="10" cy="52" rx="10" ry="5" fill="#2b3350"/>`;
+  const body = sport
+    ? `<path d="M-15,12 L15,12 L17,30 L4,30 L0,20 L-4,30 L-17,30 Z" fill="${shorts}"/>
+       <path d="M-16,-26 Q0,-32 16,-26 L19,14 L-19,14 Z" fill="${shirt}"/>
+       <path d="M-9,-27 Q0,-22 9,-27 L7,-31 Q0,-27 -7,-31 Z" fill="${trim}"/>`
+    : `<path d="M-16,-26 Q0,-32 16,-26 L18,28 L-18,28 Z" fill="${shirt}"/>
+       <path d="M-9,-27 Q0,-22 9,-27 L7,-31 Q0,-27 -7,-31 Z" fill="#fff"/>`;
+  return `
+<g transform="translate(${x},${y}) scale(${scale})">
+  ${pose==='sit'?'':`<ellipse cx="2" cy="58" rx="26" ry="6" fill="#1e3a10" opacity=".15"/>`}
+  <g class="anim ${cls}">
+    ${sport?sportLegs:casualLegs}
+    ${body}
+    ${armsSvg}
+    ${sport&&!foe&&!bib?`<text x="0" y="-3" font-family="Comfortaa" font-size="10" font-weight="700" fill="var(--kit-red)" text-anchor="middle" textLength="33" lengthAdjust="spacingAndGlyphs">ЮНИТИ</text>`:''}
+    ${bib?`<rect x="-11" y="-16" width="22" height="18" rx="3" fill="#fff" stroke="#c9c9d9" stroke-width="1.5"/>
+    <text x="0" y="-2" font-family="Comfortaa" font-size="12" font-weight="700" fill="#2b3350" text-anchor="middle">${bib}</text>`:''}
+    <circle cx="0" cy="-48" r="19" fill="url(#skinG)"/>
+    <ellipse cx="-19" cy="-48" rx="3.5" ry="5" fill="#eec39a"/>
+    <ellipse cx="19" cy="-48" rx="3.5" ry="5" fill="#eec39a"/>
+    <circle cx="-6" cy="-54" r="7" fill="#fff2df" opacity=".35"/>
+    ${hairPath}
+    ${hat?`<g transform="translate(2,-70) rotate(6)"><polygon points="0,-20 -10,3 10,3" fill="#ff8a50"/><circle cy="-20" r="3.4" fill="#ffd54a"/><circle cx="-3" cy="-6" r="2" fill="#fff"/><circle cx="4" cy="-12" r="2" fill="#4a90d9"/></g>`:''}
+    <path d="M-11,-50 q4,-2.5 8,0 M3,-50 q4,-2.5 8,0" stroke="#5a4326" stroke-width="1.8" fill="none" stroke-linecap="round" opacity=".55"/>
+    <g class="blink">
+      <circle cx="-6.5" cy="-46" r="2.8" fill="#3a2a1a"/>
+      <circle cx="6.5" cy="-46" r="2.8" fill="#3a2a1a"/>
+      <circle cx="-5.6" cy="-47" r="1" fill="#fff" opacity=".9"/>
+      <circle cx="7.4" cy="-47" r="1" fill="#fff" opacity=".9"/>
+    </g>
+    ${mouth}
+    <circle cx="-12" cy="-40" r="3.2" fill="#f2917c" opacity=".4"/>
+    <circle cx="12" cy="-40" r="3.2" fill="#f2917c" opacity=".4"/>
+  </g>
+</g>`;
+};
+
+const DAVID = {hair:'#9a7a50', style:'david', smile:'soft'};
+const LUKA  = {hair:'#5a3d24', style:'luka',  smile:'big'};
+const SDAVID = {...DAVID, kit:'sport'};
+const SLUKA  = {...LUKA,  kit:'sport'};
+const FOEBLUE  = {hair:'#3a2a1a', style:'foe', foe:'blue',  smile:'soft'};
+const FOEGREEN = {hair:'#3a2a1a', style:'foe', foe:'green', smile:'soft'};
+
+// ======================================================
+//                       СКАЗКИ
+// ======================================================
+const TALES = [
+
+// ---------- 1. БАРСИК ----------
+{
+  emoji:'🐱', bg:'#ffe9bd',
+  title:'Как Барсик потерялся и нашёл друзей',
+  scenes:[
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${house(320,150)}${tree(80,220)}${ground}${flowers}
+        ${boy(180,330,{...DAVID, cls:'bob'})}
+        ${boy(270,330,{...LUKA, cls:'bob b2'})}
+        ${barsik(115,390,{scale:.85, cls:'sway'})}
+      </svg>`,
+      text:`Жили-были два брата — <b>Давид</b> и <b>Лука</b>. И был у них большой жёлтый кот <b>Барсик</b> — пушистый, полосатый и очень любопытный.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${tree(420,210)}${tree(60,230,.8)}${ground}${flowers}
+        ${barsik(250,390,{scale:1.15, cls:'sway'})}
+        ${emoji(345,285,26,'🦋','fly-by')}
+      </svg>`,
+      text:`Однажды Барсик увидел красивую бабочку и побежал за ней. Он бежал, бежал… и вдруг оглянулся — а вокруг всё <b>незнакомое</b>. Барсик потерялся!`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${tree(70,225)}${ground}${flowers}
+        ${barsik(230,390,{scale:1.15, mood:'sad'})}
+        <g transform="translate(242,382)"><g class="anim"><ellipse class="rumble" rx="34" ry="22" fill="none" stroke="#d97516" stroke-width="3" stroke-dasharray="5 7" opacity=".8"/></g></g>
+        ${emoji(290,295,26,'💭','bob')}
+        ${cutlet(316,268,0.8)}
+        ${pigeon(410,140,{scale:1, cls:'bob b2', flying:true, bag:true})}
+      </svg>`,
+      text:`Барсик проголодался — в животике заурчало: <b>«ур-р-р»</b>. Он мечтал о вкусной котлетке… И вдруг увидел: кто-то летит по небу — всё ближе и ближе!`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${tree(430,215,.9)}${ground}${flowers}
+        ${barsik(170,390,{scale:1.1, cls:'sway'})}
+        ${pigeon(330,398,{scale:1.3, cls:'land', bag:true})}
+        ${cutlet(262,404)}
+      </svg>`,
+      text:`Это был <b>почтовый голубь</b>! Он мягко приземлился рядом и достал из сумки… настоящую котлетку! «Это тебе, — сказал голубь. — А как тебя зовут?» — «<b>Барсик</b>!» — обрадовался кот и заурчал от счастья.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${tree(80,220)}${tree(440,240,.7)}${ground}${flowers}
+        ${barsik(230,390,{scale:1.05, cls:'bob'})}
+        ${pigeon(350,382,{scale:1.2, cls:'bob b2', bag:true})}
+        ${hearts(280,290)}
+      </svg>`,
+      text:`Так Барсик и голубь <b>подружились</b>. «Пойдём вместе искать твой дом! — предложил голубь. — А по дороге найдём новых друзей». И они отправились в путь.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${tree(60,225,.85)}${ground}
+        ${kitten(110,400,{scale:1.15, cls:'tremble', mood:'scared'})}
+        ${dog(350,392,{scale:1.05, cls:'chase', mood:'angry'})}
+        ${barsik(225,295,{scale:.75, cls:'bob'})}
+        ${pigeon(305,235,{scale:.9, cls:'bob b2', flying:true})}
+        ${emoji(150,325,22,'😿')}
+      </svg>`,
+      text:`Вдруг они увидели: за маленьким <b>котёнком</b> бежит огромная собака! Котёнок дрожал от страха. «Надо его защитить!» — решил храбрый Барсик.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${tree(60,225,.85)}${ground}
+        ${kitten(90,400,{scale:1.1, mood:'happy'})}
+        ${barsik(215,390,{scale:1.1, cls:'brave', mood:'brave'})}
+        ${dog(360,392,{scale:1, cls:'retreat', mood:'scared'})}
+        ${pigeon(150,250,{scale:.9, cls:'bob', flying:true})}
+        ${emoji(268,268,30,'⚡','bob b2')}
+      </svg>`,
+      text:`Барсик встал между котёнком и собакой, выгнул спинку и грозно сказал: <b>«Ф-ф-ф! Не обижай маленьких!»</b> Собака посмотрела на большого смелого кота… и убежала прочь.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${house(300,140,1.15)}${tree(70,215)}${ground}${flowers}
+        ${barsik(140,395,{scale:.95, cls:'bob'})}
+        ${kitten(240,405,{scale:1, cls:'bob b2', mood:'happy'})}
+        ${pigeon(320,395,{scale:1.1, cls:'bob'})}
+        ${emoji(190,295,26,'✨','bob')}
+      </svg>`,
+      text:`Котёнок пошёл с ними, и втроём они искали дом Барсика — по улочкам и дворам. И вдруг Барсик закричал: «Смотрите! <b>Вот мой дом!</b> Вот моё окошко!»`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${house(330,155)}${ground}${flowers}
+        ${boy(120,330,{...DAVID, cls:'cheer', arms:'up'})}
+        ${boy(210,330,{...LUKA, cls:'cheer c2', arms:'up'})}
+        ${barsik(315,398,{scale:.9, cls:'sway'})}
+        ${kitten(405,408,{scale:.95, cls:'bob', mood:'happy'})}
+        ${pigeon(435,325,{scale:1, cls:'bob b2'})}
+        ${hearts(235,255)}
+      </svg>`,
+      text:`Давид и Лука выбежали навстречу: <b>«Барсик! Ты нашёлся!»</b> Они обняли кота, а его новых друзей — голубя и котёнка — позвали жить вместе. С тех пор все они живут дружно и счастливо. <b>Конец!</b> 🐱🕊️💛`}
+  ]
+},
+
+// ---------- 2. ТУРНИР ----------
+{
+  emoji:'⚽', bg:'#d9f0d0',
+  title:'Большой турнир Давида и Луки',
+  scenes:[
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${house(310,150)}${ground}
+        ${boy(150,330,{...DAVID, cls:'bob'})}
+        ${boy(240,330,{...LUKA, cls:'bob b2'})}
+        ${barsik(90,400,{scale:.8, cls:'sway'})}
+        ${pigeon(350,390,{scale:1.2, cls:'land', bag:true})}
+      </svg>`,
+      text:`Однажды утром почтовый голубь принёс Давиду и Луке важное письмо: <b>«Приглашаем вашу команду на большой футбольный турнир!»</b> Братья запрыгали от радости: «Мы едем на турнир!»`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${house(340,165,.85)}${ground}
+        ${boy(130,330,{...SDAVID, cls:'bob'})}
+        ${boy(330,330,{...SLUKA, cls:'bob b2'})}
+        ${ball(170,385,14,'pass')}
+        ${barsik(60,405,{scale:.75, cls:'sway'})}
+        ${kitten(430,408,{scale:.9, cls:'bob b3'})}
+      </svg>`,
+      text:`Всю неделю братья готовились: пасовали друг другу, били по воротам и бегали наперегонки. Барсик был <b>главным тренером</b> — он важно следил за мячом и махал хвостом, когда пас получался точным.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${stand(0,120)}${pitch}
+        ${boy(150,380,{...SDAVID, cls:'bob'})}
+        ${boy(240,380,{...SLUKA, cls:'bob b2'})}
+        ${boy(360,380,{...FOEBLUE, cls:'bob b3'})}
+        ${ball(195,420,13)}
+      </svg>`,
+      text:`И вот — день турнира! На стадионе собралось много зрителей. В финале команде «Юнити» выпало играть против сильных <b>«Молний»</b> в синей форме. Судья свистнул — матч начался!`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${stand(0,120)}${scoreboard('0 : 1','1-й тайм')}${pitch}${goal(430)}
+        ${boy(140,385,{...SDAVID, cls:'droop', sad:true})}
+        ${boy(230,385,{...SLUKA, cls:'droop', sad:true})}
+        ${boy(330,385,{...FOEBLUE, cls:'cheer', arms:'up'})}
+        ${ball(462,398,12,'',false)}
+        ${barsik(55,300,{scale:.55, mood:'sad'})}
+        ${kitten(105,302,{scale:.6, cls:'tremble'})}
+      </svg>`,
+      text:`«Молнии» играли очень быстро — и вдруг забили гол! <b>0:1</b>. Давид и Лука расстроились и опустили головы. Даже Барсик на трибуне грустно прижал ушки…`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${stand(0,120)}${scoreboard('0 : 1','перерыв')}${pitch}
+        ${barsik(120,300,{scale:.62, cls:'cheer', flag:true})}
+        ${kitten(200,302,{scale:.65, cls:'cheer c2'})}
+        ${pigeon(265,278,{scale:.75, cls:'cheer c3', flying:true})}
+        ${boy(170,395,{...SDAVID, cls:'bob'})}
+        ${boy(300,395,{...SLUKA, cls:'bob b2'})}
+        ${hearts(225,330)}
+      </svg>`,
+      text:`И тут с трибуны раздалось громкое: <b>«Мяу! Давид и Лука, вперёд!»</b> Барсик размахивал флажком, котёнок прыгал, а голубь хлопал крыльями. Братья переглянулись и улыбнулись: «Мы не сдаёмся!»`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${stand(0,120)}${scoreboard('1 : 1','2-й тайм')}${pitch}${goal(430)}
+        ${boy(120,385,{...SDAVID, cls:'bob'})}
+        ${boy(255,385,{...SLUKA, kickLeg:true})}
+        ${boy(350,385,{...FOEBLUE, cls:'bob b3', sad:true})}
+        ${ball(285,420,13,'shoot')}
+        ${emoji(300,320,26,'⚡','bob')}
+      </svg>`,
+      text:`Во втором тайме Давид красиво обвёл соперника и отдал пас. Лука разбежался, ударил — <b>ГОЛ!</b> Мяч влетел прямо в сетку! <b>1:1</b> — трибуны закричали от восторга!`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${stand(0,120)}${scoreboard('2 : 1','последняя минута!')}${pitch}${goal(6,true)}
+        ${boy(360,385,{...SLUKA, cls:'bob'})}
+        ${boy(245,385,{...SDAVID, kickLeg:true})}
+        ${boy(150,385,{...FOEBLUE, cls:'bob b3', sad:true})}
+        ${ball(215,420,13,'shoot2')}
+        ${emoji(200,320,26,'🔥','bob')}
+      </svg>`,
+      text:`Шла последняя минута матча. Теперь Лука отдал пас брату, Давид размахнулся и пробил в самый уголок — <b>ГОООЛ! 2:1!</b> И тут же судья свистнул: матч окончен!`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${stand(0,120)}${pitch}${confetti}
+        ${boy(160,390,{...SDAVID, cls:'cheer', arms:'up'})}
+        ${boy(340,390,{...SLUKA, cls:'cheer c2', arms:'up'})}
+        ${cup(250,375,1.2)}
+        ${barsik(70,300,{scale:.6, cls:'cheer c3', flag:true})}
+        ${kitten(430,302,{scale:.65, cls:'cheer'})}
+      </svg>`,
+      text:`<b>Команда «Юнити» — чемпион турнира!</b> Давиду и Луке вручили сияющий золотой кубок и медали. С неба летело разноцветное конфетти, а громче всех кричал «мяу-ура!» Барсик.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${house(310,150)}${ground}
+        ${boy(120,330,{...DAVID, cls:'bob'})}
+        ${boy(210,330,{...LUKA, cls:'bob b2'})}
+        ${cup(268,400,.9)}
+        ${barsik(350,400,{scale:.8, cls:'sway'})}
+        ${kitten(440,408,{scale:.9, cls:'bob b3'})}
+        ${pigeon(455,320,{scale:.9, cls:'bob'})}
+        ${hearts(160,255)}
+      </svg>`,
+      text:`Вечером вся семья собралась дома. Кубок поставили на самое почётное место, а Барсик улёгся рядом сторожить его. «Самое главное, — сказал Давид, — что мы <b>верили друг в друга</b> и играли вместе!» <b>Конец!</b> ⚽🏆💛`}
+  ]
+},
+
+// ---------- 3. ЗАБЕГ ----------
+{
+  emoji:'🏃', bg:'#ffe0c9',
+  title:'Весёлый забег Давида и Луки',
+  scenes:[
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${house(310,150)}${ground}
+        ${boy(140,330,{...DAVID, cls:'bob'})}
+        ${boy(230,330,{...LUKA, cls:'bob b2'})}
+        ${barsik(85,400,{scale:.8, cls:'sway'})}
+        ${pigeon(350,390,{scale:1.2, cls:'land', bag:true})}
+      </svg>`,
+      text:`После победы на турнире Давид и Лука не сидели без дела. И вот однажды голубь принёс новое письмо: <b>«В воскресенье — Весёлый забег! Приглашаются самые быстрые!»</b> «Бежим!» — хором крикнули братья.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${tree(70,220)}${tree(440,235,.75)}${ground}
+        ${boy(180,335,{...SDAVID, cls:'run'})}
+        ${boy(300,335,{...SLUKA, cls:'run r2'})}
+        ${barsik(70,400,{scale:.75, cls:'sway'})}
+        ${emoji(105,320,24,'⏱️','bob')}
+        ${kitten(430,405,{scale:.9, cls:'bob b3'})}
+      </svg>`,
+      text:`Каждое утро братья бегали в парке. Барсик сидел с секундомером и важно мяукал: «Быстрее лапки, быстрее!» А котёнок пытался их догнать — но куда там!`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${arch('СТАРТ')}${track}
+        ${boy(170,390,{...SDAVID, cls:'bob', bib:'7'})}
+        ${boy(255,390,{...SLUKA, cls:'bob b2', bib:'8'})}
+        ${boy(340,390,{...FOEGREEN, cls:'bob b3', bib:'5'})}
+        ${barsik(60,295,{scale:.55, cls:'cheer', flag:true})}
+        ${kitten(108,297,{scale:.6, cls:'cheer c2'})}
+        ${pigeon(450,260,{scale:.75, cls:'bob', flying:true})}
+      </svg>`,
+      text:`В воскресенье у стартовой арки собрались бегуны со всего города. Давиду достался номер <b>7</b>, Луке — номер <b>8</b>. На обочине уже махал флажком Барсик, а рядом прыгал котёнок. «На старт… Внимание… <b>Марш!</b>»`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${clouds}${tree(450,225,.7)}${track}
+        ${boy(120,390,{...FOEGREEN, cls:'run', bib:'5'})}
+        ${boy(240,390,{...SDAVID, cls:'run r2', bib:'7'})}
+        ${boy(350,390,{...SLUKA, cls:'run', bib:'8'})}
+        ${emoji(190,330,22,'💨')}
+        ${emoji(305,330,22,'💨')}
+      </svg>`,
+      text:`Бегуны помчались по дорожке! Ветер свистел в ушах, кроссовки стучали: топ-топ-топ! Давид и Лука бежали <b>впереди всех</b> — тренировки не прошли даром!`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${clouds}${tree(60,220,.8)}${track}
+        ${boy(300,410,{...SLUKA, pose:'sit', sad:true, cls:'droop', bib:'8'})}
+        ${boy(150,390,{...SDAVID, cls:'run', bib:'7'})}
+        ${boy(60,390,{...FOEGREEN, cls:'run r2', bib:'5'})}
+        ${emoji(345,340,26,'😢','pop')}
+        ${emoji(268,362,20,'🩹','pop')}
+      </svg>`,
+      text:`И вдруг — ой! Лука зацепился за камешек и <b>упал</b>. Коленка заболела, а другие бегуны умчались вперёд. Лука сидел на дорожке, и ему очень хотелось плакать…`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${clouds}${tree(60,220,.8)}${track}
+        ${boy(250,410,{...SLUKA, pose:'sit', cls:'bob', bib:'8', smile:'soft'})}
+        ${boy(180,390,{...SDAVID, cls:'bob b2', bib:'7', arms:'hold'})}
+        ${hearts(215,320)}
+        ${barsik(440,300,{scale:.55, mood:'sad', flip:true})}
+      </svg>`,
+      text:`Давид оглянулся — и сразу побежал <b>назад</b>, к брату! «Держись за руку! — сказал он. — Мы команда. Или финишируем вместе, или никак!» Лука вытер слёзы, улыбнулся и поднялся.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${clouds}${track}
+        ${boy(215,390,{...SDAVID, cls:'run', bib:'7', arms:'hold'})}
+        ${boy(290,390,{...SLUKA, cls:'run', bib:'8', arms:'hold-l'})}
+        ${barsik(65,295,{scale:.58, cls:'cheer', flag:true})}
+        ${kitten(115,297,{scale:.62, cls:'cheer c2'})}
+        ${pigeon(440,250,{scale:.8, cls:'cheer c3', flying:true})}
+        ${emoji(160,330,22,'💨')}
+      </svg>`,
+      text:`Братья побежали <b>вместе, взявшись за руки</b> — и всё быстрее и быстрее! С обочины неслось: «Мяу-у! Давид! Лука! Впе-е-ерёд!» Барсик так махал флажком, что чуть не улетел. И братья стали догонять остальных!`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${arch('ФИНИШ')}${track}${confetti}
+        ${tape(true)}
+        ${boy(215,390,{...SDAVID, cls:'cheer', bib:'7', arms:'up'})}
+        ${boy(295,390,{...SLUKA, cls:'cheer c2', bib:'8', arms:'up'})}
+        ${barsik(70,295,{scale:.58, cls:'cheer c3', flag:true})}
+        ${kitten(120,297,{scale:.62, cls:'cheer'})}
+      </svg>`,
+      text:`У самого финиша братья догнали лидера и — <b>вжух!</b> — вдвоём разорвали красную ленточку! Судья объявил: «Победители забега — Давид и Лука, <b>они финишировали вместе!</b>» Трибуны захлопали!`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${house(310,150)}${ground}
+        ${boy(120,330,{...DAVID, cls:'bob'})}
+        ${boy(210,330,{...LUKA, cls:'bob b2'})}
+        ${medal(120,290,1)}
+        ${medal(210,290,1)}
+        ${barsik(320,400,{scale:.8, cls:'sway'})}
+        ${kitten(420,408,{scale:.9, cls:'bob b3'})}
+        ${pigeon(450,320,{scale:.9, cls:'bob'})}
+        ${hearts(255,250)}
+      </svg>`,
+      text:`Вечером братья повесили новые медали рядом с золотым кубком. «Знаешь, что самое главное? — сказал Лука. — Не прибежать первым, а <b>не бросить друга</b>». Барсик мурлыкнул: он был совершенно согласен. <b>Конец!</b> 🏃💛🏅`}
+  ]
+},
+
+// ---------- 4. ДЕНЬ РОЖДЕНИЯ ----------
+{
+  emoji:'🎂', bg:'#ffd9e2',
+  title:'День рождения и большой сюрприз Барсика',
+  scenes:[
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${house(310,150)}${ground}${garland}
+        ${balloon(60,300,'#ff6b8a')}
+        ${balloon(105,315,'#4a90d9','balloon bl2')}
+        ${boy(180,335,{...DAVID, cls:'cheer', hat:true})}
+        ${boy(270,335,{...LUKA, cls:'cheer c2', hat:true})}
+        ${emoji(226,240,34,'8️⃣','bob')}
+      </svg>`,
+      text:`Наступил самый долгожданный день в году — <b>день рождения Давида и Луки</b>! Братьям исполнилось целых <b>восемь лет</b>. Дом украсили флажками и шариками, а на головах у именинников красовались праздничные колпачки.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${house(320,160,.9)}${ground}${garland}
+        ${boy(150,335,{...DAVID, cls:'bob', hat:true})}
+        ${boy(240,335,{...LUKA, cls:'bob b2', hat:true})}
+        ${barsik(360,400,{scale:.8, cls:'sway', hat:true})}
+        ${kitten(450,405,{scale:.85, cls:'bob b3', hat:true})}
+        ${pigeon(455,300,{scale:.9, cls:'bob', hat:true})}
+        ${hearts(285,270)}
+      </svg>`,
+      text:`Первыми поздравлять прибежали друзья: Барсик, котёнок и почтовый голубь — все в разноцветных колпачках! «Мяу-у! С днём рождения!» — промурлыкал Барсик и потёрся об именинников пушистым боком.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${house(330,165,.85)}${ground}${garland}
+        ${gift(140,395,1.4,'#ff6b8a','#ffd54a')}
+        ${gift(320,395,1.4,'#4a90d9','#ffd54a')}
+        ${boy(70,330,{...DAVID, cls:'bob', hat:true})}
+        ${boy(430,330,{...LUKA, cls:'bob b2', hat:true})}
+        ${emoji(228,300,26,'❓','bob')}
+      </svg>`,
+      text:`А потом во двор внесли <b>две огромные коробки</b> с бантами — такие большие, что за ними было не видно даже Барсика! «Что же там?» — братья от нетерпения прыгали на месте.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${ground}${garland}${confetti}
+        ${gift(140,400,1.35,'#ff6b8a','#ffd54a',true,bike(0,-64,.85,'#e04a3a'))}
+        ${gift(360,400,1.35,'#4a90d9','#ffd54a',true,bike(0,-64,.85,'#3f9e5f'))}
+        ${boy(52,330,{...DAVID, cls:'cheer', arms:'up', hat:true})}
+        ${boy(448,330,{...LUKA, cls:'cheer c2', arms:'up', hat:true})}
+      </svg>`,
+      text:`Крышки слетели — а внутри… <b>настоящие трюковые велосипеды</b>! Красный для Давида и зелёный для Луки. С крепкими колёсами и блестящим рулём — на таких можно и гонять, и трюки делать! «Ура-а-а!»`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${ground}
+        ${rideBike(150,390,{...DAVID, s:1, cls:'ride', frame:'#e04a3a'})}
+        ${rideBike(360,390,{...LUKA, s:1, cls:'', frame:'#3f9e5f', wheelie:true})}
+        ${barsik(60,300,{scale:.55, cls:'cheer', hat:true})}
+        ${kitten(450,300,{scale:.6, cls:'cheer c2', hat:true})}
+        ${emoji(255,320,24,'💨')}
+      </svg>`,
+      text:`Весь день братья катались по двору. Давид разгонялся быстрее ветра, а Лука уже научился первому трюку — поднимать переднее колесо! Барсик и котёнок хлопали лапками: «Мяу, вот это да!»`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${house(320,160,.9)}${ground}
+        ${barsik(150,395,{scale:.9, cls:'sway'})}
+        ${kitten(280,405,{scale:.95, cls:'bob'})}
+        ${pigeon(370,395,{scale:1.05, cls:'bob b2'})}
+        ${emoji(225,300,28,'🤫','bob')}
+        ${emoji(300,285,24,'💡','bob b3')}
+      </svg>`,
+      text:`А под вечер Барсик собрал друзей в укромном уголке. «Тс-с-с! — прошептал он. — У меня есть план. Устроим именинникам <b>настоящий сюрприз</b>. Котёнок, ты — за мной. Голубь, ты — на выключатель!»`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${darkBg}
+        ${darkEyes(180,200,1.3)}
+        ${darkEyes(300,205,1.3,'darkblink d2')}
+        ${darkEyes(420,330,.9,'darkblink d3')}
+        ${emoji(245,120,30,'❗','bob')}
+        <text x="250" y="415" font-family="Comfortaa" font-size="16" fill="#8a92b8" text-anchor="middle">щёлк!</text>
+      </svg>`,
+      text:`И вдруг — <b>щёлк!</b> — во всём доме погас свет. Стало темным-темно, только удивлённые глаза хлопали в темноте. «Ой! Что случилось?» — прошептал Лука и взял брата за руку.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${glowDefs}${darkBg}
+        ${cake(250,360,1.15,{lit:true, cls:'cakein'})}
+        ${barsik(130,415,{scale:.62, cls:'sway'})}
+        ${boy(60,330,{...DAVID, cls:'bob', hat:true})}
+        ${boy(440,330,{...LUKA, cls:'bob b2', hat:true})}
+        ${emoji(250,150,26,'✨','bob')}
+      </svg>`,
+      text:`И тут из темноты выплыл <b>огромный торт</b> — его торжественно вёз Барсик! На торте горели <b>восемь свечек</b> — по одной за каждый год. Тёплый огонёк осветил счастливые лица братьев. «Сюрпри-и-из! С днём рождения!» — закричали друзья.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${glowDefs}${darkBg}${confetti}
+        ${cake(250,370,1.1,{lit:true, blow:true, glowOn:false})}
+        ${boy(105,330,{...DAVID, cls:'cheer', hat:true})}
+        ${boy(395,330,{...LUKA, cls:'cheer c2', hat:true})}
+        ${barsik(60,420,{scale:.55, cls:'sway', hat:true})}
+        ${kitten(450,420,{scale:.6, cls:'bob', hat:true})}
+        ${pigeon(440,215,{scale:.8, cls:'bob b2', flying:true, hat:true})}
+        ${hearts(230,170)}
+      </svg>`,
+      text:`Братья загадали желание, набрали побольше воздуха и — <b>фу-у-ух!</b> — задули все восемь свечек разом! Все хлопали, ели вкусный торт и смеялись до самой ночи. Это был <b>самый лучший день рождения</b>. Конец! 🎂🚲💛`}
+  ]
+},
+
+// ---------- 5. ВЕЛОГОНКА И МУЛЬТИКИ ----------
+{
+  emoji:'🚵', bg:'#d9e8ff',
+  title:'Велогонка Давида и Луки',
+  scenes:[
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${house(310,150)}${ground}${flowers}
+        ${boy(150,330,{...DAVID, cls:'cheer'})}
+        ${boy(240,330,{...LUKA, cls:'cheer c2'})}
+        ${barsik(90,400,{scale:.8, cls:'sway'})}
+        ${pigeon(350,390,{scale:1.2, cls:'land', bag:true})}
+        ${emoji(300,300,24,'📩','bob')}
+      </svg>`,
+      text:`Помните новенькие велосипеды, что подарили братьям на день рождения? Однажды голубь принёс письмо: <b>«Большая велогонка для смелых! Кто быстрее пройдёт трассу с трамплинами?»</b> Давид и Лука сразу схватили шлемы: «Едем!»`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${tree(70,220)}${ground}
+        ${rideBike(180,385,{...DAVID, s:.95, cls:'ride', frame:'#e04a3a'})}
+        ${rideBike(320,385,{...LUKA, s:.95, cls:'ride rd2', frame:'#3f9e5f'})}
+        ${barsik(75,400,{scale:.7, cls:'sway'})}
+        ${emoji(105,315,22,'⏱️','bob')}
+        ${kitten(440,405,{scale:.85, cls:'bob b3'})}
+      </svg>`,
+      text:`Целую неделю братья тренировались: крутили педали, объезжали лужи и учились держать равновесие. Барсик снова был тренером и покрикивал: «Крепче держи руль, не спеши на поворотах!»`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${arch('СТАРТ')}${track}
+        ${rideBike(160,388,{...DAVID, s:.9, cls:'bob', frame:'#e04a3a'})}
+        ${rideBike(260,388,{...LUKA, s:.9, cls:'bob b2', frame:'#3f9e5f'})}
+        ${rideBike(360,388,{s:.9, cls:'bob b3', frame:'#8a6ad9', style:'foe', hair:'#3a2a1a'})}
+        ${barsik(60,295,{scale:.55, cls:'cheer', flag:true})}
+        ${kitten(108,297,{scale:.6, cls:'cheer c2'})}
+        ${pigeon(450,255,{scale:.75, cls:'bob', flying:true})}
+      </svg>`,
+      text:`И вот — день гонки! У стартовой арки выстроились гонщики на разноцветных велосипедах. Барсик махал флажком, котёнок звонил в колокольчик. «На старт… внимание… <b>дзинь — поехали!</b>»`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${clouds}${tree(450,225,.7)}${track}
+        ${rideBike(120,388,{s:.85, cls:'ride', frame:'#8a6ad9', style:'foe', hair:'#3a2a1a'})}
+        ${rideBike(250,388,{...DAVID, s:.9, cls:'ride rd2', frame:'#e04a3a'})}
+        ${rideBike(350,388,{...LUKA, s:.9, cls:'ride', frame:'#3f9e5f'})}
+        ${emoji(190,330,22,'💨')}${emoji(305,330,22,'💨')}
+      </svg>`,
+      text:`Колёса зашуршали по дорожке — гонка началась! Ветер свистел, педали мелькали. Давид и Лука крутили изо всех сил и держались рядышком, <b>колесо в колесо</b>.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${clouds}${track}
+        ${ramp(250,392)}
+        <g transform="translate(296,340)"><g class="anim jump">
+          ${rideBike(0,0,{...DAVID, s:.9, frame:'#e04a3a'})}
+        </g></g>
+        ${rideBike(90,388,{...LUKA, s:.8, cls:'ride', frame:'#3f9e5f'})}
+        ${barsik(60,300,{scale:.5, cls:'cheer'})}
+        ${emoji(360,180,26,'✨','bob')}
+      </svg>`,
+      text:`Впереди показался <b>большой трамплин</b>! Давид разогнался, заехал по нему вверх и — <b>прыгнул высоко-высоко</b>! На секунду показалось, что он парит в небе, как птица. «Ух ты-ы!» — ахнули зрители.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${clouds}${track}
+        ${ramp(250,392)}
+        <g transform="translate(296,340)"><g class="anim wheelie2">
+          ${rideBike(0,0,{...LUKA, s:.9, frame:'#3f9e5f'})}
+        </g></g>
+        ${rideBike(90,388,{...DAVID, s:.8, cls:'ride rd2', frame:'#e04a3a'})}
+        ${barsik(440,300,{scale:.5, cls:'cheer', flip:true})}
+        ${emoji(360,180,26,'🔥','bob')}
+      </svg>`,
+      text:`А Лука на трамплине сделал свой любимый трюк — поднял переднее колесо прямо в полёте! Оба брата приземлились ровно и помчались дальше. Трибуны хлопали: «Молодцы, братья!»`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${arch('ФИНИШ')}${track}${confetti}
+        ${tape(true)}
+        <g transform="translate(210,388)"><g class="anim ride">${rideBike(0,0,{...DAVID, s:.9, frame:'#e04a3a'})}</g></g>
+        <g transform="translate(300,388)"><g class="anim ride rd2">${rideBike(0,0,{...LUKA, s:.9, frame:'#3f9e5f'})}</g></g>
+        ${barsik(70,295,{scale:.58, cls:'cheer c3', flag:true})}
+        ${kitten(120,297,{scale:.62, cls:'cheer'})}
+      </svg>`,
+      text:`И вот финиш! Давид и Лука вырвались вперёд и вдвоём разорвали ленточку — <b>ровно вместе</b>! «Первое место — у братьев на красном и зелёном велосипедах!» — объявил судья. Ура-а-а!`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${ground}${confetti}
+        ${boy(160,330,{...DAVID, cls:'cheer', arms:'up'})}
+        ${boy(340,330,{...LUKA, cls:'cheer c2', arms:'up'})}
+        ${cup(250,398,1)}
+        ${barsik(70,400,{scale:.7, cls:'cheer c3', flag:true})}
+        ${kitten(430,408,{scale:.85, cls:'cheer'})}
+        ${pigeon(450,320,{scale:.9, cls:'bob'})}
+        ${hearts(250,255)}
+      </svg>`,
+      text:`Братьям вручили новый блестящий кубок! «Мы так устали, но так рады!» — смеялись Давид и Лука. «А теперь, — предложил Лука, — пойдёмте <b>отдыхать и смотреть мультики</b>!»`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${tvDefs}
+        <rect x="0" y="0" width="500" height="450" fill="#3a3560"/>
+        <rect x="0" y="330" width="500" height="120" fill="#4a4370"/>
+        ${tv(250,150)}
+        <g transform="translate(150,405)"><g class="anim bob"><ellipse cx="0" cy="-6" rx="78" ry="24" fill="#c95a6a"/><rect x="-78" y="-12" width="156" height="12" rx="6" fill="#d96a7a"/></g></g>
+        ${boy(115,392,{...DAVID, cls:'bob'})}
+        ${boy(190,392,{...LUKA, cls:'bob b2'})}
+        ${barsik(330,415,{scale:.6, cls:'sway'})}
+        ${kitten(410,420,{scale:.68, cls:'bob b3'})}
+        ${pigeon(440,360,{scale:.72, cls:'bob'})}
+        ${emoji(305,118,22,'✨','bob')}
+      </svg>`,
+      text:`Дома все забрались на большой мягкий диван — Давид, Лука, Барсик, котёнок и голубь. На экране показывали весёлый <b>мультик про котиков и голубя</b>, совсем как они сами! Друзья хрустели попкорном и хохотали до слёз. Какой чудесный день! <b>Конец!</b> 🚵📺💛`}
+  ]
+},
+
+// ---------- 6. РОЛИКИ, СКЕЙТ И НОЧЁВКА ----------
+{
+  emoji:'🛹', bg:'#ffe4cc',
+  title:'Ролики Луки и скейт Давида',
+  scenes:[
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${house(310,150)}${ground}${flowers}
+        ${boy(170,330,{...DAVID, cls:'cheer'})}
+        ${boy(260,330,{...LUKA, cls:'cheer c2'})}
+        ${barsik(90,400,{scale:.8, cls:'sway'})}
+        ${emoji(215,255,26,'🛹','bob')}
+        ${emoji(320,270,24,'🛼','bob b2')}
+      </svg>`,
+      text:`Давид и Лука обожали кататься! На день рождения им подарили новые игрушки: Давиду — крутой <b>скейтборд</b>, а Луке — быстрые <b>ролики</b>. «Давай устроим свои соревнования!» — решили братья.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${tree(60,220)}${ground}
+        ${skateBoy(190,362,{...DAVID, s:1.1, cls:'roll', deck:'#e04a3a'})}
+        ${rollerBoy(330,352,{...LUKA, s:1.05, cls:'roll rl2'})}
+        ${barsik(70,400,{scale:.72, cls:'sway'})}
+        ${kitten(440,405,{scale:.85, cls:'bob b3'})}
+      </svg>`,
+      text:`Каждый день они тренировались во дворе. Давид катался на скейте — вперёд, назад, вокруг деревьев. А Лука на роликах разгонялся всё быстрее и быстрее, только ветер свистел!`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${clouds}${track}
+        ${ramp(300,392)}
+        <g transform="translate(240,342)"><g class="anim flip">
+          ${skateBoy(0,0,{...DAVID, s:1, deck:'#e04a3a'})}
+        </g></g>
+        ${barsik(60,300,{scale:.5, cls:'cheer'})}
+        ${emoji(240,150,26,'✨','bob')}
+      </svg>`,
+      text:`Скоро Давид научился <b>прыгать на скейте с трамплина</b> и делать самое настоящее <b>сальто</b> в воздухе — кувырок через голову! Он приземлялся точно на колёса и катил дальше. «Вот это класс!» — ахнули друзья.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${clouds}${track}
+        ${steps(60,410,1.1)}
+        <g transform="translate(200,346)"><g class="anim stairjump">
+          ${skateBoy(0,0,{...DAVID, s:1, deck:'#e04a3a'})}
+        </g></g>
+        ${barsik(430,300,{scale:.5, cls:'cheer', flip:true})}
+        ${emoji(250,200,24,'🔥','bob')}
+      </svg>`,
+      text:`А потом Давид научился <b>спрыгивать со ступенек</b> прямо на скейте! Он разгонялся, подлетал над лестницей и мягко приземлялся внизу. Барсик даже зажмурился от волнения, а потом громко замяукал: «Браво!»`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${sun}${clouds}${track}
+        ${ramp(300,392)}
+        <g transform="translate(240,340)"><g class="anim rollflip">
+          ${rollerBoy(0,0,{...LUKA, s:1})}
+        </g></g>
+        ${barsik(60,300,{scale:.5, cls:'cheer'})}
+        ${kitten(110,302,{scale:.55, cls:'cheer c2'})}
+        ${emoji(250,150,26,'⚡','bob')}
+      </svg>`,
+      text:`Лука тоже не отставал! Он так здорово разогнался на роликах, что взлетел с трамплина и <b>тоже сделал сальто</b>! Братья оказались настоящими чемпионами — каждый в своём деле. «Ты супер!» — «Нет, ты супер!»`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${tree(410,215)}${bush(80,340)}${bench(180,352)}${ground}
+        ${skateBoy(280,362,{...DAVID, s:.95, cls:'roll', deck:'#e04a3a'})}
+        ${rollerBoy(370,352,{...LUKA, s:.9, cls:'roll rl2'})}
+        ${barsik(120,405,{scale:.72, cls:'sway'})}
+        ${kitten(450,410,{scale:.8, cls:'bob b3'})}
+        ${pigeon(150,270,{scale:.85, cls:'bob', flying:true})}
+      </svg>`,
+      text:`Накатавшись вдоволь, все вместе отправились <b>гулять в парк</b>. Там были зелёные аллеи, скамейки и большие деревья. Давид и Лука катались по дорожкам, Барсик грелся на солнышке, а голубь кружил над головой.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        ${skyBase}${house(300,150)}${ground}${flowers}
+        ${boy(150,330,{...DAVID, cls:'bob'})}
+        ${boy(240,330,{...LUKA, cls:'bob b2'})}
+        ${boy(360,330,{hair:'#c98a3a', style:'foe', cls:'cheer', smile:'big', arms:'up'})}
+        ${emoji(300,255,26,'🎒','bob')}
+        ${hearts(200,255)}
+      </svg>`,
+      text:`А вечером братьев позвал в гости их лучший друг <b>Богдан</b> — да не просто так, а с <b>ночёвкой</b>! Давид и Лука быстро собрали рюкзаки: пижамы, зубные щётки и, конечно, любимые игрушки. «Ура, ночёвка!»`},
+    { svg:`<svg viewBox="0 0 500 450">
+        <rect x="0" y="0" width="500" height="450" fill="#3a3560"/>
+        <rect x="0" y="330" width="500" height="120" fill="#4a4370"/>
+        <circle cx="430" cy="66" r="24" fill="#fff4d6"/>
+        <circle cx="421" cy="60" r="6" fill="#e8dcb8" opacity=".6"/>
+        <g fill="#fff" opacity=".8"><circle cx="80" cy="60" r="2.5"/><circle cx="150" cy="40" r="2"/><circle cx="250" cy="70" r="2.5"/><circle cx="330" cy="45" r="2"/></g>
+        <g transform="translate(110,290)">
+          <path d="M-72,90 L0,26 L72,90 Z" fill="#e0955a"/>
+          <rect x="-72" y="90" width="144" height="12" fill="#c97e45"/>
+          <rect x="-14" y="50" width="28" height="22" rx="3" fill="#ffd97d"/>
+          <circle cx="0" cy="61" r="4" fill="#c97e45"/>
+        </g>
+        ${boy(150,352,{...DAVID, cls:'bob'})}
+        ${boy(235,352,{...LUKA, cls:'bob b2'})}
+        ${boy(320,352,{hair:'#c98a3a', style:'foe', cls:'bob b3', smile:'big', arms:'up'})}
+        <rect x="60" y="404" width="400" height="46" rx="14" fill="#c95a6a"/>
+        <rect x="60" y="404" width="400" height="10" rx="5" fill="#d96a7a"/>
+        ${emoji(250,150,24,'✨','bob')}
+        ${emoji(300,180,20,'⭐','bob b2')}
+      </svg>`,
+      text:`У Богдана дома было так весело! Друзья строили домик из подушек, играли, рассказывали смешные истории и ели пиццу. За окном светила луна и мигали звёзды, а расходиться совсем не хотелось.`},
+    { svg:`<svg viewBox="0 0 500 450">
+        <rect x="0" y="0" width="500" height="450" fill="#2b2650"/>
+        <rect x="0" y="340" width="500" height="110" fill="#3a3560"/>
+        <circle cx="420" cy="66" r="24" fill="#fff4d6"/>
+        <g fill="#fff" opacity=".8"><circle cx="70" cy="50" r="2.5"/><circle cx="160" cy="36" r="2"/><circle cx="240" cy="60" r="2.5"/><circle cx="340" cy="40" r="2"/><circle cx="110" cy="90" r="2"/></g>
+        <g transform="translate(250,392)">
+          <rect x="-150" y="0" width="90" height="30" rx="10" fill="#6a7bc4"/>
+          <rect x="-52" y="0" width="90" height="30" rx="10" fill="#c95a6a"/>
+          <rect x="46" y="0" width="90" height="30" rx="10" fill="#5cae72"/>
+          <circle cx="-118" cy="-8" r="12" fill="url(#skinG)"/>
+          <circle cx="-20" cy="-8" r="12" fill="url(#skinG)"/>
+          <circle cx="78" cy="-8" r="12" fill="url(#skinG)"/>
+          <path d="M-124,-10 q6,-6 12,0" stroke="#9a7a50" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <path d="M-26,-10 q6,-6 12,0" stroke="#5a3d24" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <path d="M72,-10 q6,-6 12,0" stroke="#c98a3a" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <g class="zzz" font-family="Comfortaa" font-size="18" fill="#cfd8ff"><text x="-100" y="-22">z</text><text x="-88" y="-32">z</text></g>
+        </g>
+        ${barsik(120,415,{scale:.5, cls:'sway'})}
+        ${emoji(250,140,22,'🌙','bob')}
+      </svg>`,
+      text:`Поздно ночью друзья улеглись спать рядышком, укутавшись в тёплые одеяла. «Какой же был замечательный день!» — прошептал Лука и сладко зевнул. Ночёвка понравилась всем-всем. <b>Конец!</b> 🛹🛼🌙`}
+  ]
+}
+];
+
+// ======================================================
+//                       ЛОГИКА КНИГИ
+// ======================================================
+let taleIdx = -1;      // -1 = оглавление
+let sceneIdx = 0;
+let soundOn = false;
+const progress = TALES.map(()=>0); // запоминаем, где остановились
+
+const menuEl = document.getElementById('menu');
+const readerEl = document.getElementById('reader');
+const pageTitle = document.getElementById('pageTitle');
+const pageSub = document.getElementById('pageSub');
+const stage = document.getElementById('stage');
+const story = document.getElementById('story');
+const dots  = document.getElementById('dots');
+const btnNext = document.getElementById('btnNext');
+const btnBack = document.getElementById('btnBack');
+const btnHome = document.getElementById('btnHome');
+const btnSound = document.getElementById('btnSound');
+
+function buildMenu(){
+  menuEl.innerHTML = TALES.map((t,i)=>`
+    <div class="tale-card" data-i="${i}">
+      <div class="tale-cover" style="background:${t.bg}">${t.emoji}</div>
+      <div class="tale-num">СКАЗКА ${i+1}</div>
+      <div class="tale-title">${t.title}</div>
+      <div class="tale-scenes">${t.scenes.length} сцен</div>
+    </div>`).join('');
+  menuEl.querySelectorAll('.tale-card').forEach(card=>{
+    card.addEventListener('click',()=> openTale(+card.dataset.i));
+  });
+}
+
+function showMenu(){
+  taleIdx = -1;
+  if('speechSynthesis' in window) speechSynthesis.cancel();
+  readerEl.style.display='none';
+  menuEl.style.display='grid';
+  pageTitle.textContent = '📚 Сказки про Давида и Луку';
+  pageSub.textContent = 'Выбери сказку!';
+  pageSub.style.display='block';
+}
+
+function openTale(i){
+  taleIdx = i;
+  sceneIdx = progress[i] || 0;
+  menuEl.style.display='none';
+  readerEl.style.display='flex';
+  pageTitle.textContent = TALES[i].emoji + ' ' + TALES[i].title;
+  pageSub.style.display='none';
+  dots.innerHTML = TALES[i].scenes.map(()=>'<span></span>').join('');
+  render();
+}
+
+function plainText(html){
+  const d = document.createElement('div');
+  d.innerHTML = html;
+  return (d.textContent||'').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{20E3}«»]/gu,'');
+}
+
+let ruVoice = null;
+function pickVoice(){
+  const vs = speechSynthesis.getVoices();
+  ruVoice = vs.find(v=>v.lang==='ru-RU') || vs.find(v=>v.lang && v.lang.startsWith('ru')) || null;
+}
+if('speechSynthesis' in window){
+  pickVoice();
+  speechSynthesis.onvoiceschanged = pickVoice;
+}
+
+function speak(){
+  if(!soundOn || taleIdx<0 || !('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(plainText(TALES[taleIdx].scenes[sceneIdx].text));
+  u.lang = 'ru-RU';
+  if(ruVoice) u.voice = ruVoice;
+  u.rate = 0.92;
+  u.pitch = 1.1;
+  speechSynthesis.speak(u);
+}
+
+function render(){
+  const tale = TALES[taleIdx];
+  const scene = tale.scenes[sceneIdx];
+  progress[taleIdx] = sceneIdx;
+  // внедряем общие градиенты сразу после открывающего <svg ...>
+  const svgWithDefs = scene.svg.replace(/(<svg[^>]*>)/, '$1' + DEFS);
+  stage.innerHTML = svgWithDefs;
+  story.innerHTML = scene.text;
+  story.style.animation='none'; story.offsetHeight; story.style.animation='';
+  [...dots.children].forEach((d,i)=>d.classList.toggle('on', i===sceneIdx));
+  btnBack.style.visibility = sceneIdx===0 ? 'hidden' : 'visible';
+  const last = sceneIdx===tale.scenes.length-1;
+  btnNext.textContent = last
+    ? (taleIdx < TALES.length-1 ? 'Следующая сказка ▶' : '📖 К оглавлению')
+    : 'Дальше ▶';
+  speak();
+}
+
+btnNext.addEventListener('click',()=>{
+  const tale = TALES[taleIdx];
+  if(sceneIdx < tale.scenes.length-1){
+    sceneIdx++; render();
+  } else {
+    progress[taleIdx] = 0;
+    if(taleIdx < TALES.length-1) openTale(taleIdx+1);
+    else showMenu();
+  }
+});
+btnBack.addEventListener('click',()=>{ if(sceneIdx>0){ sceneIdx--; render(); } });
+btnHome.addEventListener('click', showMenu);
+btnSound.addEventListener('click',()=>{
+  soundOn = !soundOn;
+  btnSound.textContent = soundOn ? '🔊' : '🔇';
+  btnSound.classList.toggle('off', !soundOn);
+  if(soundOn) speak(); else if('speechSynthesis' in window) speechSynthesis.cancel();
+});
+
+buildMenu();
+showMenu();
+
+/* ---------------------------------------------------------
+   Связь с общим оглавлением «Детская полка».
+   Необязательна: если сказки открыли отдельным файлом,
+   ничего из этого не выполнится и книга работает как раньше.
+   --------------------------------------------------------- */
+(function () {
+  if (!window.KidHub) return;
+
+  // Кнопка «ко всем играм»: ребёнок всегда может выйти
+  KidHub.addHomeButton('../index.html');
+
+  // Здороваемся по имени, как остальные приложения
+  var kid = KidHub.name();
+  if (kid) {
+    var sub = document.getElementById('pageSub');
+    if (sub) sub.textContent = kid + ', выбери сказку!';
+  }
+
+  // Своя кнопка ведёт к списку сказок, плавающая 🏠 — ко всем играм.
+  // Разводим их, чтобы ребёнок не путал.
+  var own = document.getElementById('btnHome');
+  if (own) { own.textContent = '📚'; own.title = 'К списку сказок'; own.setAttribute('aria-label', 'К списку сказок'); }
+
+  // Сколько сказок начато — показывается на карточке в оглавлении
+  var READ_KEY = 'skazki.read.v1';
+  var read = {};
+  try { read = JSON.parse(localStorage.getItem(READ_KEY) || '{}') || {}; } catch (e) { read = {}; }
+
+  function pushSummary() {
+    var n = Object.keys(read).length;
+    KidHub.setSummary('skazki', {
+      percent: Math.round(n / TALES.length * 100),
+      stars: 0,
+      label: n ? ('прочитано ' + n + ' из ' + TALES.length) : (TALES.length + ' историй')
+    });
+  }
+
+  var openOriginal = openTale;
+  openTale = function (i) {
+    openOriginal(i);
+    if (!read[i]) {
+      read[i] = 1;
+      try { localStorage.setItem(READ_KEY, JSON.stringify(read)); } catch (e) {}
+      pushSummary();
+    }
+  };
+  pushSummary();
+})();
+</script>
+</body>
+</html>

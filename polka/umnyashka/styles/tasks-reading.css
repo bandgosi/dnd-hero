@@ -1,0 +1,262 @@
+/* =========================================================
+   tasks-reading.css — задания блока «Чтение и письмо».
+   Всё, чего нет в components.css. Префикс .rt-.
+   Только дизайн-токены: цвета, отступы и радиусы берутся
+   из tokens.css, хардкода цвета нет.
+   Минимальная площадь касания — var(--tap) = 56px.
+   ========================================================= */
+
+/* ---------------- Каркас задания ---------------- */
+.rt-task{
+  display:flex; flex-direction:column; align-items:center; gap: var(--s4);
+  width:100%;
+}
+.rt-task > .opts,
+.rt-task > .rt-strip{ margin-top: var(--s2); }
+
+.rt-learn{ gap: var(--s5); }
+
+/* ---------------- Большая буква ---------------- */
+.rt-glyph{
+  display:flex; align-items:baseline; justify-content:center; gap: var(--s3);
+  min-height: var(--tap); padding: var(--s4) var(--s6);
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, var(--surface), var(--accent-tint));
+  box-shadow: 0 8px 0 var(--accent-soft), var(--sh);
+  color: var(--accent-dark);
+  transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast);
+  animation: appear .45s var(--pop) both;
+}
+.rt-glyph:active{ transform: translateY(6px); box-shadow: 0 2px 0 var(--accent-soft); }
+.rt-glyph__big{ font-size: var(--glyph); font-weight:900; line-height:.92; }
+.rt-glyph__low{ font-size: calc(var(--glyph) * .58); font-weight:900; line-height:.92; opacity:.75; }
+
+/* Буква-образец над вариантами */
+.rt-model{
+  display:flex; align-items:center; justify-content:center; gap: var(--s4);
+  min-height: 84px; padding: var(--s3) var(--s6);
+  border-radius: var(--r);
+  background: var(--accent-soft);
+}
+.rt-model--quiet{ background: var(--surface); box-shadow: var(--sh); }
+.rt-model__ch{
+  font-size: clamp(52px, 15vw, 96px); font-weight:900; line-height:1;
+  color: var(--accent-dark);
+}
+.rt-model__ch--sm{ font-size: clamp(30px, 8vw, 46px); letter-spacing:2px; }
+.rt-model__pic{ font-size: clamp(36px, 10vw, 58px); line-height:1; }
+
+/* ---------------- Картинка-подсказка ---------------- */
+.rt-pic{
+  display:flex; align-items:center; justify-content:center;
+  width: clamp(112px, 34vw, 168px); height: clamp(112px, 34vw, 168px);
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, var(--surface), var(--sun-soft));
+  box-shadow: 0 6px 0 var(--line), var(--sh);
+  transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast);
+  animation: appear .4s var(--pop) both;
+}
+.rt-pic:active{ transform: translateY(5px); box-shadow: 0 1px 0 var(--line); }
+.rt-pic__emoji{ font-size: clamp(62px, 19vw, 104px); line-height:1; }
+
+/* Слово-пример под буквой */
+.rt-example{
+  display:flex; align-items:center; justify-content:center; gap: var(--s3);
+  min-height: var(--tap); padding: var(--s3) var(--s5);
+  border-radius: var(--r); background: var(--surface);
+  box-shadow: var(--sh);
+}
+.rt-example:active{ transform: translateY(3px); }
+.rt-example__emoji{ font-size:44px; line-height:1; }
+.rt-example__word{ font-size: var(--t-sub); font-weight:900; letter-spacing:2px; color: var(--ink); }
+.rt-example__word b{ color: var(--accent); }
+
+/* ---------------- Плитки «какой это звук» ---------------- */
+.rt-sound{
+  gap: var(--s2); min-height: 132px; padding: var(--s3);
+}
+.rt-sound__play{
+  display:flex; align-items:center; justify-content:center;
+  width:100%; min-height: var(--tap); border-radius: var(--r-sm);
+  background: var(--sun-soft); font-size:30px; line-height:1;
+  box-shadow: 0 4px 0 var(--line);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.rt-sound__play:active{ transform: translateY(3px); box-shadow:0 1px 0 var(--line); }
+.rt-sound__ch{
+  font-size: clamp(20px, 5vw, 28px); font-weight:900; line-height:1.1;
+  color: var(--accent-dark); min-height: 22px;
+}
+.rt-sound__pick{
+  display:none; align-items:center; justify-content:center;
+  width:100%; min-height: 44px; border-radius: var(--r-sm);
+  background: var(--grass-soft); color: var(--grass-dark);
+  font-size:22px; font-weight:900;
+  box-shadow: 0 4px 0 var(--grass);
+  animation: appear .3s var(--pop) both;
+}
+.rt-sound__pick:active{ transform: translateY(3px); box-shadow:0 1px 0 var(--grass); }
+.rt-sound.is-armed .rt-sound__pick{ display:flex; }
+
+/* ---------------- Слияние букв в слог ---------------- */
+.rt-merge{
+  display:flex; align-items:center; justify-content:center; gap: var(--s3);
+  flex-wrap:wrap; width:100%;
+}
+.rt-merge__part,
+.rt-merge__res{
+  display:flex; align-items:center; justify-content:center;
+  min-width: var(--tap); min-height: 88px; padding: 0 var(--s4);
+  border-radius: var(--r); background: var(--surface);
+  font-size: clamp(38px, 11vw, 68px); font-weight:900; line-height:1;
+  color: var(--accent-dark);
+  box-shadow: 0 5px 0 var(--line), var(--sh);
+  transition: transform var(--dur-slow) var(--ease), opacity var(--dur-slow);
+}
+.rt-merge__res{
+  background: var(--accent-soft); letter-spacing:2px;
+  transform: scale(.9); opacity:.45;
+}
+.rt-merge__sign{ font-size: clamp(22px, 6vw, 34px); font-weight:900; color: var(--muted); }
+.rt-merge.is-on .rt-merge__part:first-child{ transform: translateX(8px); }
+.rt-merge.is-on .rt-merge__part:nth-child(3){ transform: translateX(-8px); }
+.rt-merge.is-on .rt-merge__res{ transform: scale(1.06); opacity:1; }
+
+/* ---------------- Слово по слогам ---------------- */
+.rt-word{
+  display:flex; align-items:center; justify-content:center; gap: var(--s1);
+  flex-wrap:wrap; width:100%;
+}
+.rt-syl{
+  display:flex; align-items:center; justify-content:center;
+  min-height: var(--tap); padding: var(--s2) var(--s3);
+  border-radius: var(--r-sm); background: var(--surface);
+  font-size: clamp(30px, 8vw, 48px); font-weight:900; letter-spacing:2px; line-height:1;
+  color: var(--ink);
+  box-shadow: 0 4px 0 var(--line);
+  transition: background var(--dur-fast), color var(--dur-fast), transform var(--dur-fast) var(--ease);
+}
+.rt-syl.is-on{
+  background: var(--accent); color: var(--surface);
+  transform: translateY(-4px) scale(1.06);
+  box-shadow: 0 6px 0 var(--accent-dark);
+}
+.rt-word__dash{ font-size: clamp(22px, 6vw, 34px); font-weight:900; color: var(--muted); }
+
+.rt-bigword{
+  font-size: clamp(34px, 9vw, 56px); font-weight:900; letter-spacing:3px;
+  color: var(--ink); text-align:center;
+}
+
+/* ---------------- Слово с пропуском ---------------- */
+.rt-mask{
+  display:flex; align-items:center; justify-content:center; gap: var(--s2);
+  flex-wrap:wrap; width:100%;
+}
+.rt-mask__ch,
+.rt-mask__gap{
+  display:flex; align-items:center; justify-content:center;
+  min-width: 48px; min-height: 68px; border-radius: var(--r-sm);
+  font-size: clamp(28px, 8vw, 44px); font-weight:900; line-height:1;
+}
+.rt-mask__ch{ background: var(--surface); color: var(--ink); box-shadow: 0 4px 0 var(--line); }
+.rt-mask__gap{
+  background: var(--sun-soft); color: var(--sun-dark);
+  box-shadow: inset 0 0 0 3px var(--sun);
+  animation: btnPulse 2.2s var(--ease) infinite;
+}
+
+/* ---------------- Полоска букв (лишняя буква) ---------------- */
+.rt-strip{
+  display:flex; align-items:center; justify-content:center;
+  gap: var(--s2); flex-wrap:wrap; width:100%;
+}
+.rt-opt--letter{
+  min-width: var(--tap); min-height: 76px; padding: 0 var(--s3); flex:0 0 auto;
+  font-size: clamp(28px, 7vw, 42px);
+}
+
+/* Картинка как вариант ответа */
+.rt-opt--pic{ min-height: 116px; }
+.rt-opt__emoji{ font-size: clamp(46px, 13vw, 68px); line-height:1; }
+
+/* ---------------- Конструктор ответа ---------------- */
+.rt-build{
+  display:flex; flex-direction:column; align-items:center; gap: var(--s5);
+  width:100%;
+}
+.rt-slots{
+  display:flex; align-items:center; justify-content:center;
+  gap: var(--s2); flex-wrap:wrap; width:100%;
+  padding: var(--s3); border-radius: var(--r);
+  background: var(--accent-tint);
+}
+.rt-slot{
+  display:flex; align-items:center; justify-content:center;
+  min-width: var(--tap); min-height: 72px; padding: 0 var(--s2);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 3px var(--line);
+  font-size: clamp(26px, 7vw, 40px); font-weight:900; line-height:1; color: var(--ink);
+  transition: box-shadow var(--dur-fast), background var(--dur-fast), transform var(--dur-fast) var(--ease);
+}
+.rt-slot--wide{ min-width: 108px; font-size: clamp(16px, 4.4vw, 24px); letter-spacing:1px; }
+.rt-slot.is-filled{ box-shadow: 0 4px 0 var(--line); animation: pop .3s var(--pop); }
+.rt-slot.is-filled:active{ transform: translateY(3px); }
+.rt-slot.is-right{ background: var(--grass-soft); box-shadow: 0 4px 0 var(--grass); color: var(--grass-dark); }
+
+.rt-bank{
+  display:flex; align-items:center; justify-content:center;
+  gap: var(--s2); flex-wrap:wrap; width:100%;
+}
+.rt-tile{
+  display:flex; align-items:center; justify-content:center;
+  min-width: var(--tap); min-height: var(--tap); padding: 0 var(--s3);
+  border-radius: var(--r-sm); background: var(--surface); color: var(--ink);
+  font-size: clamp(24px, 6.5vw, 38px); font-weight:900; line-height:1;
+  box-shadow: 0 5px 0 var(--line), var(--sh);
+  transition: transform var(--dur-fast) var(--ease), opacity var(--dur-fast), box-shadow var(--dur-fast);
+  touch-action: manipulation;
+}
+.rt-tile--wide{ min-width: 96px; font-size: clamp(15px, 4.2vw, 22px); letter-spacing:1px; }
+.rt-tile:active{ transform: translateY(4px); box-shadow: 0 1px 0 var(--line); }
+.rt-tile.is-used{ opacity:.25; pointer-events:none; transform: scale(.94); }
+
+/* ---------------- Предложение ---------------- */
+.rt-sent{
+  display:flex; align-items:center; justify-content:center;
+  gap: var(--s2); flex-wrap:wrap; width:100%;
+}
+.rt-sword{
+  display:flex; align-items:center; justify-content:center;
+  min-height: var(--tap); padding: var(--s2) var(--s3);
+  border-radius: var(--r-sm); background: var(--surface); color: var(--ink);
+  font-size: clamp(18px, 5vw, 28px); font-weight:900; letter-spacing:1px; line-height:1;
+  box-shadow: 0 4px 0 var(--line);
+  transition: background var(--dur-fast), color var(--dur-fast), transform var(--dur-fast) var(--ease);
+}
+.rt-sword.is-on{
+  background: var(--accent); color: var(--surface);
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 6px 0 var(--accent-dark);
+}
+.rt-sent__dot{ font-size: clamp(18px, 5vw, 28px); font-weight:900; color: var(--muted); align-self:flex-end; }
+
+.rt-hintline{
+  display:inline-flex; align-items:center;
+  min-height: 40px; padding: 0 var(--s4); border-radius:999px;
+  background: var(--accent-soft); color: var(--accent-dark);
+  font-size: var(--t-body); font-weight:900; letter-spacing:1px;
+}
+
+/* ---------------- Узкие экраны ----------------
+   Высота цели касания не опускается ниже var(--tap):
+   на маленьком экране ужимаем только ширину и отступы. */
+@media (max-width: 360px){
+  .rt-tile{ padding: 0 var(--s2); }
+  .rt-slot{ min-width: var(--tap); padding: 0 var(--s1); }
+  .rt-slot--wide{ min-width: 92px; }
+  .rt-tile--wide{ min-width: 84px; }
+  .rt-opt--letter{ min-width: var(--tap); padding: 0 var(--s2); }
+  .rt-slots{ gap: var(--s1); padding: var(--s2); }
+}

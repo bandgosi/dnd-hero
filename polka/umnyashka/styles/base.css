@@ -1,0 +1,126 @@
+/* =========================================================
+   base.css — сброс, каркас, фон, утилиты
+   ========================================================= */
+
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ height:100%; }
+
+body{
+  margin:0;
+  font-family: var(--font);
+  font-weight:800;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+  overflow-x: hidden;
+}
+
+button,input,select,textarea{ font-family:inherit; font-weight:inherit; color:inherit; }
+button{ border:none; background:none; cursor:pointer; }
+h1,h2,h3,p,ul,ol{ margin:0; }
+ul{ padding:0; list-style:none; }
+img{ max-width:100%; }
+::selection{ background: var(--sun); color: var(--ink); }
+
+*::-webkit-scrollbar{ width:10px; height:10px; }
+*::-webkit-scrollbar-thumb{ background: var(--line-2); border-radius:20px; }
+*::-webkit-scrollbar-track{ background: transparent; }
+
+/* Режим «без анимаций» */
+body.no-anim *,
+body.no-anim *::before,
+body.no-anim *::after{
+  animation-duration:.001ms !important;
+  animation-iteration-count:1 !important;
+  animation-delay:0s !important;
+  transition-duration:.001ms !important;
+  transition-delay:0s !important;
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    animation-delay:0s !important;
+    transition-duration:.001ms !important;
+    transition-delay:0s !important;
+  }
+}
+
+/* ---------------- Фон ---------------- */
+.sky{
+  position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;
+  background:
+    radial-gradient(900px 520px at 12% -8%, #FFFFFF 0%, rgba(255,255,255,0) 62%),
+    radial-gradient(760px 480px at 96% 4%, var(--sun-soft) 0%, rgba(255,255,255,0) 60%),
+    linear-gradient(180deg, #F7F4FF 0%, #FBF8FF 46%, #F2FBFC 100%);
+}
+.blob{ position:absolute; border-radius:50%; filter: blur(2px); opacity:.5; }
+.blob--1{ width:220px; height:220px; left:-70px; top:14%; background:#EDE7FF; animation: float1 18s ease-in-out infinite; }
+.blob--2{ width:170px; height:170px; right:-50px; top:44%; background:#DCF5F8; animation: float1 22s ease-in-out infinite reverse; }
+.blob--3{ width:260px; height:260px; left:22%; bottom:-110px; background:#FFF3D6; animation: float1 26s ease-in-out infinite; }
+@keyframes float1{ 0%,100%{ transform:translateY(0) scale(1) } 50%{ transform:translateY(-26px) scale(1.06) } }
+
+/* ---------------- Каркас ---------------- */
+.app{ position:relative; z-index:1; min-height:100%; display:flex; flex-direction:column; }
+
+.screen{
+  flex:1; display:flex; flex-direction:column;
+  width:100%; max-width: 1040px; margin:0 auto;
+  padding: calc(var(--s3) + var(--safe-top)) var(--s4) calc(var(--s5) + var(--safe-bottom));
+  animation: screenIn var(--dur) var(--ease) both;
+}
+/* Только opacity: transform у предка ломает position:fixed у нижних панелей */
+@keyframes screenIn{ from{ opacity:0 } to{ opacity:1 } }
+.screen--out{
+  position:absolute; left:0; right:0; top:0; pointer-events:none;
+  animation: screenOut .18s ease-in both;
+}
+@keyframes screenOut{ to{ opacity:0 } }
+
+/* ---------------- Типографика ---------------- */
+.t-hero{ font-size: var(--t-hero); font-weight:900; line-height:1.04; letter-spacing:-.5px; }
+.t-title{ font-size: var(--t-title); font-weight:900; line-height:1.12; }
+.t-sub{ font-size: var(--t-sub); font-weight:900; line-height:1.22; }
+.t-body{ font-size: var(--t-body); font-weight:700; line-height:1.45; color: var(--ink-2); }
+.t-small{ font-size: var(--t-small); font-weight:800; color: var(--muted); }
+.center-text{ text-align:center; }
+
+/* ---------------- Утилиты ---------------- */
+.stack{ display:flex; flex-direction:column; }
+.row{ display:flex; align-items:center; }
+.center{ display:flex; align-items:center; justify-content:center; }
+.wrap{ flex-wrap:wrap; }
+.grow{ flex:1; }
+.g1{gap:4px}.g2{gap:8px}.g3{gap:12px}.g4{gap:16px}.g5{gap:20px}.g6{gap:24px}.g8{gap:32px}
+.mt2{margin-top:8px}.mt3{margin-top:12px}.mt4{margin-top:16px}.mt5{margin-top:20px}
+.mt6{margin-top:24px}.mt8{margin-top:32px}
+.mb2{margin-bottom:8px}.mb4{margin-bottom:16px}.mb6{margin-bottom:24px}
+.hidden{ display:none !important; }
+.nowrap{ white-space:nowrap; }
+.sr-only{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+}
+
+#fx-canvas{ position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:60; }
+
+/* ---------------- Анимации общего пользования ---------------- */
+.appear{ animation: appear .45s var(--pop) both; }
+@keyframes appear{ from{ opacity:0; transform: translateY(14px) scale(.95) } to{ opacity:1; transform:none } }
+.d1{animation-delay:.06s}.d2{animation-delay:.12s}.d3{animation-delay:.18s}
+.d4{animation-delay:.24s}.d5{animation-delay:.3s}.d6{animation-delay:.36s}
+
+.float{ animation: floatY 3.4s ease-in-out infinite; }
+@keyframes floatY{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-9px) } }
+
+.wiggle{ animation: wiggle 2.4s ease-in-out infinite; }
+@keyframes wiggle{ 0%,100%{ transform:rotate(-4deg) } 50%{ transform:rotate(4deg) } }
+
+@keyframes pop{ 0%{transform:scale(1)} 45%{transform:scale(1.1)} 100%{transform:scale(1)} }
+@keyframes shake{
+  0%,100%{ transform:translateX(0) } 20%{ transform:translateX(-8px) }
+  40%{ transform:translateX(7px) } 60%{ transform:translateX(-4px) } 80%{ transform:translateX(2px) }
+}
+.is-bad{ animation: shake .45s var(--ease); }

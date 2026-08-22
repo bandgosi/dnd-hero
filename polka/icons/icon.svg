@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFF3D6"/>
+      <stop offset="100%" stop-color="#EDE7FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- три книжки на полке: сказки, часики, умняшка -->
+  <g>
+    <rect x="112" y="150" width="76" height="238" rx="22" fill="#FF8A50"/>
+    <rect x="132" y="196" width="36" height="14" rx="7" fill="#FFFFFF" opacity=".85"/>
+
+    <rect x="204" y="118" width="76" height="270" rx="22" fill="#3DA9FC"/>
+    <circle cx="242" cy="196" r="26" fill="#FFFFFF" opacity=".9"/>
+    <path d="M242 180 L242 196 L254 204" stroke="#1F6FBF" stroke-width="8"
+          stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+    <rect x="296" y="166" width="76" height="222" rx="22" fill="#7C5CE0"/>
+    <text x="334" y="232" font-family="Arial, Helvetica, sans-serif" font-size="52"
+          font-weight="bold" fill="#FFFFFF" text-anchor="middle">А</text>
+  </g>
+
+  <!-- сама полка -->
+  <rect x="88" y="388" width="336" height="30" rx="15" fill="#177A45"/>
+  <rect x="120" y="418" width="26" height="34" rx="10" fill="#0F5A31"/>
+  <rect x="366" y="418" width="26" height="34" rx="10" fill="#0F5A31"/>
+</svg>

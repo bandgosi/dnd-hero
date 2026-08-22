@@ -1,0 +1,315 @@
+/* =========================================================
+   tasks-math.css — оформление заданий блока «Математика».
+   Всё своё живёт под префиксом .mt- и стоит на токенах:
+   ни одного цвета «руками», ни одного отступа мимо шкалы.
+
+   Главные правила вёрстки продиктованы методикой:
+   · предмет для счёта — не меньше 34px, зазор — не меньше 8px,
+     иначе шестилетка сбивается со счёта;
+   · предметы лежат рядами по пять — их пересчитывают пальцем;
+   · цель касания — не меньше var(--tap).
+   ========================================================= */
+
+/* ---------------- Общий столбик задания ---------------- */
+.mt-stack{
+  display:flex; flex-direction:column; align-items:center;
+  gap: var(--s5); width:100%;
+}
+
+/* ---------------- Предметы для счёта ---------------- */
+.mt-items{
+  display:flex; flex-direction:column; align-items:center;
+  gap: var(--s2);
+}
+.mt-row{
+  display:flex; align-items:center; justify-content:center;
+  gap: var(--s2);                       /* зазор 8px: предметы не сливаются */
+}
+.mt-item{
+  position:relative;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  line-height:1; user-select:none; -webkit-user-select:none;
+  transition: transform var(--dur-fast) var(--ease), opacity var(--dur) var(--ease);
+}
+.mt-item__ico{ font-size:38px; line-height:1; }        /* > 34px — требование */
+.mt-item__num{
+  font-size:13px; font-weight:900; color: var(--muted); margin-top:2px;
+}
+
+/* Пятёрки чуть шире расставлены — так видно «пять и ещё сколько-то» */
+.mt-items--five .mt-row{ padding: 2px var(--s1); }
+.mt-items--five .mt-row + .mt-row{ margin-top: var(--s1); }
+
+/* Мелкий набор для плиток ответа — но всё ещё не мельче 34px и не теснее 8px */
+.mt-items--mini{ gap: var(--s2); }
+.mt-items--mini .mt-item__ico{ font-size:34px; }
+
+/* Предмет-кнопка: ребёнок тыкает и слышит его номер */
+.mt-item--tap{
+  min-width: 48px; min-height: 48px;
+  border-radius: var(--r-xs); background: transparent;
+  touch-action: manipulation;
+}
+.mt-item--tap:active{ transform: scale(1.14); }
+.mt-item--tap:focus-visible{ outline:4px solid var(--sun); outline-offset:2px; }
+
+/* Предмет, который ещё не «появился» при учебном счёте */
+.mt-item--wait{ opacity:0; transform: scale(.6); }
+
+/* Убранные предметы: видно, ЧТО именно убрали */
+.mt-item--gone{ opacity:.42; }
+.mt-item--gone::after{
+  content:'✖';
+  position:absolute; left:50%; top:44%;
+  transform: translate(-50%,-50%);
+  font-size:30px; font-weight:900; color: var(--coral);
+  pointer-events:none;
+}
+.mt-item--gone .mt-item__ico{ filter: grayscale(.7); }
+
+.mt-empty{
+  font-size:16px; font-weight:900; color: var(--muted);
+  padding: var(--s3) var(--s5);
+  border:3px dashed var(--line-2); border-radius: var(--r-sm);
+}
+
+/* ---------------- Знакомство с цифрой ---------------- */
+.mt-learn{
+  display:flex; flex-direction:column; align-items:center; gap: var(--s3);
+  width:100%;
+}
+.mt-glyph{
+  display:flex; align-items:center; justify-content:center;
+  min-width: calc(var(--glyph) * .78); min-height: var(--glyph);
+  padding: 0 var(--s5);
+  font-size: var(--glyph); font-weight:900; line-height:1;
+  color: var(--accent-dark);
+  background: linear-gradient(180deg, #fff, var(--accent-tint));
+  border-radius: var(--r-lg);
+  box-shadow: 0 8px 0 var(--accent-soft), var(--sh);
+  transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast);
+}
+.mt-glyph:active{ transform: translateY(6px); box-shadow: 0 2px 0 var(--accent-soft); }
+.mt-glyph:focus-visible{ outline:4px solid var(--sun); outline-offset:4px; }
+.mt-learn__word{
+  font-size: var(--t-title); font-weight:900; color: var(--ink);
+}
+
+/* ---------------- Крупное число (абстрактный уровень) ---------------- */
+.mt-num{
+  display:flex; align-items:center; justify-content:center;
+  min-width:96px; min-height:96px; padding: 0 var(--s4);
+  font-size: clamp(56px, 15vw, 96px); font-weight:900; line-height:1;
+  color: var(--accent-dark);
+  background: var(--surface); border-radius: var(--r);
+  box-shadow: var(--sh);
+}
+
+.mt-cap{
+  font-size: var(--t-body); font-weight:900; color: var(--ink-2);
+  text-align:center;
+}
+.mt-cap--total{
+  padding: var(--s2) var(--s5); border-radius:999px;
+  background: var(--grass-soft); color: var(--grass-dark);
+  transition: opacity var(--dur) var(--ease);
+}
+.mt-cap--hidden{ opacity:0; }
+
+/* ---------------- Весы для сравнения ---------------- */
+.mt-scale{
+  position:relative; width:100%;
+  display:flex; flex-direction:column; align-items:center;
+  padding-top: var(--s5);
+}
+.mt-scale__beam{
+  width: min(420px, 92%); height:14px; border-radius:999px;
+  background: linear-gradient(90deg, var(--accent-soft), var(--accent), var(--accent-soft));
+  box-shadow: var(--sh-sm);
+  transform-origin: 50% 50%;
+  transition: transform var(--dur-slow) var(--pop);
+}
+.mt-scale.is-left  .mt-scale__beam{ transform: rotate(-7deg); }   /* слева больше */
+.mt-scale.is-right .mt-scale__beam{ transform: rotate(7deg); }
+.mt-scale.is-even  .mt-scale__beam{ transform: none; }
+
+.mt-scale__row{
+  display:flex; align-items:center; justify-content:center;
+  gap: var(--s3); width:100%; margin-top: var(--s3);
+}
+.mt-pan{
+  flex:1; min-width:0;
+  display:flex; flex-direction:column; align-items:center; gap: var(--s2);
+  padding: var(--s4) var(--s2);
+  border-radius: var(--r);
+  background: linear-gradient(180deg, #fff, var(--accent-tint));
+  box-shadow: 0 6px 0 var(--accent-soft), var(--sh);
+}
+.mt-pan__num{
+  font-size: var(--t-title); font-weight:900; color: var(--accent-dark);
+}
+.mt-scale__slot{
+  flex:0 0 auto;
+  display:flex; align-items:center; justify-content:center;
+  width:64px; height:64px; border-radius: var(--r-sm);
+  border:4px dashed var(--line-2);
+  font-size:34px; font-weight:900; color: var(--muted);
+  background: var(--surface);
+}
+.mt-scale__slot.is-filled{
+  border-style:solid; border-color: var(--grass);
+  color: var(--grass-dark); background: var(--grass-soft);
+  animation: pop .45s var(--pop);
+}
+
+/* Плитка со знаком: сам знак крупный, слово — подпись */
+.mt-opt--sign{ min-height:96px; }
+.mt-sign{ font-size: clamp(38px, 9vw, 54px); font-weight:900; line-height:1; }
+
+/* Плитка с группой предметов — во всю ширину, чтобы влезали пятёрки */
+.mt-opt--items{
+  min-height: var(--tap);
+  padding: var(--s3) var(--s4);
+}
+
+/* ---------------- Числовой ряд ---------------- */
+.mt-line{
+  display:flex; align-items:center; justify-content:center;
+  gap: var(--s2); flex-wrap:wrap; width:100%;
+}
+.mt-cell{
+  display:flex; align-items:center; justify-content:center;
+  min-width:62px; height:72px; padding:0 var(--s2);
+  border-radius: var(--r-sm);
+  background: var(--surface); color: var(--ink);
+  font-size: clamp(26px,6.5vw,36px); font-weight:900;
+  box-shadow: 0 4px 0 var(--line), var(--sh-sm);
+}
+.mt-cell--slot{
+  background: var(--accent-tint);
+  border:4px dashed var(--accent-soft);
+  color: var(--muted); box-shadow:none;
+}
+.mt-cell--slot.is-filled{
+  border-style:solid; border-color: var(--grass);
+  background: var(--grass-soft); color: var(--grass-dark);
+  animation: pop .45s var(--pop);
+}
+
+/* ---------------- Расстановка по порядку ---------------- */
+.mt-arrow{
+  display:flex; align-items:center; gap: var(--s3);
+  width: min(420px, 100%);
+}
+.mt-arrow__a{ font-size:24px; }
+.mt-arrow__b{ font-size:38px; }
+.mt-arrow__line{
+  flex:1; height:10px; border-radius:999px;
+  background: linear-gradient(90deg, var(--accent-soft), var(--accent));
+}
+
+.mt-slots{
+  display:flex; align-items:center; justify-content:center;
+  gap: var(--s2); flex-wrap:wrap; width:100%;
+}
+.mt-slot{
+  display:flex; align-items:center; justify-content:center;
+  min-width:72px; height:80px;
+  border-radius: var(--r-sm);
+  border:4px dashed var(--line-2); background: var(--surface);
+  font-size: clamp(26px,6.5vw,36px); font-weight:900; color: var(--ink);
+  transition: transform var(--dur-fast) var(--ease);
+  touch-action: manipulation;
+}
+.mt-slot:active{ transform: translateY(3px); }
+.mt-slot:focus-visible{ outline:4px solid var(--sun); outline-offset:3px; }
+.mt-slot.is-filled{
+  border-style:solid; border-color: var(--accent);
+  background: var(--accent-tint); color: var(--accent-dark);
+  animation: pop .35s var(--pop);
+}
+.mt-slot.is-right{
+  border-color: var(--grass); background: var(--grass-soft); color: var(--grass-dark);
+}
+
+.mt-bank{
+  display:flex; align-items:center; justify-content:center;
+  gap: var(--s3); flex-wrap:wrap; width:100%;
+}
+.mt-chip{ min-width:84px; }
+.mt-chip.is-used{ opacity:.28; pointer-events:none; }
+
+/* ---------------- Наглядные примеры ---------------- */
+.mt-eq{
+  display:flex; align-items:center; justify-content:center;
+  gap: var(--s3); flex-wrap:wrap; width:100%;
+}
+.mt-group{
+  display:flex; align-items:center; justify-content:center;
+  padding: var(--s3);
+  border-radius: var(--r);
+  background: var(--surface); box-shadow: var(--sh);
+}
+.mt-eq__sign{
+  font-size: clamp(34px,8vw,48px); font-weight:900; color: var(--accent-dark);
+  line-height:1;
+}
+.mt-eq__q{
+  display:flex; align-items:center; justify-content:center;
+  min-width:64px; height:64px; border-radius: var(--r-sm);
+  border:4px dashed var(--accent-soft); background: var(--accent-tint);
+  font-size:34px; font-weight:900; color: var(--muted);
+}
+
+/* ---------------- Пример без картинок ---------------- */
+.mt-expr{
+  display:flex; align-items:center; justify-content:center;
+  gap: var(--s3); flex-wrap:wrap; width:100%;
+}
+.mt-expr__n{
+  display:flex; align-items:center; justify-content:center;
+  min-width:88px; height:100px; padding:0 var(--s3);
+  border-radius: var(--r);
+  background: linear-gradient(180deg, #fff, var(--accent-tint));
+  box-shadow: 0 6px 0 var(--accent-soft), var(--sh);
+  font-size: clamp(44px,11vw,68px); font-weight:900; line-height:1;
+  color: var(--ink);
+}
+.mt-expr__sign{
+  font-size: clamp(34px,8vw,52px); font-weight:900; color: var(--accent-dark); line-height:1;
+}
+.mt-expr__q{
+  display:flex; align-items:center; justify-content:center;
+  min-width:88px; height:100px; border-radius: var(--r);
+  border:4px dashed var(--accent-soft); background: var(--accent-tint);
+  font-size: clamp(40px,10vw,60px); font-weight:900; color: var(--muted); line-height:1;
+}
+
+/* ---------------- Числовая линейка (опора level 1) ---------------- */
+.mt-support{
+  display:flex; flex-direction:column; align-items:center; gap: var(--s2);
+  width:100%;
+}
+.mt-ruler{
+  display:flex; align-items:center; justify-content:center;
+  gap: var(--s1); flex-wrap:wrap; width:100%;
+}
+.mt-ruler__cell{
+  display:flex; align-items:center; justify-content:center;
+  min-width:34px; height:40px; border-radius: var(--r-xs);
+  background: var(--surface-2); color: var(--ink-2);
+  font-size:16px; font-weight:900;
+}
+.mt-ruler__cell.is-from{
+  background: var(--sun-soft); color: var(--ink);
+  box-shadow: 0 3px 0 var(--sun);
+}
+
+/* ---------------- Узкие экраны ---------------- */
+@media (max-width: 380px){
+  .mt-item__ico{ font-size:34px; }        /* нижняя граница, ниже — нельзя */
+  .mt-cell{ min-width:52px; height:64px; }
+  .mt-slot{ min-width:64px; height:72px; }
+  .mt-expr__n, .mt-expr__q{ min-width:72px; height:88px; }
+  .mt-scale__slot{ width:56px; height:56px; font-size:28px; }
+}

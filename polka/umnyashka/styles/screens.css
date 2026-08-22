@@ -1,0 +1,257 @@
+/* =========================================================
+   screens.css — экраны: приветствие, главный, карта юнитов,
+   урок, письмо, игры, прогресс, награды, родительский режим
+   ========================================================= */
+
+/* ---------------- ПРИВЕТСТВИЕ ---------------- */
+.welcome{ justify-content:center; align-items:center; text-align:center; }
+.welcome__logo{ font-size: clamp(64px, 18vw, 110px); line-height:1; }
+.welcome__title span{ display:inline-block; animation: dropIn .6s var(--pop) both; }
+@keyframes dropIn{ from{ opacity:0; transform: translateY(-26px) rotate(-12deg) } to{ opacity:1; transform:none } }
+
+.chars{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: var(--s3); width:min(420px,100%); }
+.char{
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  padding: var(--s4) var(--s2); border-radius: var(--r-lg);
+  background:#fff; box-shadow: 0 5px 0 var(--line), 0 10px 22px rgba(43,35,80,.08);
+  transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast);
+  min-height:132px;
+}
+.char:active{ transform: translateY(4px); box-shadow: 0 1px 0 var(--line); }
+.char.is-on{
+  background: linear-gradient(180deg,#fff,var(--accent-tint));
+  box-shadow: 0 5px 0 var(--accent), 0 0 0 4px var(--accent-soft), 0 12px 26px rgba(43,35,80,.14);
+}
+.char__ico{ font-size:52px; }
+.char__name{ font-size:14px; font-weight:900; line-height:1.2; text-align:center; }
+
+/* ---------------- ГЛАВНЫЙ ЭКРАН ---------------- */
+.home__hello{ display:flex; align-items:center; gap: var(--s3); margin-bottom: var(--s4); }
+.home__cards{ display:flex; flex-direction:column; gap: var(--s4); }
+.home__tiles{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: var(--s3); margin-top: var(--s5); }
+
+/* Дневная тренировка */
+.daily{ display:flex; flex-direction:column; gap: var(--s3); }
+.daily__item{
+  display:flex; align-items:center; gap: var(--s3);
+  padding: var(--s3) var(--s4); border-radius: var(--r);
+  background:#fff; box-shadow: var(--sh-sm), 0 8px 18px rgba(43,35,80,.06);
+  min-height: var(--tap);
+  transition: transform var(--dur-fast) var(--ease), opacity var(--dur);
+}
+.daily__item:active{ transform: translateY(3px); }
+.daily__ico{ font-size:30px; flex:0 0 auto; }
+.daily__txt{ flex:1; min-width:0; font-size:16px; font-weight:900; }
+.daily__sub{ font-size:13px; font-weight:800; color: var(--muted); }
+.daily__mark{
+  flex:0 0 auto; width:34px; height:34px; border-radius:50%;
+  background: var(--line); color:#fff; font-size:18px;
+  display:flex; align-items:center; justify-content:center;
+}
+.daily__item.is-done{ opacity:.6; }
+.daily__item.is-done .daily__mark{ background: var(--grass); }
+
+/* ---------------- КАРТА ЮНИТОВ ---------------- */
+.path{ position:relative; display:flex; flex-direction:column; align-items:center; gap: var(--s1); padding: var(--s4) 0 var(--s8); }
+.path::before{
+  content:''; position:absolute; top:0; bottom:0; left:50%; width:8px; margin-left:-4px;
+  background: repeating-linear-gradient(180deg, var(--line) 0 14px, transparent 14px 28px);
+  border-radius:999px; z-index:0;
+}
+.unit{ position:relative; z-index:1; width:100%; display:flex; padding: var(--s2) 0; }
+.unit--l{ justify-content:flex-start; padding-left:4%; }
+.unit--r{ justify-content:flex-end; padding-right:4%; }
+.unit__in{ display:flex; flex-direction:column; align-items:center; gap:5px; max-width:190px; }
+.unit__btn{
+  position:relative; width:92px; height:92px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-size:40px;
+  background:#fff; box-shadow: 0 7px 0 var(--line), 0 14px 26px rgba(43,35,80,.10);
+  transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast);
+}
+.unit__btn:active{ transform: translateY(6px); box-shadow: 0 1px 0 var(--line); }
+.unit.is-open .unit__btn{
+  background: linear-gradient(180deg,#fff,var(--accent-tint));
+  box-shadow: 0 7px 0 var(--accent), 0 14px 26px rgba(43,35,80,.16);
+}
+.unit.is-now .unit__btn{
+  background: linear-gradient(180deg,#FFF7E2,#FFE3A3);
+  box-shadow: 0 7px 0 var(--sun-dark), 0 0 0 8px rgba(255,179,0,.22), 0 14px 30px rgba(217,142,0,.28);
+  animation: nowBeat 2.2s var(--ease) infinite;
+}
+@keyframes nowBeat{
+  0%,100%{ box-shadow: 0 7px 0 var(--sun-dark), 0 0 0 8px rgba(255,179,0,.22), 0 14px 30px rgba(217,142,0,.28) }
+  50%    { box-shadow: 0 7px 0 var(--sun-dark), 0 0 0 16px rgba(255,179,0,.10), 0 14px 30px rgba(217,142,0,.28) }
+}
+.unit.is-done .unit__btn{
+  background: linear-gradient(180deg,#E9FBF1,#BEF0D6);
+  box-shadow: 0 7px 0 var(--grass-dark), 0 14px 26px rgba(47,184,107,.22);
+}
+.unit.is-locked .unit__btn{ filter: grayscale(1) opacity(.5); }
+.unit__label{ font-size:14px; font-weight:900; text-align:center; line-height:1.18; }
+.unit__desc{ font-size:12px; font-weight:800; color: var(--muted); text-align:center; }
+.unit.is-locked .unit__label{ color: var(--muted); }
+.unit__badge{
+  position:absolute; top:-4px; right:-6px; width:32px; height:32px; border-radius:50%;
+  background: var(--grass); color:#fff; font-size:17px;
+  display:flex; align-items:center; justify-content:center; box-shadow: 0 3px 0 var(--grass-dark);
+}
+
+/* ---------------- УРОК ---------------- */
+.lesson{ padding-bottom: calc(232px + var(--safe-bottom)); }
+.lesson__head{ text-align:center; margin-bottom: var(--s4); }
+.lesson__body{ display:flex; flex-direction:column; align-items:center; gap: var(--s4); width:100%; }
+.task__q{ font-size: clamp(19px,4.6vw,28px); font-weight:900; line-height:1.2; }
+.task__hint{ font-size: var(--t-small); font-weight:800; color: var(--muted); text-align:center; }
+.result{ display:flex; flex-direction:column; align-items:center; gap: var(--s4); width:100%; }
+
+/* Крупный обучающий символ */
+.glyph{
+  font-size: var(--glyph); font-weight:900; line-height:1;
+  color: var(--accent-dark); text-align:center;
+  display:flex; align-items:center; justify-content:center; gap:.15em;
+  user-select:none; -webkit-user-select:none;
+}
+.glyph--tap{ cursor:pointer; transition: transform var(--dur-fast) var(--ease); }
+.glyph--tap:active{ transform: scale(.94); }
+
+/* ---------------- ПИСЬМО ---------------- */
+.write{ display:flex; flex-direction:column; align-items:center; gap: var(--s3); width:100%; }
+.trace{
+  position:relative; width: min(82vw, 340px); aspect-ratio:1;
+  border-radius: var(--r-lg); background:#fff;
+  box-shadow: var(--sh); overflow:hidden;
+  touch-action:none; user-select:none; -webkit-user-select:none;
+}
+.trace__svg{ display:block; width:100%; height:100%; cursor: crosshair; }
+.trace.is-drawing .trace__svg{ cursor: grabbing; }
+.trace__ink.is-done{ stroke: var(--grass); }
+.trace__start{ transition: r var(--dur-fast); }
+.trace__start.is-ping{ animation: ping 1s var(--ease) infinite; }
+@keyframes ping{ 0%,100%{ r:7; opacity:1 } 50%{ r:11; opacity:.65 } }
+.trace.is-off{ animation: shake .5s var(--ease); }
+.trace.is-finished{ box-shadow: 0 6px 0 var(--grass), 0 14px 30px rgba(47,184,107,.24); }
+.trace__demo{ opacity:.9; }
+
+/* ---------------- ИГРЫ ---------------- */
+.game{ padding-bottom: calc(var(--s6) + var(--safe-bottom)); }
+.game__area{ width:100%; }
+.games-grid{ display:grid; gap: var(--s3); grid-template-columns: repeat(auto-fill, minmax(132px,1fr)); }
+.game-card{
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+  min-height:136px; padding: var(--s4) var(--s2); border-radius: var(--r-lg);
+  background:#fff; box-shadow: 0 6px 0 var(--line), 0 12px 24px rgba(43,35,80,.08);
+  transition: transform var(--dur-fast) var(--ease); text-align:center;
+}
+.game-card:active{ transform: translateY(5px); box-shadow: 0 1px 0 var(--line); }
+.game-card__ico{ font-size:42px; }
+.game-card__title{ font-size:15px; font-weight:900; line-height:1.15; }
+.game-card__sub{ font-size:12.5px; font-weight:800; color: var(--muted); }
+
+/* ---------------- ПРОГРЕСС ---------------- */
+.skillrow{ display:flex; align-items:center; gap: var(--s3); padding: var(--s3) 0; border-bottom:2px solid var(--line); }
+.skillrow:last-child{ border-bottom:none; }
+.skillrow__ico{ font-size:26px; width:34px; text-align:center; flex:0 0 auto; }
+.skillrow__body{ flex:1; min-width:0; }
+.skillrow__title{ font-size:15px; font-weight:900; }
+.skillrow__bar{ margin-top:5px; }
+.skillrow__val{ font-size:13px; font-weight:900; color: var(--muted); flex:0 0 auto; min-width:42px; text-align:right; }
+
+/* ---------------- НАГРАДЫ ---------------- */
+.ach-grid{ display:grid; gap: var(--s3); grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); }
+.ach{
+  display:flex; flex-direction:column; align-items:center; gap:5px; text-align:center;
+  padding: var(--s4) var(--s2); border-radius: var(--r-lg); background:#fff;
+  box-shadow: 0 5px 0 var(--line), 0 10px 22px rgba(43,35,80,.07);
+}
+.ach.is-on{ background: linear-gradient(180deg,#FFFDF5,#FFF0C9); box-shadow: 0 5px 0 var(--sun-dark), 0 10px 22px rgba(217,142,0,.2); }
+.ach__ico{ font-size:38px; }
+.ach.is-off .ach__ico{ filter: grayscale(1) opacity(.28); }
+.ach__title{ font-size:14.5px; font-weight:900; line-height:1.15; }
+.ach__desc{ font-size:13px; font-weight:800; color: var(--muted); line-height:1.25; }
+
+.slotrow{ display:flex; align-items:center; gap: var(--s2); flex-wrap:wrap; }
+.reward{
+  position:relative; width:70px; height:70px; border-radius: var(--r-sm);
+  display:flex; align-items:center; justify-content:center; font-size:34px;
+  background:#fff; box-shadow: 0 4px 0 var(--line), 0 8px 18px rgba(43,35,80,.08);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.reward:active{ transform: translateY(3px); }
+.reward.is-locked{ filter: grayscale(1) opacity(.3); }
+.reward.is-worn{ box-shadow: 0 4px 0 var(--accent), 0 0 0 4px var(--accent-soft); }
+.reward__lock{ position:absolute; right:2px; bottom:2px; font-size:14px; }
+
+/* ---------------- РОДИТЕЛЬСКИЙ РЕЖИМ ---------------- */
+.parent__grid{ display:grid; gap: var(--s3); grid-template-columns: repeat(auto-fit, minmax(128px,1fr)); }
+.stat{
+  padding: var(--s4); border-radius: var(--r); background:#fff;
+  box-shadow: var(--sh-sm), 0 8px 18px rgba(43,35,80,.06); text-align:center;
+}
+.stat__val{ font-size: clamp(24px,6vw,34px); font-weight:900; color: var(--accent-dark); }
+.stat__lab{ font-size:13px; font-weight:800; color: var(--muted); margin-top:2px; }
+
+.week{ display:flex; align-items:flex-end; gap: var(--s2); height:110px; padding-top: var(--s2); }
+.week__col{ flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; height:100%; justify-content:flex-end; }
+.week__bar{
+  width:100%; max-width:34px; border-radius:8px 8px 4px 4px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+  min-height:4px; transition: height .5s var(--ease);
+}
+.week__lab{ font-size:11.5px; font-weight:800; color: var(--muted); }
+
+.weak{ display:flex; flex-wrap:wrap; gap: var(--s2); }
+.weak__item{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:8px 13px; border-radius:999px; font-weight:900; font-size:16px;
+  background: var(--peach-soft); color:#B2571F;
+}
+.weak__pct{ font-size:12.5px; opacity:.8; }
+
+.tip{
+  display:flex; gap: var(--s3); padding: var(--s4); border-radius: var(--r);
+  background: var(--sun-soft); font-size:15px; font-weight:800; line-height:1.4; color:#5A3D00;
+}
+.tip__ico{ font-size:24px; flex:0 0 auto; }
+
+/* ---------------- АДАПТИВ ---------------- */
+@media (min-width: 768px){
+  .opts--4{ grid-template-columns: repeat(4, minmax(0,1fr)); }
+  .chars{ grid-template-columns: repeat(4, minmax(0,1fr)); }
+  .home__tiles{ grid-template-columns: repeat(5, minmax(0,1fr)); }
+}
+@media (min-width: 900px){
+  .unit--l{ padding-left:14%; }
+  .unit--r{ padding-right:14%; }
+  .unit__btn{ width:104px; height:104px; font-size:46px; }
+}
+@media (max-width: 360px){
+  .bigcard{ padding: var(--s4) var(--s3); gap: var(--s3); }
+  .bigcard__ico{ width:72px; height:72px; font-size:40px; }
+  .bigcard__go{ width:44px; height:44px; font-size:20px; }
+  .home__tiles{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-height: 560px) and (orientation: landscape){
+  .trace{ width:min(52vh,300px); }
+  .glyph{ font-size: clamp(56px,14vh,96px); }
+  .lesson{ padding-bottom: calc(180px + var(--safe-bottom)); }
+}
+
+@media print{
+  .sky, .topbar, .btn, .icon-btn, #fx-canvas, .toast-root, .actions, .feedback{ display:none !important; }
+  body{ background:#fff; }
+}
+
+/* Цифра на шарике: белый текст на жёлтом нечитаем — ставим «таблетку» */
+.gn-balloon__num{
+  min-width:34px; padding:2px 8px; border-radius:999px;
+  background: var(--surface); color: var(--ink);
+  box-shadow: 0 2px 0 rgba(43,35,80,.12);
+  font-size:22px; font-weight:900; line-height:1;
+}
+/* Поле письма в игре не должно быть карточкой внутри карточки */
+.gl-draw .trace{ background:none; box-shadow:none; }
+
+/* Чип уровня на узком телефоне */
+@media (max-width: 360px){
+  .bigcard__meta .chip{ font-size:13.5px; height:34px; padding:0 10px; }
+}

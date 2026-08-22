@@ -1,0 +1,421 @@
+/* =========================================================
+   ЭКРАНЫ: приветствие, карта, знакомство, урок,
+   мини-игры, достижения, настройки, диплом
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   ПРИВЕТСТВИЕ
+   --------------------------------------------------------- */
+.welcome{ justify-content:center; align-items:center; text-align:center; gap:8px; }
+.welcome__clock{ width:min(62vw, 280px); margin-bottom:6px; }
+.welcome__title{ margin-top:6px; }
+.welcome__title span{ display:inline-block; animation: letterDrop .6s var(--ease-pop) both; }
+@keyframes letterDrop{ from{ opacity:0; transform: translateY(-30px) rotate(-14deg) } to{ opacity:1; transform:none } }
+.welcome__actions{ display:flex; flex-direction:column; gap:12px; width:min(420px,100%); margin-top:22px; }
+.welcome__mini{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+
+/* ---------------------------------------------------------
+   КАРТА УРОВНЕЙ
+   --------------------------------------------------------- */
+.map{ padding-bottom: calc(30px + var(--safe-bottom)); }
+.map__head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+
+.path{
+  position:relative;
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  padding: 18px 0 8px;
+}
+/* Пунктирная «дорожка» между уровнями */
+.path::before{
+  content:''; position:absolute; top:0; bottom:0; left:50%; width:8px; margin-left:-4px;
+  background: repeating-linear-gradient(180deg, #D7E7F6 0 16px, transparent 16px 30px);
+  border-radius:999px; z-index:0;
+}
+
+.node{
+  position:relative; z-index:1;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding: 8px 0;
+  width:100%;
+}
+.node--l{ align-items:flex-start; padding-left: 6%; }
+.node--r{ align-items:flex-end;  padding-right: 6%; }
+.node--l .node__inner{ align-items:flex-start; }
+.node--r .node__inner{ align-items:flex-end; }
+
+.node__inner{ display:flex; flex-direction:column; align-items:center; gap:6px; max-width:190px; }
+
+.node__btn{
+  position:relative;
+  width:96px; height:96px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:42px; background:#fff;
+  box-shadow: 0 7px 0 var(--line), 0 14px 26px rgba(33,57,91,.12);
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast);
+}
+.node__btn:active{ transform: translateY(6px); box-shadow:0 1px 0 var(--line); }
+
+.node.is-open .node__btn{
+  background: linear-gradient(180deg,#FFFFFF,#EAF5FF);
+  box-shadow: 0 7px 0 var(--blue), 0 14px 26px rgba(61,169,252,.28);
+}
+.node.is-current .node__btn{
+  background: linear-gradient(180deg,#FFF6D9,#FFE59A);
+  box-shadow: 0 7px 0 var(--yellow-dark), 0 0 0 8px rgba(255,201,60,.25), 0 14px 30px rgba(237,175,18,.3);
+  animation: nodeBeat 2.2s var(--ease-out) infinite;
+}
+@keyframes nodeBeat{
+  0%,100%{ box-shadow: 0 7px 0 var(--yellow-dark), 0 0 0 8px rgba(255,201,60,.25), 0 14px 30px rgba(237,175,18,.3); }
+  50%    { box-shadow: 0 7px 0 var(--yellow-dark), 0 0 0 16px rgba(255,201,60,.12), 0 14px 30px rgba(237,175,18,.3); }
+}
+.node.is-done .node__btn{
+  background: linear-gradient(180deg,#E6FBF0,#B9F0D5);
+  box-shadow: 0 7px 0 var(--green-dark), 0 14px 26px rgba(53,199,123,.25);
+}
+.node.is-locked .node__btn{ filter: grayscale(1) opacity(.5); }
+/* Замок остаётся нажимаемым — по тапу объясняем, почему уровень закрыт */
+
+.node__label{ font-size:15px; font-weight:900; text-align:center; line-height:1.2; }
+.node.is-locked .node__label{ color: var(--muted); }
+.node__badge{
+  position:absolute; top:-4px; right:-6px;
+  width:34px; height:34px; border-radius:50%;
+  background: var(--green); color:#fff; font-size:18px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 3px 0 var(--green-dark);
+}
+
+/* Секция мини-игр на карте */
+.games-grid{
+  display:grid; gap:12px;
+  grid-template-columns: repeat(auto-fill, minmax(148px,1fr));
+}
+.game-card{
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+  min-height:132px; padding:14px 10px; border-radius: var(--r-lg);
+  background:#fff; box-shadow: 0 6px 0 var(--line), 0 12px 24px rgba(33,57,91,.10);
+  transition: transform var(--dur-fast) var(--ease-out);
+  text-align:center;
+}
+.game-card:active{ transform: translateY(5px); box-shadow:0 1px 0 var(--line); }
+.game-card__emoji{ font-size:44px; }
+.game-card__title{ font-size:16px; font-weight:900; line-height:1.15; }
+.game-card__best{ font-size:13px; font-weight:800; color: var(--muted); }
+.game-card--1{ background: linear-gradient(180deg,#FFFFFF,#FFF0F3); }
+.game-card--2{ background: linear-gradient(180deg,#FFFFFF,#EAF5FF); }
+.game-card--3{ background: linear-gradient(180deg,#FFFFFF,#F1EBFF); }
+.game-card--4{ background: linear-gradient(180deg,#FFFFFF,#E9FBF2); }
+.game-card--5{ background: linear-gradient(180deg,#FFFFFF,#FFF6DF); }
+
+/* ---------------------------------------------------------
+   ЗНАКОМСТВО С ЧАСАМИ
+   --------------------------------------------------------- */
+.explore{ align-items:center; }
+.explore__stage{ width:100%; max-width:520px; }
+.explore__clock{ max-width: min(78vw, 380px); }
+.explore__chips{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:14px; }
+.explore__chip{
+  min-height:44px; display:inline-flex; align-items:center;
+  padding:10px 16px; border-radius:999px; font-size:16px; font-weight:900;
+  background:#fff; box-shadow: 0 4px 0 var(--line);
+  transition: transform var(--dur-fast), background var(--dur-fast);
+}
+.explore__chip.is-on{ background: var(--yellow); color:#6B4C00; box-shadow: 0 4px 0 var(--yellow-dark); transform: translateY(-2px); }
+.explore__info{ min-height:96px; margin-top:14px; }
+
+/* ---------------------------------------------------------
+   УРОК / ЗАДАНИЕ
+   --------------------------------------------------------- */
+/* Запас под фиксированную панель кнопок и панель обратной связи (до ~165px) */
+.lesson{ padding-bottom: calc(190px + var(--safe-bottom)); }
+.task{ display:flex; flex-direction:column; align-items:center; gap:16px; width:100%; }
+.task__question{
+  text-align:center; font-size: clamp(20px, 4.8vw, 30px); font-weight:900; line-height:1.2;
+}
+.task__hint{ text-align:center; font-size: clamp(14px,3.4vw,18px); font-weight:800; color: var(--muted); }
+.task__body{ width:100%; display:flex; flex-direction:column; align-items:center; gap:16px; }
+.task__actions{
+  position:fixed; left:0; right:0; bottom:0; z-index:40;
+  padding: 12px 16px calc(12px + var(--safe-bottom));
+  background: linear-gradient(180deg, rgba(242,248,255,0), rgba(242,248,255,.95) 40%);
+  display:flex; justify-content:center;
+}
+.task__actions .btn{ width: min(440px, 100%); }
+
+/* Учебный слайд */
+.teach{ display:flex; flex-direction:column; align-items:center; gap:14px; width:100%; }
+.teach__points{ display:flex; flex-direction:column; gap:10px; width:min(520px,100%); }
+.teach__point{
+  display:flex; align-items:center; gap:12px;
+  background:#fff; border-radius: var(--r); padding: 12px 16px;
+  box-shadow: var(--shadow-sm), 0 8px 18px rgba(33,57,91,.07);
+  font-size: clamp(16px,3.9vw,20px); font-weight:800;
+  animation: appear .5s var(--ease-pop) both;
+}
+.teach__point b{ font-weight:900; }
+.teach__point-emoji{ font-size:28px; flex:0 0 auto; }
+
+/* Счётчик минут в уроке 2 */
+.minute-counter{
+  display:inline-flex; align-items:baseline; gap:8px;
+  padding: 8px 22px; border-radius:999px;
+  background: var(--green-soft); color: var(--green-dark);
+  font-size: clamp(26px,6.5vw,42px); font-weight:900;
+  box-shadow: var(--shadow-sm);
+  font-variant-numeric: tabular-nums;
+}
+.minute-counter small{ font-size:.5em; font-weight:900; }
+
+/* Игра «Соедини» */
+.match{ display:flex; gap: clamp(10px,3vw,26px); width:100%; justify-content:center; }
+.match__col{ display:flex; flex-direction:column; gap:12px; flex:1; max-width:230px; }
+.match__item{
+  display:flex; align-items:center; justify-content:center;
+  padding:10px; border-radius: var(--r);
+  background:#fff; box-shadow: 0 5px 0 var(--line), 0 10px 20px rgba(33,57,91,.08);
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast), opacity var(--dur);
+  min-height:78px;
+}
+.match__item.is-sel{
+  box-shadow: 0 5px 0 var(--blue), 0 0 0 5px rgba(61,169,252,.25);
+  transform: translateY(-3px);
+}
+.match__item.is-done{
+  opacity:.45; pointer-events:none;
+  box-shadow: 0 5px 0 var(--green);
+}
+.match__item.is-bad{ animation: shake .45s var(--ease-out); }
+.match__digital{ font-size: clamp(22px,5.5vw,32px); font-weight:900; }
+
+/* ---------------------------------------------------------
+   МИНИ-ИГРЫ
+   --------------------------------------------------------- */
+.game{ padding-bottom: calc(20px + var(--safe-bottom)); }
+.game__hud{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  margin-bottom:10px;
+}
+.game__prompt{
+  text-align:center; font-size: clamp(18px,4.4vw,26px); font-weight:900; margin-bottom:10px;
+}
+.timer{
+  display:inline-flex; align-items:center; gap:8px;
+  height:44px; padding:0 16px; border-radius:999px;
+  background:#fff; box-shadow: var(--shadow-sm); font-weight:900; font-size:17px;
+}
+.timer.is-low{ background:#FFEFE6; color:#C2622A; animation: timerBeat .8s ease-in-out infinite; }
+@keyframes timerBeat{ 0%,100%{ transform:scale(1) } 50%{ transform:scale(1.06) } }
+
+/* Шарики */
+.balloons{
+  position:relative; width:100%; flex:1; min-height: 58vh;
+  border-radius: var(--r-lg); overflow:hidden;
+  background: linear-gradient(180deg, #E8F5FF, #F4FBFF 60%, #EAF9F1);
+  box-shadow: inset 0 0 0 3px #fff, var(--shadow-sm);
+}
+.balloon{
+  position:absolute; width:88px; will-change: transform;
+  display:flex; flex-direction:column; align-items:center;
+  cursor:pointer;
+}
+.balloon__body{
+  width:80px; height:96px; border-radius: 50% 50% 46% 46%;
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-size:22px; font-weight:900;
+  text-shadow: 0 2px 3px rgba(0,0,0,.18);
+  box-shadow: inset -8px -10px 16px rgba(0,0,0,.12), inset 10px 10px 18px rgba(255,255,255,.5);
+  position:relative;
+}
+.balloon__body::after{
+  content:''; position:absolute; bottom:-7px; left:50%; margin-left:-6px;
+  border-left:6px solid transparent; border-right:6px solid transparent;
+  border-top:10px solid currentColor; opacity:.85;
+}
+.balloon__string{ width:2px; height:34px; background: rgba(33,57,91,.28); }
+/* Анимируем содержимое, а не сам .balloon: у него в inline-стиле лежит
+   transform: translate(x,y), и keyframe его бы затёр — шарик «улетал» в угол */
+.balloon.is-pop{ pointer-events:none; }
+.balloon.is-pop .balloon__body,
+.balloon.is-pop .balloon__string{ animation: balloonPop .32s ease-out forwards; }
+@keyframes balloonPop{ to{ transform: scale(1.6); opacity:0; } }
+
+/* Промах: шарик вздрагивает и тускнеет, но не лопается */
+.balloon.is-miss{ pointer-events:none; }
+.balloon.is-miss .balloon__body{
+  animation: shake .45s var(--ease-out);
+  opacity:.28; filter: grayscale(.7);
+}
+.balloon.is-miss .balloon__string{ opacity:.28; }
+
+/* Поезд */
+.train{ display:flex; flex-direction:column; gap:16px; align-items:center; width:100%; }
+.train__track{
+  width:100%; overflow-x:auto; padding: 6px 4px 16px;
+  display:flex; align-items:flex-end; gap:8px;
+  scrollbar-width: thin;
+}
+.train__engine{
+  flex:0 0 auto; width:96px; height:96px; border-radius: 20px 26px 12px 12px;
+  background: linear-gradient(180deg,#FF8FA3,#F4796B);
+  display:flex; align-items:center; justify-content:center; font-size:44px;
+  box-shadow: 0 6px 0 #D95F55;
+  animation: engineBob 1.6s ease-in-out infinite;
+}
+@keyframes engineBob{ 0%,100%{ transform: translateY(0) } 50%{ transform: translateY(-4px) } }
+.wagon{
+  flex:0 0 auto; width:104px; height:112px; border-radius:18px;
+  background:#fff; box-shadow: 0 5px 0 var(--line);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  position:relative; padding:6px;
+}
+.wagon::after{
+  content:'● ●'; position:absolute; bottom:-16px; left:50%; transform:translateX(-50%);
+  font-size:15px; color:#5A6C82; letter-spacing:6px;
+}
+.wagon.is-slot{ background: #EDF4FB; box-shadow: inset 0 0 0 4px #D8E7F5; }
+.wagon.is-filled{ background: var(--green-soft); box-shadow: 0 5px 0 var(--green); }
+.wagon__num{ position:absolute; top:4px; left:8px; font-size:13px; color:var(--muted); }
+.cards{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+.time-card{
+  min-width:96px; min-height:64px; padding:10px 14px; border-radius:18px;
+  background:#fff; box-shadow: 0 5px 0 var(--line), 0 10px 20px rgba(33,57,91,.08);
+  font-size:26px; font-weight:900;
+  display:flex; align-items:center; justify-content:center;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.time-card:active{ transform: translateY(4px); box-shadow:0 1px 0 var(--line); }
+.time-card.is-used{ opacity:.25; pointer-events:none; }
+.time-card.is-sel{ box-shadow: 0 5px 0 var(--blue), 0 0 0 5px rgba(61,169,252,.25); transform: translateY(-3px); }
+.time-card.is-bad{ background:#FFF0E6; color:#C2622A; box-shadow: 0 5px 0 var(--orange); }
+
+/* Пазл «собери часы» */
+.puzzle{ display:flex; flex-direction:column; align-items:center; gap:18px; width:100%; }
+.puzzle__stage{ position:relative; width:min(86vw, 380px); aspect-ratio:1; }
+.puzzle__stage svg{ position:absolute; inset:0; width:100%; height:100%; }
+.puzzle__slot{
+  position:absolute; width:16%; aspect-ratio:1; transform: translate(-50%,-50%);
+  border-radius:50%; background: rgba(220,238,255,.75);
+  box-shadow: inset 0 0 0 3px #C3DEF5;
+  display:flex; align-items:center; justify-content:center;
+  font-size: clamp(18px,4.4vw,26px); font-weight:900; color: var(--muted);
+  transition: all var(--dur-fast) var(--ease-out);
+}
+.puzzle__slot.is-target{ background: var(--yellow-soft); box-shadow: inset 0 0 0 4px var(--yellow); }
+.puzzle__slot.is-filled{ background: var(--green-soft); box-shadow: inset 0 0 0 3px var(--green); color: var(--green-dark); }
+.puzzle__pieces{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+.piece{
+  width:56px; height:56px; border-radius:16px; background:#fff;
+  box-shadow: 0 4px 0 var(--line), 0 8px 16px rgba(33,57,91,.08);
+  font-size:24px; font-weight:900;
+  display:flex; align-items:center; justify-content:center;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.piece:active{ transform: translateY(4px); box-shadow:0 1px 0 var(--line); }
+.piece.is-used{ opacity:.2; pointer-events:none; }
+.piece.is-sel{ box-shadow: 0 4px 0 var(--blue), 0 0 0 5px rgba(61,169,252,.25); transform: translateY(-3px); }
+
+/* Точность стрелки */
+.accuracy{
+  width: min(420px,100%); height:22px; border-radius:999px; overflow:hidden;
+  background:#E3EDF8; box-shadow: inset 0 2px 4px rgba(33,57,91,.1);
+  position:relative;
+}
+.accuracy__fill{
+  height:100%; width:0%;
+  background: linear-gradient(90deg, var(--orange), var(--yellow), var(--green));
+  transition: width .5s var(--ease-out);
+}
+
+/* ---------------------------------------------------------
+   ДОСТИЖЕНИЯ
+   --------------------------------------------------------- */
+.ach-grid{ display:grid; gap:12px; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); }
+.ach{
+  display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center;
+  padding:16px 10px; border-radius: var(--r-lg); background:#fff;
+  box-shadow: 0 5px 0 var(--line), 0 10px 22px rgba(33,57,91,.08);
+}
+.ach.is-on{ background: linear-gradient(180deg,#FFFCF0,#FFF0C6); box-shadow: 0 5px 0 var(--yellow-dark), 0 10px 22px rgba(237,175,18,.22); }
+.ach__emoji{ font-size:40px; }
+.ach.is-off .ach__emoji{ filter: grayscale(1) opacity(.28); }
+.ach__title{ font-size:15px; font-weight:900; line-height:1.15; }
+.ach__desc{ font-size:14px; font-weight:800; color: var(--muted); line-height:1.25; }
+
+/* ---------------------------------------------------------
+   ДИПЛОМ
+   --------------------------------------------------------- */
+.diploma{
+  position:relative; width:min(640px,100%); margin:0 auto; text-align:center;
+  padding: 34px 26px; border-radius: var(--r-xl);
+  background:
+    radial-gradient(circle at 50% 0%, #FFF8E2, #FFFFFF 60%);
+  box-shadow: var(--shadow-lg);
+  overflow:hidden;
+}
+.diploma::before{
+  content:''; position:absolute; inset:12px; border-radius: 34px;
+  border: 5px double var(--yellow); pointer-events:none;
+}
+.diploma__ribbon{
+  position:absolute; top:0; left:50%; transform:translateX(-50%);
+  padding: 6px 26px 10px; border-radius: 0 0 18px 18px;
+  background: var(--yellow); color:#6B4C00; font-weight:900; font-size:14px;
+  letter-spacing:2px;
+}
+.diploma__name{
+  font-size: clamp(26px,6vw,40px); font-weight:900; color: var(--blue-dark);
+  border-bottom: 4px dotted var(--line); display:inline-block; padding: 0 20px 6px; margin: 6px 0 12px;
+}
+.diploma__seal{
+  position:absolute; right:22px; bottom:18px; width:88px; height:88px; border-radius:50%;
+  background: radial-gradient(circle at 35% 32%, #FFF0BD, #FFC93C 60%, #E8A400);
+  display:flex; align-items:center; justify-content:center; font-size:40px;
+  box-shadow: 0 6px 0 #C98F00; transform: rotate(-10deg);
+}
+
+@media print{
+  .sky, .topbar, .btn, .icon-btn, #fx-canvas, .toast-root,
+  .feedback, .task__actions{ display:none !important; }
+  body{ background:#fff; }
+  .screen{ padding:0; }
+  /* Без этого браузер не печатает фоны — золото медали и ленты пропало бы */
+  .diploma, .medal, .diploma__seal, .diploma__ribbon{
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .diploma{ box-shadow:none; break-inside: avoid; }
+  @page{ margin: 12mm; }
+}
+
+/* ---------------------------------------------------------
+   АДАПТИВ
+   --------------------------------------------------------- */
+@media (min-width: 620px){
+  .options--clocks{ grid-template-columns: repeat(4, minmax(0,1fr)); }
+  .options--4{ grid-template-columns: repeat(4, minmax(0,1fr)); }
+  .path::before{ left:50%; }
+}
+
+@media (min-width: 900px){
+  .screen{ padding-left:24px; padding-right:24px; }
+  .node__btn{ width:110px; height:110px; font-size:48px; }
+  .node--l{ padding-left: 16%; }
+  .node--r{ padding-right: 16%; }
+}
+
+/* Низкие экраны (телефон в горизонтальной ориентации) */
+@media (max-height: 560px) and (orientation: landscape){
+  .welcome__clock{ width: 150px; }
+  /* Мини-часы в вариантах ответа не раздуваем — только крупные */
+  .clock:not(.clock--mini):not(.clock--tiny){ max-width: 220px; }
+  .btn--huge{ min-height:62px; }
+  .lesson{ padding-bottom: calc(120px + var(--safe-bottom)); }
+  .feedback{ padding-top:10px; padding-bottom: calc(10px + var(--safe-bottom)); }
+  .feedback__emoji{ font-size:28px; }
+}
+
+/* Узкий телефон: шарики должны помещаться в ряд */
+@media (max-width: 420px){
+  .balloon{ width:70px; }
+  .balloon__body{ width:64px; height:78px; font-size:18px; }
+}

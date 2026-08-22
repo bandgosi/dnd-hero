@@ -1,0 +1,215 @@
+/* =========================================================
+   hub.css — оглавление «Детская полка».
+   Отдельный самодостаточный стиль: оглавление не должно
+   зависеть от файлов приложений — иначе удаление одной папки
+   сломало бы главный экран.
+   ========================================================= */
+
+:root{
+  --ink:#2B2350;
+  --ink-2:#574B7D;
+  --muted:#5A7085;
+  --line:#E4E0F2;
+  --surface:#FFFFFF;
+
+  --tale:#FF8A50;      --tale-dark:#C2551F;   --tale-soft:#FFEDE2;
+  --time:#3DA9FC;      --time-dark:#1F6FBF;   --time-soft:#E4F1FF;
+  --learn:#7C5CE0;     --learn-dark:#5E3FC0;  --learn-soft:#EDE7FF;
+  --sun:#FFB300;       --sun-dark:#D98E00;    --sun-soft:#FFF3D6;
+  --grass:#177A45;     --grass-dark:#0F5A31;  --grass-soft:#E0F7EB;
+
+  --r:26px; --r-lg:34px; --r-xl:46px;
+  --tap:56px;
+  --sh:0 6px 0 rgba(43,35,80,.08), 0 12px 28px rgba(43,35,80,.10);
+  --ease:cubic-bezier(.22,.8,.3,1);
+  --pop:cubic-bezier(.34,1.56,.64,1);
+  --font:'Nunito','SF Pro Rounded','Segoe UI Rounded','Comic Sans MS',system-ui,-apple-system,sans-serif;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0; font-family:var(--font); font-weight:800; color:var(--ink);
+  background:
+    radial-gradient(900px 520px at 12% -8%, #FFFFFF 0%, rgba(255,255,255,0) 62%),
+    radial-gradient(760px 480px at 96% 4%, var(--sun-soft) 0%, rgba(255,255,255,0) 60%),
+    linear-gradient(180deg,#F7F4FF 0%,#FBF8FF 46%,#F2FBFC 100%);
+  background-attachment:fixed;
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+}
+button{ border:none; background:none; cursor:pointer; font:inherit; color:inherit; }
+a{ text-decoration:none; color:inherit; }
+h1,h2,p{ margin:0; }
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important; animation-delay:0s !important;
+    animation-iteration-count:1 !important; transition-duration:.001ms !important;
+  }
+}
+
+.wrap{
+  max-width:900px; margin:0 auto;
+  padding: calc(18px + var(--safe-top)) 16px calc(28px + var(--safe-bottom));
+}
+
+/* ---------------- Шапка ---------------- */
+.head{ text-align:center; margin-bottom:22px; }
+.head__logo{ font-size:clamp(52px,14vw,84px); line-height:1; animation:floatY 3.6s ease-in-out infinite; }
+@keyframes floatY{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-9px)} }
+.head__title{ font-size:clamp(27px,6.4vw,44px); font-weight:900; line-height:1.05; margin-top:4px; }
+.head__title span{ display:inline-block; animation:drop .55s var(--pop) both; }
+@keyframes drop{ from{opacity:0;transform:translateY(-24px) rotate(-10deg)} to{opacity:1;transform:none} }
+.head__sub{ font-size:clamp(15px,3.7vw,19px); font-weight:700; color:var(--ink-2); margin-top:8px; }
+
+/* ---------------- Карточки приложений ---------------- */
+.cards{ display:flex; flex-direction:column; gap:16px; }
+
+.card{
+  position:relative; display:flex; align-items:center; gap:16px;
+  width:100%; text-align:left; padding:18px;
+  border-radius:var(--r-xl);
+  background:linear-gradient(135deg,#fff 0%,var(--tint-soft) 100%);
+  box-shadow:0 8px 0 var(--tint-soft), 0 16px 34px rgba(43,35,80,.12);
+  transition:transform .16s var(--ease), box-shadow .16s var(--ease);
+  animation:appear .5s var(--pop) both;
+}
+.card:active{ transform:translateY(6px); box-shadow:0 2px 0 var(--tint-soft); }
+.card:focus-visible{ outline:4px solid var(--sun); outline-offset:3px; }
+@keyframes appear{ from{opacity:0;transform:translateY(16px) scale(.96)} to{opacity:1;transform:none} }
+.card--1{ animation-delay:.06s } .card--2{ animation-delay:.14s } .card--3{ animation-delay:.22s }
+
+.card--tale { --tint:var(--tale);  --tint-dark:var(--tale-dark);  --tint-soft:var(--tale-soft); }
+.card--time { --tint:var(--time);  --tint-dark:var(--time-dark);  --tint-soft:var(--time-soft); }
+.card--learn{ --tint:var(--learn); --tint-dark:var(--learn-dark); --tint-soft:var(--learn-soft); }
+
+.card__ico{
+  flex:0 0 auto; width:92px; height:92px; border-radius:var(--r);
+  display:flex; align-items:center; justify-content:center; font-size:50px;
+  background:var(--tint-soft);
+}
+.card__body{ flex:1; min-width:0; }
+.card__title{ font-size:clamp(20px,4.8vw,27px); font-weight:900; line-height:1.12; }
+.card__sub{ font-size:clamp(14px,3.5vw,17px); font-weight:700; color:var(--ink-2); margin-top:3px; }
+.card__meta{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px; }
+.card__go{
+  flex:0 0 auto; align-self:flex-end;
+  width:54px; height:54px; border-radius:50%;
+  background:var(--tint-dark); color:#fff; font-size:24px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 4px 0 rgba(43,35,80,.28);
+}
+
+/* Приложение не найдено — карточка остаётся, но объясняет, что делать */
+.card.is-missing{ filter:grayscale(.75); }
+.card.is-missing .card__go{ background:var(--muted); box-shadow:0 4px 0 #46586B; }
+
+.chip{
+  display:inline-flex; align-items:center; gap:6px;
+  height:34px; padding:0 12px; border-radius:999px;
+  font-size:14px; font-weight:900; white-space:nowrap;
+  background:var(--tint-soft); color:var(--tint-dark);
+}
+.chip--sun{ background:var(--sun-soft); color:#8A5A00; }
+.chip--grass{ background:var(--grass-soft); color:var(--grass-dark); }
+
+.bar{ height:12px; border-radius:999px; background:#DBD3F0; overflow:hidden; margin-top:8px;
+      box-shadow: inset 0 0 0 1px rgba(43,35,80,.12); }
+.bar__fill{
+  height:100%; border-radius:999px;
+  background:linear-gradient(90deg,var(--tint),var(--grass));
+  transition:width .6s var(--ease);
+}
+
+/* Кнопка «послушать» на карточке */
+.say{
+  position:absolute; top:10px; right:10px;
+  width:48px; height:48px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-size:19px;
+  background:rgba(255,255,255,.92); color:var(--ink);
+  box-shadow:0 2px 0 rgba(43,35,80,.14), 0 0 0 2px var(--tint-dark);
+}
+.say:active{ transform:translateY(2px); }
+.say:focus-visible{ outline:4px solid var(--sun); outline-offset:2px; }
+
+/* ---------------- Кто играет ---------------- */
+.who{
+  margin-top:26px; padding:20px; border-radius:var(--r-lg);
+  background:var(--surface); box-shadow:var(--sh);
+}
+.who__title{ font-size:19px; font-weight:900; }
+.who__hint{ font-size:14px; font-weight:800; color:var(--muted); margin-top:2px; }
+.field{
+  width:100%; min-height:var(--tap); margin-top:14px; padding:0 16px;
+  border-radius:18px; border:3px solid var(--line);
+  font-family:inherit; font-size:18px; font-weight:800; color:var(--ink);
+  background:#fff; outline:none; transition:border-color .16s;
+}
+.field{ border-color:#B9B1D6; }
+.field:focus{ border-color:var(--learn); box-shadow:0 0 0 4px var(--learn-soft); }
+
+.chars{ display:grid; grid-template-columns:repeat(auto-fit,minmax(68px,1fr)); gap:10px; margin-top:14px; }
+.char{
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  min-height:88px; padding:10px 2px; border-radius:22px;
+  background:#fff; box-shadow:0 4px 0 var(--line);
+  transition:transform .16s var(--ease), box-shadow .16s var(--ease);
+}
+.char:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--line); }
+.char:focus-visible{ outline:4px solid var(--sun); outline-offset:3px; }
+.char.is-on{ background:linear-gradient(180deg,#fff,var(--learn-soft)); box-shadow:0 4px 0 var(--learn), 0 0 0 4px var(--learn-soft); }
+.char__ico{ font-size:36px; }
+.char__name{ font-size:12.5px; overflow-wrap:anywhere; font-weight:900; text-align:center; line-height:1.15; color:var(--ink-2); }
+
+.foot{ margin-top:22px; text-align:center; font-size:13.5px; font-weight:800; color:var(--muted); line-height:1.5; }
+
+/* ---------------- Сообщение ---------------- */
+.note{
+  position:fixed; left:50%; transform:translateX(-50%);
+  top:calc(14px + var(--safe-top)); z-index:50;
+  max-width:92vw; padding:12px 20px; border-radius:22px;
+  background:#fff; box-shadow:var(--sh); font-size:15.5px; font-weight:900;
+  display:flex; align-items:center; gap:9px;
+  animation:noteIn .35s var(--pop) both;
+}
+@keyframes noteIn{ from{opacity:0;transform:translate(-50%,-22px) scale(.9)} to{opacity:1;transform:translateX(-50%)} }
+.note.is-out{ animation:noteOut .25s ease-in both; }
+@keyframes noteOut{ to{opacity:0;transform:translate(-50%,-18px) scale(.92)} }
+
+/* ---------------- Адаптив ---------------- */
+@media (max-width:380px){
+  .card{ padding:14px; gap:12px; }
+  .card__ico{ width:74px; height:74px; font-size:40px; }
+  .card__go{ width:46px; height:46px; font-size:20px; }
+}
+@media (min-width:700px){
+  .cards{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .card--1{ grid-column:1 / -1; }
+}
+
+/* ---------------------------------------------------------
+   Доступность и запас на увеличенный шрифт
+   --------------------------------------------------------- */
+
+/* Жёлтое кольцо фокуса на светлом фоне не видно (1.79:1) —
+   делаем двухцветное: тёмный контур плюс жёлтый ореол */
+.card:focus-visible, .say:focus-visible, .char:focus-visible{
+  outline:3px solid var(--ink);
+  outline-offset:3px;
+  box-shadow:0 0 0 7px var(--sun);
+}
+
+/* Длинные подписи не должны срезаться при увеличении шрифта */
+.card__title, .card__sub, .who__title, .who__hint{ overflow-wrap:anywhere; }
+
+/* Очень узко или сильное увеличение: карточка перестраивается,
+   иначе появлялась горизонтальная прокрутка */
+@media (max-width:340px){
+  .card{ flex-wrap:wrap; padding:14px; gap:10px; }
+  .card__ico{ width:60px; height:60px; font-size:34px; }
+  .card__go{ width:46px; height:46px; font-size:20px; }
+  .say{ width:44px; height:44px; }
+}

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<!-- Масштабирование не запрещаем: родитель должен иметь возможность приблизить экран -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F2F8FF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Часики — учимся понимать время</title>
+
+<!-- Шрифт грузится НЕблокирующе: без интернета страница рисуется сразу
+     системным округлым шрифтом и не ждёт таймаута сети -->
+<link rel="stylesheet" media="print" onload="this.media='all'"
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap">
+
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/components.css">
+<link rel="stylesheet" href="styles/screens.css">
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%23FFFFFF' stroke='%233DA9FC' stroke-width='8'/><line x1='50' y1='50' x2='50' y2='26' stroke='%232B8CE6' stroke-width='8' stroke-linecap='round'/><line x1='50' y1='50' x2='70' y2='58' stroke='%232FBF71' stroke-width='6' stroke-linecap='round'/></svg>">
+</head>
+<body>
+
+<!-- Слой фоновых декораций (облака, солнце) -->
+<div class="sky" aria-hidden="true">
+  <div class="sun"></div>
+  <div class="cloud cloud--1"></div>
+  <div class="cloud cloud--2"></div>
+  <div class="cloud cloud--3"></div>
+</div>
+
+<!-- Корень приложения: сюда JS рендерит экраны -->
+<div id="app" class="app"></div>
+
+<!-- Полноэкранный canvas для конфетти и звёзд -->
+<canvas id="fx-canvas" aria-hidden="true"></canvas>
+
+<!-- Всплывающие сообщения и модальные окна -->
+<div id="toast-root" class="toast-root" aria-live="polite"></div>
+<div id="modal-root" class="modal-root"></div>
+
+<!-- Общий профиль «Детской полки»: имя ребёнка на все приложения.
+     Файла может не быть, если папку открыли отдельно — тогда приложение
+     просто работает само по себе. -->
+<script src="../shared/profile.js"></script>
+
+<!-- ===== Модули приложения (обычные скрипты — работают с file:// без сервера) ===== -->
+<script src="js/storage.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/clock.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/curriculum.js"></script>
+<script src="js/lessons.js"></script>
+<script src="js/games.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
