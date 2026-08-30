@@ -128,11 +128,13 @@
   }
 
   var currentClip = null;
+  var seq = 0;   // растёт на каждом stop()/новой фразе — обрывает цепочки клипов
 
   /**
-   * Проиграть записанный клип. Возвращает Promise<true>, если клип
-   * заиграл, и Promise<false>, если его нет или проигрывание запрещено
-   * (например, iOS вне жеста) — тогда вызывающий уходит в синтезатор.
+   * Проиграть записанный клип ЦЕЛИКОМ. Promise<true> — клип дозвучал
+   * (нужно для цепочек «предложение за предложением»), Promise<false> —
+   * клипа нет или проигрывание запрещено (iOS вне жеста): вызывающий
+   * уходит в синтезатор.
    */
   function clip(key) {
     var src = CLIPS[key];
@@ -143,18 +145,57 @@
         if (currentClip && currentClip !== a) { currentClip.pause(); }
         currentClip = a;
         a.currentTime = 0;
-        a.onended = function () { notify('end'); };
+        a.onended = function () { notify('end'); resolve(true); };
         a.onerror = function () { resolve(false); };
         var p = a.play();
         if (p && p.then) {
-          p.then(function () { notify('start'); resolve(true); },
+          p.then(function () { notify('start'); },
                  function () { resolve(false); });
         } else {
           notify('start');
-          resolve(true);
         }
+        // страховка от «проглоченного» onended
+        setTimeout(function () { resolve(true); }, 15000);
       } catch (e) { resolve(false); }
     });
+  }
+
+  /* Разбить текст на предложения — для сборки фразы из клипов.
+     Без lookbehind: старые WebView падают на нём при парсинге. */
+  function sentences(text) {
+    var t = String(text).replace(/<br\s*\/?>/gi, ' ');
+    var out = [], m, re = /[^.!?…]+[.!?…]*/g;
+    while ((m = re.exec(t)) !== null) {
+      var s = m[0].trim();
+      if (/[а-яё]/i.test(s)) out.push(s);
+    }
+    return out;
+  }
+
+  /**
+   * Фраза: сначала пробуем клип целиком; если его нет — собираем из
+   * клипов-предложений (так «текст + вопрос» и «похвала + подсказка»
+   * звучат записанным голосом); если хоть одного предложения нет —
+   * договаривает синтезатор.
+   */
+  function phraseSmart(text) {
+    if (!text || !enabled()) return Promise.resolve(false);
+    var my = ++seq;
+    var whole = normKey(text);
+    if (CLIPS[whole]) return clip(whole);
+
+    var parts = sentences(text);
+    if (parts.length > 1 && parts.every(function (s) { return !!CLIPS[normKey(s)]; })) {
+      var chain = Promise.resolve(true);
+      parts.forEach(function (s) {
+        chain = chain.then(function (ok) {
+          if (!ok || my !== seq) return false;
+          return clip(normKey(s));
+        });
+      });
+      return chain;
+    }
+    return speak(text);
   }
 
   var Speech = {
@@ -190,6 +231,7 @@
     register: function (map) { Object.assign(CLIPS, map); },
 
     stop: function () {
+      seq++;   // обрывает цепочку клипов-предложений
       try { global.speechSynthesis.cancel(); } catch (e) {}
       if (currentClip) { try { currentClip.pause(); } catch (e) {} currentClip = null; }
       notify('end');
@@ -248,9 +290,9 @@
       return Speech.play('num:' + n, w);
     },
 
-    /** Похвала и короткие реплики тоже записаны — ищем клип по тексту. */
+    /** Реплики и инструкции: клип целиком → сборка из предложений → синтез. */
     phrase: function (text) {
-      return Speech.play(normKey(text), text);
+      return phraseSmart(text);
     }
   };
 

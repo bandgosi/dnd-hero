@@ -150,8 +150,8 @@
         var after = Skills.get(skillId).attempts % 2 === 1;
         var answer = after ? n + 1 : n - 1;
         return {
-          prompt: 'Какое число стоит ' + (after ? 'ПОСЛЕ' : 'ПЕРЕД') + ' числом ' + n + '?',
-          speak: 'Какое число стоит ' + (after ? 'после' : 'перед') + ' числом ' + n + '?',
+          prompt: 'Какое число стоит ' + (after ? 'ПОСЛЕ числа ' : 'ПЕРЕД числом ') + n + '?',
+          speak: 'Какое число стоит ' + (after ? 'после числа ' : 'перед числом ') + n + '?',
           n: n, answer: answer, after: after, level: level
         };
       },

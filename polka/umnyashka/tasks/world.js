@@ -334,7 +334,9 @@
     Tasks.register('wDress', {
       build: function (skillId) {
         var it = rot(W().DRESS_QUIZ, skillId);
-        return { prompt: it.weather + '. Что выберешь?', speak: 'За окном ' + it.weather + '. Что выберешь?', item: it };
+        // в озвучку — без эмодзи, только слова
+        var plain = it.weather.replace(/[^а-яёА-ЯЁ0-9 ,-]/g, '').trim();
+        return { prompt: it.weather + '. Что выберешь?', speak: 'За окном ' + plain + '. Что выберешь?', item: it };
       },
       render: function (data, api) {
         return choiceBoard(api, fromIndexed(data.item), 'Подумай: тепло сейчас или холодно?');
@@ -398,7 +400,8 @@
     Tasks.register('wZone', {
       build: function (skillId) {
         var it = rot(W().ZONE_QUIZ, skillId);
-        return { prompt: it.animal + ' — где он живёт?', speak: it.animal + '. Где он живёт?', item: it };
+        var plain = it.animal.replace(/[^а-яёА-ЯЁ0-9 ,-]/g, '').trim();
+        return { prompt: it.animal + ' — где он живёт?', speak: plain + '. Где он живёт?', item: it };
       },
       render: function (data, api) {
         var right = data.item.answer;
