@@ -293,11 +293,91 @@
       !Speech.supported ? el('div', { class: 't-small mt3', text: 'В этом браузере голос недоступен — задания можно читать вслух самим.' }) : null
     ]));
 
+    /* ----- Выбор голоса: качество зависит от установленных на
+       устройстве голосов, поэтому даём выбрать и послушать ----- */
+    if (Speech.supported) {
+      var voiceList = el('div', { class: 'stack g2' });
+
+      function renderVoices() {
+        voiceList.innerHTML = '';
+        var voices = Speech.voices();
+        if (!voices.length) {
+          voiceList.appendChild(el('div', { class: 't-small', text: 'Голоса ещё загружаются… Загляни сюда чуть позже.' }));
+          return;
+        }
+        var current = Speech.voiceName();
+        voices.slice(0, 6).forEach(function (v) {
+          var isOn = v.name === current;
+          var row = el('div', {
+            class: 'switch-row', role: 'button', tabindex: '0',
+            style: isOn ? { borderColor: 'var(--accent)', background: 'var(--accent-tint)' } : null,
+            onclick: function () {
+              SFX.tap();
+              Speech.setVoice(v.name);
+              renderVoices();
+              Speech.phrase('Теперь я говорю вот так!');
+            }
+          }, [
+            el('span', { style: { fontSize: '20px' }, text: isOn ? '✅' : '🎙️' }),
+            el('div', { class: 'grow' }, [
+              el('div', { style: { fontWeight: '800' }, text: prettyVoiceName(v.name) }),
+              el('div', { class: 't-small', text: v.localService ? 'работает без интернета' : 'нужен интернет' })
+            ]),
+            UI.iconBtn('🔊', function (e) {
+              e.stopPropagation();
+              Speech.sample(v.name);
+            }, 'Послушать голос')
+          ]);
+          voiceList.appendChild(row);
+        });
+      }
+      renderVoices();
+      // голоса на iOS/Android подгружаются не сразу
+      if (global.speechSynthesis) {
+        setTimeout(renderVoices, 600);
+        setTimeout(renderVoices, 2000);
+      }
+
+      screen.appendChild(el('div', { class: 'card mt4 appear d2' }, [
+        el('div', { class: 't-sub mb2', text: '🎙️ Голос' }),
+        voiceList,
+        el('div', { class: 'mt3' }, [
+          UI.btn('Как сделать голос лучше?', {
+            variant: 'ghost', small: true, block: true, emoji: '✨',
+            onClick: showVoiceHelp
+          })
+        ])
+      ]));
+    }
+
     screen.appendChild(el('div', { class: 'center mt6' }, [
       UI.btn('Родителям', { variant: 'ghost', emoji: '👨‍👩‍👧', onClick: function () { Router.go('parentgate'); } })
     ]));
 
     return screen;
+  }
+
+  /* Имена голосов техничны («Microsoft Svetlana — Russian…») — упрощаем */
+  function prettyVoiceName(name) {
+    return String(name)
+      .replace(/\s*[-—(].*$/, '')
+      .replace(/^(Microsoft|Google|Apple)\s*/i, function (m) { return m.trim() + ' '; })
+      .slice(0, 28) || name;
+  }
+
+  /* Инструкция для родителей: системный голос можно заменить на хороший */
+  function showVoiceHelp() {
+    var isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    var ios = '<b>iPhone / iPad:</b><br>Настройки → Универсальный доступ → Устный контент → Голоса → Русский → скачайте «Милена (улучшенный)». Потом выберите её здесь в списке.';
+    var android = '<b>Android:</b><br>Установите или обновите «Синтезатор речи Google» из Play Маркета. Затем: Настройки → Система → Язык и ввод → Синтез речи → выберите Google и скачайте русский голос для офлайна.';
+    UI.modal({
+      emoji: '🎙️',
+      title: 'Как сделать голос лучше',
+      text: 'Приложение говорит голосами, установленными на устройстве. Хороший голос обычно уже есть — его нужно скачать и выбрать:<br><br>' +
+        (isIOS ? ios + '<br><br>' + android : android + '<br><br>' + ios) +
+        '<br><br>После установки вернитесь сюда и выберите новый голос кнопкой 🔊.',
+      actions: [{ label: 'Понятно', variant: 'grass' }]
+    });
   }
 
   /* =====================================================

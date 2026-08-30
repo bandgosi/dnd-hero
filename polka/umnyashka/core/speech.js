@@ -28,15 +28,45 @@
   var supported = !!(global.speechSynthesis && global.SpeechSynthesisUtterance);
   var listeners = [];
 
-  function pickVoice() {
-    if (!supported) return null;
+  /* Выбранный голос — настройка УСТРОЙСТВА, а не профиля ребёнка:
+     на другом телефоне этого голоса может не быть. */
+  var VOICE_KEY = 'umnyashka.voice';
+  function savedVoiceName() {
+    try { return localStorage.getItem(VOICE_KEY) || ''; } catch (e) { return ''; }
+  }
+
+  function ruVoices() {
+    if (!supported) return [];
     var all = global.speechSynthesis.getVoices() || [];
-    if (!all.length) return null;
-    // Предпочитаем женский русский голос — детям он привычнее
-    var ru = all.filter(function (v) { return /^ru/i.test(v.lang); });
+    return all.filter(function (v) { return /^ru/i.test(v.lang); });
+  }
+
+  /**
+   * Качество голосов различается в разы. Ранжируем:
+   * улучшенные/нейросетевые > известные хорошие (Милена, Google) >
+   * просто женские > остальные. Локальные чуть выше — работают офлайн.
+   */
+  function scoreVoice(v) {
+    var s = 0, n = v.name || '';
+    if (/(enhanced|premium|natural|neural|wavenet|plus|улучшенн)/i.test(n)) s += 40;
+    if (/milena|милена/i.test(n)) s += 30;
+    if (/google/i.test(n)) s += 25;
+    if (/(katya|katia|катя|alena|алёна|tatyana|татьяна|svetlana|светлана)/i.test(n)) s += 10;
+    if (/(female|женск)/i.test(n)) s += 5;
+    if (/(compact|eloquence|espeak)/i.test(n)) s -= 30;   // заведомо роботы
+    if (v.localService) s += 3;
+    return s;
+  }
+
+  function pickVoice() {
+    var ru = ruVoices();
     if (!ru.length) return null;
-    var female = ru.filter(function (v) { return /(milena|alena|katya|tatyana|female|женск)/i.test(v.name); });
-    return female[0] || ru[0];
+    var saved = savedVoiceName();
+    if (saved) {
+      for (var i = 0; i < ru.length; i++) if (ru[i].name === saved) return ru[i];
+    }
+    ru.sort(function (a, b) { return scoreVoice(b) - scoreVoice(a); });
+    return ru[0];
   }
 
   if (supported) {
@@ -104,6 +134,30 @@
     supported: supported,
     isReady: function () { return supported; },
     onState: function (fn) { listeners.push(fn); },
+
+    /* ----- выбор голоса (экран настроек) ----- */
+
+    /** Русские голоса устройства, лучшие первыми. */
+    voices: function () {
+      var ru = ruVoices().slice();
+      ru.sort(function (a, b) { return scoreVoice(b) - scoreVoice(a); });
+      return ru;
+    },
+    voiceName: function () { return voice ? voice.name : ''; },
+    setVoice: function (name) {
+      try { localStorage.setItem(VOICE_KEY, name || ''); } catch (e) {}
+      voice = pickVoice();
+      return voice;
+    },
+    /** Короткая проба голоса — для кнопки «Послушать» в настройках. */
+    sample: function (name) {
+      var keep = voice;
+      var ru = ruVoices();
+      for (var i = 0; i < ru.length; i++) if (ru[i].name === name) { voice = ru[i]; break; }
+      var p = speak('Привет! Я буду читать тебе задания.');
+      voice = keep;
+      return p;
+    },
 
     /** Зарегистрировать готовую озвучку (задел под аудиофайлы). */
     register: function (map) { Object.assign(CLIPS, map); },
