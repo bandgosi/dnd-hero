@@ -107,7 +107,7 @@
       // чтобы ребёнок не заметил закономерности
       var head = queue.filter(function (q) { return q.mode === 'new'; });
       var tail = queue.filter(function (q) { return q.mode !== 'new'; });
-      shuffle(tail);
+      tail = shuffle(tail);   // shuffle возвращает копию — результат нужно забрать
 
       // Один и тот же навык не должен идти подряд
       for (var t = 1; t < tail.length; t++) {

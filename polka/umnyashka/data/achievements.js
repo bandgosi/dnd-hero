@@ -30,7 +30,32 @@
     { id: 'streak7',     emoji: '🗓️', title: 'Целая неделя',  desc: 'Занятия 7 дней подряд' },
     { id: 'games-all',   emoji: '🎮', title: 'Игрок',         desc: 'Сыграно во все мини-игры' },
     { id: 'xp500',       emoji: '💎', title: '500 опыта',     desc: 'Набрано 500 XP' },
-    { id: 'both-tracks', emoji: '🌈', title: 'И то, и то',    desc: 'Есть успехи в чтении и в математике' }
+    { id: 'both-tracks', emoji: '🌈', title: 'И то, и то',    desc: 'Есть успехи в чтении и в математике' },
+
+    /* 🚀 Космос */
+    { id: 'sp-first',     emoji: '🚀', title: 'Первый полёт',        desc: 'Начата космическая экспедиция' },
+    { id: 'sp-moon',      emoji: '🌙', title: 'Друг Луны',           desc: 'Изучены фазы Луны' },
+    { id: 'sp-planets',   emoji: '🪐', title: 'Знаток планет',       desc: 'Планеты расставлены по порядку' },
+    { id: 'sp-stars',     emoji: '⭐', title: 'Охотник за звёздами', desc: 'Соединены созвездия' },
+    { id: 'sp-cosmonaut', emoji: '👨‍🚀', title: 'Юный космонавт',      desc: 'Пройдена Большая миссия' },
+
+    /* 🎒 Школа */
+    { id: 'sch-reader',  emoji: '📖', title: 'Первый читатель',  desc: 'Прочитан текст с вопросом' },
+    { id: 'sch-letters', emoji: '✍️', title: 'Мастер букв',      desc: 'Собраны предложения из слов' },
+    { id: 'sch-numbers', emoji: '🔢', title: 'Друг чисел',       desc: 'Открыт домик десятки' },
+    { id: 'sch-logic',   emoji: '🧠', title: 'Логический герой', desc: 'Пройдена логика-профи' },
+    { id: 'sch-ready',   emoji: '🏫', title: 'Готов к школе',    desc: 'Пройдена проверка суперсил' },
+    { id: 'sch-day',     emoji: '🔔', title: 'Школьный день',    desc: 'Пройден целый школьный день' },
+
+    /* 🌍 Мой мир */
+    { id: 'w-explorer',  emoji: '🌍', title: 'Исследователь',    desc: 'Открыт мир вокруг' },
+    { id: 'w-animals',   emoji: '🐾', title: 'Друг животных',    desc: 'Изучены все звери' },
+    { id: 'w-nature',    emoji: '🌳', title: 'Защитник природы', desc: 'Изучены сезоны и циклы' },
+    { id: 'w-weather',   emoji: '🌦️', title: 'Повелитель погоды', desc: 'Пройдены задания о погоде' },
+    { id: 'w-traveler',  emoji: '🗺️', title: 'Путешественник',   desc: 'Посещены 7 стран' },
+    { id: 'w-scientist', emoji: '🧪', title: 'Юный учёный',      desc: 'Пройдены все опыты' },
+    { id: 'w-great',     emoji: '🏆', title: 'Великий исследователь', desc: 'Завершено Большое путешествие' },
+    { id: 'w-cards20',   emoji: '📖', title: 'Коллекционер',     desc: '20 карточек в журнале открытий' }
   ];
 
   /* Предметы персонажа. Открываются за освоение разделов,
@@ -104,6 +129,7 @@
         var r = Curriculum.trackPercent('reading'), m = Curriculum.trackPercent('math');
         if (r > 0 && m > 0) Store.unlockAch('both-tracks');
       }
+      if ((d.collection || []).length >= 20) Store.unlockAch('w-cards20');
       Achievements.checkRewards();
     }
   };

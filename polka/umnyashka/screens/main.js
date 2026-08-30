@@ -98,18 +98,16 @@
 
     screen.appendChild(el('div', { class: 'home__hello' }, [Mascot.say(hello, { speak: true })]));
 
-    /* Два больших блока */
+    /* Пять образовательных миров */
     var cards = el('div', { class: 'home__cards' });
-    [
-      { track: 'reading', theme: 't-read', ico: '📚', title: 'Читаем и пишем' },
-      { track: 'math',    theme: 't-math', ico: '🔢', title: 'Математика' }
-    ].forEach(function (b, i) {
-      var pct = Curriculum.trackPercent(b.track);
-      var stars = Curriculum.trackStars(b.track);
-      var lvl = Curriculum.trackLevel(b.track);
+    Curriculum.TRACK_ORDER.forEach(function (track, i) {
+      var b = Curriculum.trackMeta(track);
+      var pct = Curriculum.trackPercent(track);
+      var stars = Curriculum.trackStars(track);
+      var lvl = Curriculum.trackLevel(track);
       var card = el('button', {
-        class: 'bigcard ' + b.theme + ' appear d' + (i + 1), type: 'button',
-        onclick: function () { SFX.tap(); Router.go('path', { track: b.track }); }
+        class: 'bigcard ' + b.theme + ' appear d' + Math.min(6, i + 1), type: 'button',
+        onclick: function () { SFX.tap(); Router.go('path', { track: track }); }
       }, [
         el('div', { class: 'bigcard__ico', text: b.ico }),
         el('div', { class: 'bigcard__body' }, [
@@ -161,6 +159,22 @@
                        action: { screen: 'lesson', params: { unitId: r.id, size: 6, daily: 'd-read' } } });
     if (m) plan.push({ id: 'd-math', ico: m.emoji, title: m.title, sub: 'Математика',
                        action: { screen: 'lesson', params: { unitId: m.id, size: 6, daily: 'd-math' } } });
+
+    /* Третий пункт чередуется между новыми мирами по дням, а не валит
+       все категории сразу: сегодня космос, завтра школа, потом мой мир.
+       Если в каком-то мире накопились слабые навыки — он идёт вне очереди. */
+    var extraTracks = ['space', 'school', 'world'];
+    var weakTrack = null;
+    extraTracks.forEach(function (t) {
+      if (weakTrack) return;
+      if (Skills.weakest(Curriculum.trackSkills(t), 3).length >= 3) weakTrack = t;
+    });
+    var dayN = Math.floor(Date.now() / 86400000);
+    var pick = weakTrack || extraTracks[dayN % extraTracks.length];
+    var extra = Curriculum.next(pick);
+    var subNames = { space: 'Космос', school: 'Скоро в школу', world: 'Мой мир' };
+    if (extra) plan.push({ id: 'd-extra', ico: extra.emoji, title: extra.title, sub: subNames[pick],
+                           action: { screen: 'lesson', params: { unitId: extra.id, size: 5, daily: 'd-extra' } } });
 
     // Письмо — отдельным пунктом, если такой юнит открыт
     var write = Curriculum.ALL.filter(function (u) {
@@ -223,16 +237,24 @@
      КАРТА ЮНИТОВ БЛОКА
      ===================================================== */
   function PathScreen(params) {
-    var track = params.track === 'math' ? 'math' : 'reading';
-    var screen = UI.screen('pathscreen t-' + (track === 'math' ? 'math' : 'read'));
+    var track = Curriculum.TRACKS[params.track] && !Curriculum.TRACKS[params.track].hidden
+      ? params.track : 'reading';
+    var meta = Curriculum.trackMeta(track);
+    var screen = UI.screen('pathscreen ' + meta.theme);
     var list = Curriculum.byTrack(track);
     var nextUnit = Curriculum.next(track);
 
     screen.appendChild(UI.topbar({
-      title: track === 'math' ? '🔢 Математика' : '📚 Читаем и пишем',
+      title: meta.ico + ' ' + meta.title,
       onBack: function () { Router.reset('home'); },
       right: [UI.chip(String(Curriculum.trackStars(track)), 'sun', '⭐')]
     }));
+
+    /* Особые блоки мира: миссии космоса, школьный день, журнал открытий */
+    if (Screens.trackExtras) {
+      var extras = Screens.trackExtras(track);
+      if (extras) screen.appendChild(extras);
+    }
 
     var pct = Curriculum.trackPercent(track);
     screen.appendChild(el('div', { class: 'card card--tint appear' }, [
@@ -245,7 +267,8 @@
       ])
     ]));
 
-    var path = el('div', { class: 'path' });
+    // Космос рисуем на тёмном звёздном небе — атмосфера, но текст читаемый
+    var path = el('div', { class: 'path' + (track === 'space' ? ' space-sky' : '') });
     list.forEach(function (u, i) {
       var open = Curriculum.isOpen(u.id);
       var rec = Store.unit(u.id);

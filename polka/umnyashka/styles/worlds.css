@@ -1,0 +1,270 @@
+/* =========================================================
+   worlds.css — стили миров «Космос», «Школа», «Мой мир»
+   и общего набора механик (tasks/common.js, префикс .ck-).
+   ========================================================= */
+
+/* =====================================================
+   Общие механики (.ck-)
+   ===================================================== */
+.ck-big { font-size: 40px; line-height: 1.1; }
+.ck-cap { font-size: 14px; font-weight: 800; color: var(--ink-2); }
+.ck-txt { font-size: 20px; font-weight: 800; }
+
+/* --- Расставь по порядку --- */
+.ck-order { display: flex; flex-direction: column; gap: 16px; align-items: center; }
+.ck-slots {
+  display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap; gap: 6px;
+}
+.ck-slot {
+  width: 64px; height: 64px; border-radius: 16px;
+  border: 3px dashed var(--line-2); background: var(--surface);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 34px; cursor: pointer; padding: 0;
+}
+.ck-slot.is-filled { border-style: solid; border-color: var(--accent); box-shadow: var(--sh-sm); }
+.ck-slot.is-right { border-color: var(--grass); background: var(--grass-soft); }
+.ck-arrow { font-size: 20px; color: var(--muted); font-weight: 800; }
+.ck-pool { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.ck-tile {
+  min-width: 72px; min-height: 72px; padding: 8px 12px; border-radius: 18px;
+  border: 2px solid var(--line); background: var(--surface);
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; cursor: pointer; box-shadow: var(--sh-sm);
+  transition: transform .12s ease, opacity .12s ease;
+}
+.ck-tile:active { transform: scale(.94); }
+.ck-tile.is-used { opacity: .25; pointer-events: none; }
+
+/* --- Пары --- */
+.ck-pairs { display: flex; gap: 14px; justify-content: center; }
+.ck-col { display: flex; flex-direction: column; gap: 10px; }
+.ck-tile--pair { flex-direction: row; gap: 8px; min-height: 60px; }
+.ck-tile--pair .ck-big { font-size: 30px; }
+.ck-tile.is-on { border-color: var(--accent); background: var(--accent-soft); }
+.ck-tile.is-done { border-color: var(--grass); background: var(--grass-soft); opacity: .8; pointer-events: none; }
+.ck-tile.is-almost { border-color: var(--peach); background: var(--peach-soft); animation: ck-shake .3s; }
+@keyframes ck-shake {
+  25% { transform: translateX(-4px); } 75% { transform: translateX(4px); }
+}
+
+/* --- Память --- */
+.ck-memory { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+.ck-mem-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.ck-mem-item {
+  width: 66px; height: 66px; border-radius: 16px; background: var(--surface);
+  border: 2px solid var(--line); box-shadow: var(--sh-sm);
+  display: inline-flex; align-items: center; justify-content: center; font-size: 36px;
+}
+.ck-mem-item--hidden { background: var(--accent-soft); }
+.ck-mem-bar { width: min(280px, 80%); }
+
+/* --- Найди все --- */
+.ck-find {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;
+  width: min(430px, 100%); margin: 0 auto;
+}
+.ck-find__cell {
+  aspect-ratio: 1; border-radius: 14px; border: 2px solid var(--line);
+  background: var(--surface); font-size: 26px; font-weight: 800; color: var(--ink);
+  cursor: pointer; padding: 0; box-shadow: var(--sh-sm);
+}
+.ck-find__cell.is-done { border-color: var(--grass); background: var(--grass-soft); }
+.ck-find__cell.is-almost { border-color: var(--peach); background: var(--peach-soft); }
+
+/* --- Карточка знакомства --- */
+.ck-teach {
+  width: min(460px, 100%); margin: 0 auto;
+  background: var(--surface); border-radius: 24px; padding: 20px;
+  border: 2px solid var(--accent-soft); box-shadow: var(--sh-md);
+  display: flex; flex-direction: column; gap: 12px; align-items: center;
+}
+.ck-teach__hero { font-size: 84px; line-height: 1; }
+.ck-teach__title { font-size: 24px; font-weight: 900; color: var(--ink); text-align: center; }
+.ck-teach__rows { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.ck-teach__row {
+  display: flex; gap: 10px; align-items: flex-start;
+  font-size: 16px; font-weight: 700; color: var(--ink-2);
+  background: var(--accent-tint); border-radius: 14px; padding: 10px 12px;
+}
+.ck-teach__ico { font-size: 20px; flex: none; }
+.ck-teach__fact {
+  background: var(--sun-soft); border-radius: 14px; padding: 10px 12px;
+  font-size: 15px; font-weight: 700; color: var(--sun-ink); width: 100%;
+}
+
+/* =====================================================
+   🚀 Космос: карта экспедиции
+   ===================================================== */
+.space-sky {
+  position: relative; border-radius: 24px; overflow: hidden;
+  background: linear-gradient(180deg, #241E52 0%, #3A2E7E 55%, #5C4BC4 100%);
+  padding: 18px 12px 22px;
+}
+.space-sky::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 20%, #fff 100%, transparent),
+    radial-gradient(1.2px 1.2px at 78% 12%, #ffe9a8 100%, transparent),
+    radial-gradient(1.6px 1.6px at 55% 34%, #fff 100%, transparent),
+    radial-gradient(1.1px 1.1px at 30% 62%, #cfd8ff 100%, transparent),
+    radial-gradient(1.6px 1.6px at 88% 52%, #fff 100%, transparent),
+    radial-gradient(1.2px 1.2px at 18% 84%, #ffe9a8 100%, transparent),
+    radial-gradient(1.4px 1.4px at 66% 78%, #fff 100%, transparent);
+  opacity: .8;
+}
+.space-sky .unit__label, .space-sky .unit__desc { color: #EDEBFF; }
+.space-sky .unit__desc { color: #B9B2E8; }
+
+.sp-planet {
+  width: 74px; height: 74px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 38px; border: 3px solid rgba(255,255,255,.65);
+  box-shadow: 0 4px 14px rgba(0,0,0,.35), inset -8px -10px 18px rgba(0,0,0,.28);
+  cursor: pointer; padding: 0; position: relative;
+}
+.sp-planet.is-locked { filter: grayscale(1) brightness(.7); }
+.sp-planet__ring {
+  position: absolute; inset: -12px; border-radius: 50%;
+  border: 2px dashed rgba(255,255,255,.5); pointer-events: none;
+  animation: sp-spin 14s linear infinite;
+}
+@keyframes sp-spin { to { transform: rotate(360deg); } }
+.no-anim .sp-planet__ring { animation: none; }
+
+/* Сцена «Земля: день и ночь» */
+.sp-earth-scene { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.sp-earth {
+  width: 150px; height: 150px; border-radius: 50%; font-size: 96px; line-height: 150px;
+  text-align: center; position: relative; overflow: hidden;
+  background: radial-gradient(circle at 35% 35%, #7EC8F5 0%, #2E86D0 60%, #1B5FA0 100%);
+  box-shadow: 0 6px 20px rgba(27,95,160,.45);
+  transition: filter .5s ease;
+}
+.sp-earth__shade {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: linear-gradient(90deg, transparent 50%, rgba(10,10,40,.75) 50%);
+  transition: opacity .5s ease;
+}
+
+/* Созвездие: соединялка на SVG */
+.sp-const { width: min(420px, 100%); margin: 0 auto; touch-action: none; }
+.sp-const svg { width: 100%; height: auto; display: block; border-radius: 20px;
+  background: linear-gradient(180deg, #241E52, #3A2E7E); }
+.sp-const circle.star { fill: #FFE9A8; cursor: pointer; }
+.sp-const circle.star.is-on { fill: #FFB300; }
+.sp-const circle.halo { fill: rgba(255,233,168,.18); cursor: pointer; }
+.sp-const line { stroke: #9FB4FF; stroke-width: 2.5; stroke-linecap: round; }
+
+/* Ракета: панель запуска */
+.sp-launch { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.sp-rocket { font-size: 84px; transition: transform 1.6s cubic-bezier(.5,-.2,.8,1); }
+.sp-rocket.is-go { transform: translateY(-360px) scale(.55); }
+.sp-count { font-size: 56px; font-weight: 900; color: var(--space); min-height: 68px; }
+
+/* =====================================================
+   🎒 Школа: карта зон
+   ===================================================== */
+.sch-map { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sch-zone {
+  border-radius: 20px; padding: 14px; text-align: left; cursor: pointer;
+  background: var(--surface); border: 2px solid var(--line);
+  box-shadow: var(--sh-sm); display: flex; flex-direction: column; gap: 6px;
+  transition: transform .12s ease;
+}
+.sch-zone:active { transform: scale(.97); }
+.sch-zone.is-locked { opacity: .55; }
+.sch-zone__ico { font-size: 34px; }
+.sch-zone__title { font-weight: 900; font-size: 16px; color: var(--ink); }
+.sch-zone__sub { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+
+/* Школьный день: расписание */
+.sd-list { display: flex; flex-direction: column; gap: 10px; }
+.sd-item {
+  display: flex; align-items: center; gap: 12px; text-align: left;
+  background: var(--surface); border: 2px solid var(--line); border-radius: 18px;
+  padding: 12px 14px; cursor: pointer; box-shadow: var(--sh-sm);
+}
+.sd-item.is-done { border-color: var(--grass); background: var(--grass-soft); }
+.sd-item.is-next { border-color: var(--school); }
+.sd-item.is-wait { opacity: .5; pointer-events: none; }
+.sd-item__ico { font-size: 30px; flex: none; }
+.sd-item__title { font-weight: 900; color: var(--ink); }
+.sd-item__sub { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+.sd-item__mark { margin-left: auto; font-size: 22px; font-weight: 900; color: var(--grass); }
+
+/* Готовность: полоски навыков */
+.ready-row { display: flex; align-items: center; gap: 10px; }
+.ready-row__ico { font-size: 24px; flex: none; width: 32px; text-align: center; }
+.ready-row__name { font-weight: 800; color: var(--ink); width: 110px; flex: none; font-size: 14px; }
+.ready-row__pct { font-weight: 900; color: var(--ink-2); width: 44px; text-align: right; font-size: 14px; }
+
+/* =====================================================
+   🌍 Мой мир: карта зон и коллекция
+   ===================================================== */
+.wd-map { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.wd-zone {
+  border-radius: 20px; padding: 14px; cursor: pointer; text-align: left;
+  border: 2px solid var(--line); box-shadow: var(--sh-sm);
+  display: flex; flex-direction: column; gap: 6px;
+  transition: transform .12s ease;
+}
+.wd-zone:active { transform: scale(.97); }
+.wd-zone.is-locked { opacity: .55; }
+.wd-zone__ico { font-size: 34px; }
+.wd-zone__title { font-weight: 900; font-size: 16px; color: var(--ink); }
+.wd-zone__sub { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+
+/* Журнал исследователя */
+.col-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.col-card {
+  aspect-ratio: 1; border-radius: 18px; border: 2px solid var(--line);
+  background: var(--surface); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px; box-shadow: var(--sh-sm);
+}
+.col-card__ico { font-size: 34px; }
+.col-card__name { font-size: 11px; font-weight: 800; color: var(--ink-2); text-align: center; padding: 0 4px; }
+.col-card.is-locked { background: var(--surface-2); }
+.col-card.is-locked .col-card__ico { filter: grayscale(1); opacity: .45; }
+
+/* Сцена «времена года» */
+.wd-season { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.wd-season__scene {
+  font-size: 44px; letter-spacing: 6px; background: var(--accent-tint);
+  border-radius: 20px; padding: 18px 20px; border: 2px solid var(--accent-soft);
+}
+
+/* Адаптив */
+@media (max-width: 380px) {
+  .sch-map, .wd-map { grid-template-columns: 1fr; }
+  .ck-find { grid-template-columns: repeat(5, 1fr); }
+  .ck-slot { width: 54px; height: 54px; font-size: 28px; }
+  .ck-tile { min-width: 62px; min-height: 62px; }
+}
+@media (min-width: 700px) {
+  .col-grid { grid-template-columns: repeat(6, 1fr); }
+}
+
+/* =====================================================
+   🃏 Мини-игра «Найди пару»
+   ===================================================== */
+.pair-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  width: min(420px, 100%); margin: 0 auto;
+}
+.pair-grid--2x4 { grid-template-columns: repeat(4, 1fr); width: min(420px, 100%); }
+.pair-card {
+  aspect-ratio: 1; border-radius: 16px; border: 2px solid var(--line);
+  background: var(--accent-soft); cursor: pointer; padding: 0;
+  box-shadow: var(--sh-sm); transition: transform .15s ease, background .15s ease;
+}
+.pair-card:active { transform: scale(.94); }
+.pair-card__face { font-size: 34px; }
+.pair-card.is-open { background: var(--surface); border-color: var(--accent); }
+
+/* Слоты для словесных карточек («Собери предложение») */
+.ck-slot--word {
+  width: auto; min-width: 64px; padding: 0 12px;
+  font-size: 18px; font-weight: 800;
+}
+.ck-slot--word .ck-txt { font-size: 17px; white-space: nowrap; }

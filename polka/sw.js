@@ -1,7 +1,7 @@
 // «Детская полка» — сервис-воркер: после первого захода всё работает без интернета.
 // Кэш-first: файлы отдаются из кэша, сеть — только для нового. При обновлении
 // приложения поднимите номер версии — старый кэш удалится сам.
-const CACHE_NAME = 'polka-v1';
+const CACHE_NAME = 'polka-v2';
 const ASSETS = [
   './',
   './chasiki/app.info.js',
@@ -47,14 +47,19 @@ const ASSETS = [
   './umnyashka/data/curriculum.js',
   './umnyashka/data/mathgen.js',
   './umnyashka/data/numbers.js',
+  './umnyashka/data/school.js',
   './umnyashka/data/sentences.js',
+  './umnyashka/data/space.js',
   './umnyashka/data/words.js',
+  './umnyashka/data/world.js',
   './umnyashka/games/literacy.js',
+  './umnyashka/games/memory.js',
   './umnyashka/games/numbers.js',
   './umnyashka/games/shell.js',
   './umnyashka/index.html',
   './umnyashka/screens/main.js',
   './umnyashka/screens/meta.js',
+  './umnyashka/screens/worlds.js',
   './umnyashka/styles/base.css',
   './umnyashka/styles/components.css',
   './umnyashka/styles/games-literacy.css',
@@ -63,10 +68,15 @@ const ASSETS = [
   './umnyashka/styles/tasks-math.css',
   './umnyashka/styles/tasks-reading.css',
   './umnyashka/styles/tokens.css',
+  './umnyashka/styles/worlds.css',
+  './umnyashka/tasks/common.js',
   './umnyashka/tasks/engine.js',
   './umnyashka/tasks/math.js',
   './umnyashka/tasks/reading.js',
+  './umnyashka/tasks/school.js',
+  './umnyashka/tasks/space.js',
   './umnyashka/tasks/tracing.js',
+  './umnyashka/tasks/world.js',
 ];
 
 self.addEventListener('install', (e) => {

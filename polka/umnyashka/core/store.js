@@ -18,6 +18,8 @@
       games: {},         // id -> { plays, best }
       achievements: [],
       rewards: [],
+      collection: [],    // карточки «Журнала открытий» (мир + космос)
+      schoolDay: { date: '', done: [] },
       equipped: { hat: null, glasses: null, bag: null, pet: null, bg: null },
       streak: { count: 0, best: 0, last: '' },
       daily: { date: '', plan: [], done: [] },
@@ -219,6 +221,32 @@
     equip: function (slot, id) {
       data.equipped[slot] = (data.equipped[slot] === id) ? null : id;
       save();
+    },
+
+    /* ----- журнал открытий ----- */
+    hasCard: function (id) { return data.collection.indexOf(id) !== -1; },
+    addCard: function (id) {
+      if (data.collection.indexOf(id) !== -1) return false;
+      data.collection.push(id);
+      save();
+      // каждые 5 карточек — маленький праздник
+      if (data.collection.length % 5 === 0 && global.FX && global.UI) {
+        FX.confetti({ count: 50 });
+        UI.toast('В журнале уже ' + data.collection.length + ' открытий!', { type: 'gold', emoji: '📖' });
+      } else if (global.UI) {
+        UI.toast('Новая карточка в журнале!', { emoji: '📖', duration: 1800 });
+      }
+      return true;
+    },
+
+    /* ----- школьный день ----- */
+    schoolDay: function () {
+      if (data.schoolDay.date !== dayStr()) data.schoolDay = { date: dayStr(), done: [] };
+      return data.schoolDay;
+    },
+    markSchoolDay: function (id) {
+      var sd = Store.schoolDay();
+      if (sd.done.indexOf(id) === -1) { sd.done.push(id); save(); }
     },
 
     /* ----- ежедневная тренировка ----- */

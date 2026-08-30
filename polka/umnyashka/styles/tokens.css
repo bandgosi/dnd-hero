@@ -95,3 +95,24 @@
 .t-math{ --accent: var(--math); --accent-dark: var(--math-dark); --accent-soft: var(--math-soft); --accent-tint: var(--math-tint); }
 .t-sun { --accent: var(--sun);  --accent-dark: var(--sun-dark);  --accent-soft: var(--sun-soft);  --accent-tint: var(--sun-soft); }
 body   { --accent: var(--read); --accent-dark: var(--read-dark); --accent-soft: var(--read-soft); --accent-tint: var(--read-tint); }
+
+/* --- Мир «Космос» — глубокий сине-фиолетовый (но светлая база сохраняется) --- */
+:root{
+  --space:         #4A3FBF;
+  --space-dark:    #37309A;
+  --space-soft:    #E6E3FF;
+  --space-tint:    #F4F3FF;
+  /* Мир «Школа» — тёплый оранжевый; затемнён до контраста с белым текстом */
+  --school:        #C25200;
+  --school-dark:   #9A4000;
+  --school-soft:   #FFE9D6;
+  --school-tint:   #FFF7F0;
+  /* Мир «Мой мир» — природный зелёный, отличим от --grass кнопок */
+  --world:         #2E7D46;
+  --world-dark:    #1F5E33;
+  --world-soft:    #E0F4E6;
+  --world-tint:    #F2FBF5;
+}
+.t-space { --accent: var(--space);  --accent-dark: var(--space-dark);  --accent-soft: var(--space-soft);  --accent-tint: var(--space-tint); }
+.t-school{ --accent: var(--school); --accent-dark: var(--school-dark); --accent-soft: var(--school-soft); --accent-tint: var(--school-tint); }
+.t-world { --accent: var(--world);  --accent-dark: var(--world-dark);  --accent-soft: var(--world-soft);  --accent-tint: var(--world-tint); }

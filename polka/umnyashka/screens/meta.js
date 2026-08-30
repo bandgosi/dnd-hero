@@ -53,11 +53,12 @@
       ])
     ]));
 
-    ['reading', 'math'].forEach(function (track, ti) {
-      var title = track === 'reading' ? '📚 Читаем и пишем' : '🔢 Математика';
-      var card = el('div', { class: 'card mt4 appear d' + (ti + 1) + ' t-' + (track === 'math' ? 'math' : 'read') }, [
-        el('div', { class: 't-sub mb2', text: title })
+    Curriculum.TRACK_ORDER.forEach(function (track, ti) {
+      var meta = Curriculum.trackMeta(track);
+      var card = el('div', { class: 'card mt4 appear d' + Math.min(6, ti + 1) + ' ' + meta.theme }, [
+        el('div', { class: 't-sub mb2', text: meta.ico + ' ' + meta.title })
       ]);
+      var anyRow = false;
 
       Object.keys(Curriculum.SECTIONS).forEach(function (key) {
         var sec = Curriculum.SECTIONS[key];
@@ -65,6 +66,7 @@
         var ids = Curriculum.sectionSkills(key);
         if (!ids.length) return;
         var sum = Skills.summary(ids);
+        anyRow = true;
         card.appendChild(el('div', { class: 'skillrow' }, [
           el('div', { class: 'skillrow__ico', text: sec.emoji }),
           el('div', { class: 'skillrow__body' }, [
@@ -74,7 +76,7 @@
           el('div', { class: 'skillrow__val' }, [UI.stars(sum.stars, false, 5)])
         ]));
       });
-      screen.appendChild(card);
+      if (anyRow) screen.appendChild(card);
     });
 
     var st = Store.data.stats;
@@ -381,7 +383,7 @@
 
     /* Что изучали */
     var studied = Curriculum.ALL.filter(function (u) { return Store.unit(u.id).done; });
-    var current = [Curriculum.next('reading'), Curriculum.next('math')].filter(Boolean);
+    var current = Curriculum.TRACK_ORDER.map(function (t) { return Curriculum.next(t); }).filter(Boolean);
     screen.appendChild(el('div', { class: 'card mt4 appear d2' }, [
       el('div', { class: 't-sub mb2', text: '📖 Что изучаем' }),
       el('div', { class: 'row wrap g2' }, current.map(function (u) {
@@ -410,6 +412,70 @@
       ]));
     });
     screen.appendChild(secCard);
+
+    /* 🎒 Готовность к школе: сильные стороны + что потренировать.
+       Только позитивные формулировки — никаких «отстаёт» и диагнозов. */
+    var ready = Screens.readiness ? Screens.readiness() : [];
+    var known = ready.filter(function (r) { return r.known; });
+    var readyCard = el('div', { class: 'card mt4 appear d3' }, [
+      el('div', { class: 't-sub mb2', text: '🎒 Готовность к школе' })
+    ]);
+    if (!known.length) {
+      readyCard.appendChild(el('div', { class: 't-body', text: 'Раздел «Скоро в школу» ещё в самом начале — данные появятся после первых занятий.' }));
+    } else {
+      known.forEach(function (r) {
+        readyCard.appendChild(el('div', { class: 'skillrow' }, [
+          el('div', { class: 'skillrow__ico', text: r.emoji }),
+          el('div', { class: 'skillrow__body' }, [
+            el('div', { class: 'skillrow__title', text: r.title }),
+            el('div', { class: 'skillrow__bar' }, [UI.bar(r.percent)])
+          ]),
+          el('div', { class: 'skillrow__val', text: r.percent + '%' })
+        ]));
+      });
+      var best = known.slice().sort(function (a, b) { return b.percent - a.percent; })[0];
+      var worst = known.slice().sort(function (a, b) { return a.percent - b.percent; })[0];
+      var lines = [];
+      if (best && best.percent >= 60) {
+        lines.push({ ico: '✓', text: '<b>' + best.title + '</b> — сильная сторона: уверенные ответы.' });
+      }
+      if (worst && worst.percent < 80 && worst.key && SchoolData.PARENT_TIPS[worst.key]) {
+        lines.push({ ico: '💪', text: SchoolData.PARENT_TIPS[worst.key] });
+      }
+      if (lines.length) {
+        readyCard.appendChild(el('div', { class: 'stack g2 mt3' }, lines.map(function (t) {
+          return el('div', { class: 'tip' }, [
+            el('span', { class: 'tip__ico', text: t.ico }),
+            el('span', { html: t.text })
+          ]);
+        })));
+      }
+    }
+    screen.appendChild(readyCard);
+
+    /* 🌍 Интересы ребёнка: какие миры выбирает чаще */
+    var byTrack = {};
+    Curriculum.TRACK_ORDER.forEach(function (t) { byTrack[t] = 0; });
+    Object.keys(Store.data.skills).forEach(function (id) {
+      var s = Store.data.skills[id];
+      if (!s || !s.attempts) return;
+      Curriculum.TRACK_ORDER.forEach(function (t) {
+        if (Curriculum.trackSkills(t).indexOf(id) !== -1) byTrack[t] += s.attempts;
+      });
+    });
+    var fav = Curriculum.TRACK_ORDER.slice().sort(function (a, b) { return byTrack[b] - byTrack[a]; })
+      .filter(function (t) { return byTrack[t] > 0; }).slice(0, 2);
+    var cardsOpen = (Store.data.collection || []).length;
+    if (fav.length || cardsOpen) {
+      screen.appendChild(el('div', { class: 'card mt4 appear d3' }, [
+        el('div', { class: 't-sub mb2', text: '🌟 Интересы' }),
+        fav.length ? el('div', { class: 't-body', html: 'Чаще всего ребёнок выбирает: ' + fav.map(function (t) {
+          var mt = Curriculum.trackMeta(t);
+          return mt.ico + ' <b>' + mt.title + '</b>';
+        }).join(' и ') + '.' }) : null,
+        cardsOpen ? el('div', { class: 't-small mt2', text: '📖 В журнале открытий: ' + cardsOpen + ' карточек.' }) : null
+      ]));
+    }
 
     /* Слабые места */
     var weak = Skills.weakest(null, 10);
@@ -513,6 +579,40 @@
       case 'problem': return 'задачи (' + (v === 'add' ? 'сложение' : 'вычитание') + ')';
       case 'line': return 'числовой ряд';
       case 'order': return 'порядок чисел';
+      /* новые миры */
+      case 'sp': return ({ earth: 'Земля', daynight: 'день и ночь', moon: 'Луна',
+        moonphases: 'фазы Луны', sun: 'Солнце', planets: 'планеты', order: 'порядок планет',
+        stars: 'звёзды', cosmonaut: 'космонавты', rocket: 'ракета' })[v] || 'космос';
+      case 'spp': return 'планета ' + ((global.SpaceData && SpaceData.body(v)) ? SpaceData.body(v).name : v);
+      case 'spc': return 'созвездие';
+      case 'wa': return 'животное ' + v;
+      case 'wc': return 'страна ' + ((global.WorldData && WorldData.country(v)) ? WorldData.country(v).name : v);
+      case 'w': return ({ babies: 'мамы и детёныши', odd: 'кто лишний', season: 'времена года',
+        plantcycle: 'цикл растения', butterfly: 'цикл бабочки', dress: 'как одеться',
+        wlogic: 'погодная логика', sense: 'пять чувств', bodypairs: 'моё тело', habits: 'привычки',
+        zone: 'кто где живёт', countries: 'страны', jobs: 'профессии', jobtools: 'инструменты',
+        transport: 'транспорт', trodd: 'транспорт: лишнее', city: 'мой город', 'float': 'плавает/тонет',
+        magnet: 'магнит', shadow: 'тень', states: 'лёд-вода-пар', whatif: 'что произойдёт' })[v] || 'мой мир';
+      case 'rc': return 'чтение с пониманием';
+      case 'ps': return 'предложение к картинке';
+      case 'ml': return 'вставь букву';
+      case 'typo': return 'слово-хитрюшка';
+      case 'sb': return 'собери предложение';
+      case 'nb': return 'соседи числа';
+      case 'bond': return 'состав числа ' + v;
+      case 'wp': return 'текстовые задачи';
+      case 'pat': return 'продолжи ряд';
+      case 'odd': return 'найди лишнее';
+      case 'cmpq': return 'сравнения';
+      case 'wg': return 'что исчезло';
+      case 'fl': return 'найди буквы';
+      case 'mc': return 'память: цвета';
+      case 'mw': return 'память: слова';
+      case 'md': return 'память: цифры';
+      case 'opp': return 'скажи наоборот';
+      case 'fs': return 'продолжи предложение';
+      case 'story': return 'расскажи по порядку';
+      case 'instr': return 'инструкции';
       default: return id;
     }
   }

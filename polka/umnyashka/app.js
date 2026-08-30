@@ -35,10 +35,10 @@
 
     // Сводка для карточки в оглавлении
     function pushSummary() {
-      var r = Curriculum.trackPercent('reading');
-      var m = Curriculum.trackPercent('math');
+      var tracks = Curriculum.TRACK_ORDER;
+      var sum = tracks.reduce(function (a, t) { return a + Curriculum.trackPercent(t); }, 0);
       KidHub.setSummary('umnyashka', {
-        percent: Math.round((r + m) / 2),
+        percent: Math.round(sum / tracks.length),
         stars: Store.totalStars(),
         label: 'Уровень ' + Store.level().level
       });
@@ -66,6 +66,8 @@
     Router.define('settings',   Screens.Settings);
     Router.define('parentgate', Screens.ParentGate);
     Router.define('parent',     Screens.Parent);
+    Router.define('schoolday',  Screens.SchoolDay);
+    Router.define('collection', Screens.Collection);
   }
 
   function boot() {

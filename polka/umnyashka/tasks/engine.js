@@ -25,7 +25,23 @@
     words: 'learnWord',
     sentences: 'learnSentence',
     digits: 'learnDigit',
-    count: 'learnCount'
+    count: 'learnCount',
+    /* космос: знакомство с темой или планетой */
+    spBasics: 'learnSpace',
+    spStars: 'learnSpace',
+    spFlight: 'learnSpace',
+    spPlanets: 'learnPlanet',
+    /* мой мир: карточка животного/страны/темы */
+    wAnimals: 'learnWorld',
+    wNature: 'learnWorld',
+    wWeather: 'learnWorld',
+    wBody: 'learnWorld',
+    wPlanet: 'learnWorld',
+    wCountries: 'learnWorld',
+    wJobs: 'learnWorld',
+    wTransport: 'learnWorld',
+    wCity: 'learnWorld',
+    wScience: 'learnWorld'
   };
 
   var Tasks = {
@@ -104,8 +120,10 @@
         actions: [
           { label: 'Остаться', variant: 'grass' },
           { label: 'Выйти', variant: 'ghost', onClick: function () {
-              // из тренировки дня возвращаемся домой, из урока — на карту
+              // из тренировки дня — домой, из школьного дня — к расписанию,
+              // из обычного урока — на карту блока
               if (params.daily) Router.reset('home');
+              else if (params.school) Router.go('schoolday', {}, { replace: true });
               else Router.go('path', { track: unit.track }, { replace: true });
             } }
         ]
@@ -345,7 +363,8 @@
 
       var total = answered || 1;
       var acc = firstTry / total;
-      var stars = acc >= 0.9 ? 3 : acc >= 0.6 ? 2 : acc > 0 ? 1 : 0;
+      // Минимум одна звезда за старание — «двоек» у нас не бывает
+      var stars = acc >= 0.9 ? 3 : acc >= 0.6 ? 2 : 1;
       var bonus = 15 + stars * 10;
       xpEarned += bonus;
       Store.addXP(bonus);
@@ -361,6 +380,7 @@
       Store.save(true);
 
       if (params.daily) Store.markDaily(params.daily);
+      if (params.school) Store.markSchoolDay(params.school);
 
       SFX.reward();
       FX.confetti({ count: 120 });
@@ -379,11 +399,14 @@
       ]));
 
       var nextUnit = Curriculum.next(unit.track);
+      var backLabel = params.school ? 'К расписанию'
+        : (nextUnit && nextUnit.id !== unit.id ? 'Дальше' : 'На главную');
       actions.appendChild(el('div', { class: 'stack g3', style: { width: 'min(460px,100%)' } }, [
-        UI.btn(nextUnit && nextUnit.id !== unit.id ? 'Дальше' : 'На главную', {
+        UI.btn(backLabel, {
           variant: 'grass', block: true,
           onClick: function () {
-            if (nextUnit && nextUnit.id !== unit.id) Router.go('path', { track: unit.track }, { replace: true });
+            if (params.school) Router.go('schoolday', {}, { replace: true });
+            else if (nextUnit && nextUnit.id !== unit.id) Router.go('path', { track: unit.track }, { replace: true });
             else Router.reset('home');
           }
         }),
@@ -416,6 +439,29 @@
     if (unit.id === 'm-cnt-2') Store.unlockAch('count10');
     if (unit.id === 'm-cnt-3') Store.unlockAch('count20');
     if (unit.id === 'r-let-6') Store.unlockAch('alphabet');
+
+    /* 🚀 Космос */
+    if (unit.track === 'space') Store.unlockAch('sp-first');
+    if (unit.id === 's-moon') Store.unlockAch('sp-moon');
+    if (unit.id === 's-order') Store.unlockAch('sp-planets');
+    if (unit.id === 's-stars') Store.unlockAch('sp-stars');
+    if (unit.id === 's-final') Store.unlockAch('sp-cosmonaut');
+
+    /* 🎒 Школа */
+    if (unit.id === 'sch-read-1') Store.unlockAch('sch-reader');
+    if (unit.id === 'sch-write-2') Store.unlockAch('sch-letters');
+    if (unit.id === 'sch-math-3') Store.unlockAch('sch-numbers');
+    if (unit.id === 'sch-logic-2') Store.unlockAch('sch-logic');
+    if (unit.id === 'sch-final') Store.unlockAch('sch-ready');
+
+    /* 🌍 Мой мир */
+    if (unit.track === 'world') Store.unlockAch('w-explorer');
+    if (unit.id === 'w-animals-2') Store.unlockAch('w-animals');
+    if (unit.id === 'w-nature') Store.unlockAch('w-nature');
+    if (unit.id === 'w-weather') Store.unlockAch('w-weather');
+    if (unit.id === 'w-countries') Store.unlockAch('w-traveler');
+    if (unit.id === 'w-science') Store.unlockAch('w-scientist');
+    if (unit.id === 'w-final') Store.unlockAch('w-great');
   }
 
   function stripTags(s) { return String(s).replace(/<[^>]*>/g, ''); }
