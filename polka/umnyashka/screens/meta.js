@@ -315,7 +315,9 @@
               SFX.tap();
               Speech.setVoice(v.name);
               renderVoices();
-              Speech.phrase('Теперь я говорю вот так!');
+              // say(), а не phrase(): здесь важно услышать именно
+              // выбранный голос синтезатора, а не записанный клип
+              Speech.say('Теперь я говорю вот так!');
             }
           }, [
             el('span', { style: { fontSize: '20px' }, text: isOn ? '✅' : '🎙️' }),

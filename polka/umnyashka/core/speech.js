@@ -121,13 +121,40 @@
     });
   }
 
-  /** Проиграть заранее записанный клип, если он есть. */
+  /* Ключ фразы: «Молодец!» и «молодец» — один клип */
+  function normKey(text) {
+    return 'ph:' + String(text).toLowerCase()
+      .replace(/[^а-яё0-9]+/g, ' ').trim().replace(/\s+/g, '-').slice(0, 60);
+  }
+
+  var currentClip = null;
+
+  /**
+   * Проиграть записанный клип. Возвращает Promise<true>, если клип
+   * заиграл, и Promise<false>, если его нет или проигрывание запрещено
+   * (например, iOS вне жеста) — тогда вызывающий уходит в синтезатор.
+   */
   function clip(key) {
     var src = CLIPS[key];
-    if (!src || !enabled()) return null;
+    if (!src || !enabled()) return Promise.resolve(false);
     var a = audioCache[key] || (audioCache[key] = new Audio(src));
-    try { a.currentTime = 0; a.play(); } catch (e) { return null; }
-    return a;
+    return new Promise(function (resolve) {
+      try {
+        if (currentClip && currentClip !== a) { currentClip.pause(); }
+        currentClip = a;
+        a.currentTime = 0;
+        a.onended = function () { notify('end'); };
+        a.onerror = function () { resolve(false); };
+        var p = a.play();
+        if (p && p.then) {
+          p.then(function () { notify('start'); resolve(true); },
+                 function () { resolve(false); });
+        } else {
+          notify('start');
+          resolve(true);
+        }
+      } catch (e) { resolve(false); }
+    });
   }
 
   var Speech = {
@@ -164,6 +191,7 @@
 
     stop: function () {
       try { global.speechSynthesis.cancel(); } catch (e) {}
+      if (currentClip) { try { currentClip.pause(); } catch (e) {} currentClip = null; }
       notify('end');
     },
 
@@ -171,10 +199,12 @@
       return speak(text, opts);
     },
 
-    /** Ключ + текст: если для ключа есть клип — играем его. */
+    /** Ключ + текст: если для ключа есть клип — играем его, иначе синтез. */
     play: function (key, text, opts) {
-      if (clip(key)) return Promise.resolve(true);
-      return speak(text, opts);
+      return clip(key).then(function (ok) {
+        if (ok) return true;
+        return speak(text, opts);
+      });
     },
 
     /**
@@ -218,7 +248,10 @@
       return Speech.play('num:' + n, w);
     },
 
-    phrase: function (text) { return speak(text); }
+    /** Похвала и короткие реплики тоже записаны — ищем клип по тексту. */
+    phrase: function (text) {
+      return Speech.play(normKey(text), text);
+    }
   };
 
   global.Speech = Speech;
