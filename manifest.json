@@ -9,7 +9,7 @@
   "scope": "./",
   "display": "standalone",
   "display_override": ["standalone", "fullscreen", "minimal-ui"],
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#0c0f13",
   "theme_color": "#0c0f13",
   "categories": ["games", "entertainment", "books"],

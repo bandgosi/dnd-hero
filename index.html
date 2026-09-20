@@ -104,11 +104,11 @@
     height: var(--app-h, 100dvh);
   }
 
-  /* На планшете/десктопе не растягиваемся на всю ширину — лист по центру */
-  @media (min-width: 700px) {
+  /* Широкая оболочка: раскладка содержимого задаётся ниже для экранов от 720px. */
+  @media (min-width: 720px) {
     body { background: radial-gradient(ellipse at 50% 0%, #1a2028 0%, #0c0f13 60%); }
     .app {
-      max-width: 640px;
+      max-width: 1120px;
       margin: 0 auto;
       border-left: 1px solid rgba(201,150,42,0.35);
       border-right: 1px solid rgba(201,150,42,0.35);
@@ -1959,6 +1959,71 @@
 
   /* ============ ПЕЧАТЬ ЛИСТА ============ */
   #print-sheet { display: none; }
+
+  /* ---- ADAPTIVE SHEET: cover screen, unfolded phone and tablet ----
+     Width in CSS pixels, never device/UA detection. Resizing only changes CSS;
+     fields, scroll containers and character state retain their DOM identity. */
+  .app { width: 100%; padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+  .section, .meta-field, .add-input, .meta-input, .meta-select { min-width: 0; }
+  .spell-browser-name, .inv-name, .skill-name, .combat-stat-label { overflow-wrap: anywhere; }
+  .combat-stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .combat-stat { min-width: 0; }
+  .modal-sheet { max-height: 85dvh; }
+  .quick-roll { width: max-content; max-width: calc(100% - 24px); }
+  .fab-dice { right: max(16px, env(safe-area-inset-right, 0px)); }
+  .nav-btn, .subtab-btn { min-height: 44px; }
+
+  @media screen and (min-width: 720px) {
+    /* Two readable columns, with the same bottom navigation in either posture. */
+    #char-main.active, #char-combat.active,
+    #tab-spells > .content, #tab-dice > .content, #tab-notes > .content {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-content: start;
+      align-items: start;
+      gap: 20px;
+      padding: 24px 24px 96px;
+    }
+    #char-main > .hero-banner { grid-column: 1 / -1; margin: -24px -24px 0; }
+    #char-main > .section,
+    #tab-spells > .content > .section,
+    #tab-dice > .content > .section,
+    #tab-notes > .content > .section { padding: 0; }
+    .combat-vitals, .combat-actions { min-width: 0; }
+    #char-combat .section { padding-left: 0; padding-right: 0; }
+    #char-combat .hp-section { margin-left: 0; margin-right: 0; }
+    .combat-actions > .section:first-child { padding-top: 16px !important; }
+    #tab-spells > .content > .section:last-child { grid-column: 1 / -1; }
+    #spell-list, #inv-list, #ability-blocks {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      align-items: start;
+    }
+    #spell-list > *, #inv-list > *, #ability-blocks > * { min-width: 0; margin-bottom: 0; }
+    #spell-list > :not(.spell-browser-card), #inv-list > :not(.inv-item) { grid-column: 1 / -1; }
+    #tab-inventory .section, #char-abilities .section,
+    #guide-content .section { padding-left: 24px; padding-right: 24px; }
+    .abilities-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    #tab-notes .notes-textarea { min-height: 220px !important; }
+    .nav-btn { padding: 12px 8px; font-size: 11px; gap: 4px; }
+    .fab-dice { right: max(24px, calc((100vw - 1120px) / 2 + 24px)); bottom: calc(var(--safe-bottom) + 86px); }
+    .quick-roll { bottom: calc(var(--safe-bottom) + 96px); }
+    .modal-overlay { align-items: center; padding: max(24px, var(--safe-top)) 24px max(24px, var(--safe-bottom)); }
+    .modal-sheet { max-width: 560px; border: 1px solid var(--line); border-radius: 20px; }
+    .ai-overlay { max-width: 960px; margin-inline: auto; border-inline: 1px solid var(--line); box-shadow: 0 0 80px #0008; }
+  }
+
+  /* Narrow cover displays and split-screen windows. */
+  @media screen and (max-width: 359px) {
+    .section { padding-left: 12px; padding-right: 12px; }
+    .nav-btn { font-size: 9px; letter-spacing: 0; padding-inline: 2px; }
+    .page-header h1 { font-size: 18px; letter-spacing: 1px; }
+    #tab-character .page-header { text-align: left; }
+    .char-meta { gap: 6px; }
+    .section-title { letter-spacing: 0.5px; }
+  }
+
   @media print {
     html, body { height: auto; overflow: visible; background: #fff; }
     .app, .fab-dice, .quick-roll, .modal-overlay, .ai-overlay { display: none !important; }
@@ -1993,7 +2058,7 @@
       </div>
       <div class="welcome-bottom">
         <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-        <div class="welcome-version">версия 38</div>
+        <div class="welcome-version">версия 39</div>
       </div>
     </div>
   </div>
@@ -2121,6 +2186,7 @@
 
         <!-- COMBAT TAB -->
         <div class="tab-content" id="char-combat">
+          <div class="combat-vitals">
           <div class="section">
             <div class="section-title">Очки Здоровья</div>
           </div>
@@ -2177,6 +2243,8 @@
             </div>
           </div>
 
+          </div>
+          <div class="combat-actions">
           <!-- COMBAT STATS -->
           <div class="section" style="padding-top:0">
             <div class="section-title">Боевые характеристики</div>
@@ -2256,6 +2324,7 @@
               <button onclick="shortRest()" style="flex:1;padding:10px;background:rgba(200,150,40,0.2);border:1px solid var(--gold);border-radius:8px;color:var(--gold);font-family:Cinzel,serif;font-size:12px;cursor:pointer;letter-spacing:0.5px"><img class="ui-ic" src="images/ui/campfire.png" alt=""> КОРОТКИЙ</button>
               <button onclick="longRest()" style="flex:1;padding:10px;background:rgba(100,70,200,0.25);border:1px solid #6040c0;border-radius:8px;color:#c0a0ff;font-family:Cinzel,serif;font-size:12px;cursor:pointer;letter-spacing:0.5px"><img class="ui-ic" src="images/ui/moon.png" alt=""> ДЛИННЫЙ</button>
             </div>
+          </div>
           </div>
         </div>
 
