@@ -2043,6 +2043,186 @@
     #print-sheet .small { font-size: 10pt; }
     #print-sheet .foot { margin-top: 16px; text-align: center; color: #999; font-size: 9pt; }
   }
+/* v40 — readable grimoire. Layout changes never replace character form nodes. */
+@media screen {
+  :root { --ink-light:#b1bac8; --line:rgba(180,193,215,.19); --magic:#b99aef; --ui-font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; }
+  button, input, select, textarea { font-family:var(--ui-font); }
+  button, summary, [role=button] { touch-action:manipulation; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible, [role=button]:focus-visible { outline:2px solid #d4bbff; outline-offset:3px; }
+  .page-header { text-align:left; padding:calc(var(--safe-top) + 16px) 20px 14px; background:radial-gradient(ellipse at top right,#49355a44,transparent 65%),var(--stone); }
+  .page-header::before { height:1px; background:linear-gradient(90deg,#c9a03a66,transparent); }
+  .page-header h1 { color:#e9d8aa; font-family:Georgia,'Times New Roman',serif; font-size:25px; letter-spacing:.6px; }
+  .page-header p { color:var(--ink-light); font-size:14px; margin-top:5px; }
+  .content { background:linear-gradient(#14181ef5,#14181ef5),url('images/bg-texture.jpg') center/480px; padding-bottom:24px; }
+  .section-title { color:#c2c9d4; font:600 14px/1.4 var(--ui-font); letter-spacing:.15px; text-transform:none; margin-bottom:14px; }
+  .section-title::after { opacity:.3; }
+  .section-title::before { opacity:.5; }
+  .meta-label,.combat-stat-label,.slot-level,.death-saves-title { color:#bbc4d1; font:500 12px/1.4 var(--ui-font); letter-spacing:.15px; }
+  .meta-input,.meta-select,.add-input,.notes-textarea { font-family:var(--ui-font); font-size:16px; }
+  .notes-textarea { line-height:1.7; background:#1b2029; border-color:var(--line); border-radius:12px; padding:16px; }
+  .add-input { min-height:44px; background:#1d232d; }
+  .nav-bar { gap:2px; padding:6px 6px max(var(--safe-bottom),6px); background:#11151c; }
+  .nav-btn { min-width:0; padding:9px 1px; gap:5px; border-radius:12px; font:500 11px/1.2 var(--ui-font); letter-spacing:0; color:#b2bdcc; min-height:58px; }
+  .nav-btn.active { background:#a987df21; color:#dcc9fc; box-shadow:inset 0 0 0 1px #b99aef38; }
+  .nav-btn.active::after { display:none; }
+  .nav-btn svg { filter:none!important; width:23px; height:23px; }
+  .subtab-btn { font:500 13px/1.35 var(--ui-font); letter-spacing:0; padding:12px; color:#b1bac8; }
+  .subtab-btn.active { color:#e1d2f9; background:#a987df16; border-bottom-color:#b99aef; }
+  .ui-button { min-height:44px; border:1px solid var(--line); border-radius:10px; background:#252b36; color:#e9ecf1; padding:10px 14px; font:500 14px/1.35 var(--ui-font); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+  .ui-button.primary { background:linear-gradient(135deg,#7550a9,#593782); border-color:#a582d1; color:#fff; }
+  .ui-button.danger { color:#ffb1b1; background:#51252b55; }
+  .ui-button .ui-ic { width:20px; height:20px; }
+  .ui-muted { color:var(--ink-light); font-size:13px; line-height:1.6; }
+  .ui-toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+  .ui-search { width:100%; min-width:0; border:1px solid var(--line); border-radius:12px; background:#1c222c; color:var(--ink); padding:13px 14px; font:16px var(--ui-font); }
+  .ui-filters { display:flex; gap:7px; overflow-x:auto; max-width:100%; padding:3px 1px 8px; touch-action:pan-x; scrollbar-width:thin; }
+  .ui-filter { flex-shrink:0; min-height:44px; padding:8px 13px; border:1px solid var(--line); border-radius:11px; background:#1a2029; color:#bcc5d2; font:14px var(--ui-font); cursor:pointer; }
+  .ui-filter.active { background:#71509550; color:#eadfff; border-color:#a381d0; }
+  .ui-empty { padding:28px 14px; text-align:center; color:var(--ink-light); line-height:1.7; }
+  .ui-empty .empty-art { width:90px; display:block; margin:0 auto 12px; }
+  .ui-details { margin:12px 0; padding:0; border:1px solid var(--line); border-radius:12px; background:#1a202988; }
+  .ui-details summary { padding:13px 15px; min-height:44px; cursor:pointer; color:#d1b9ee; font-size:14px; }
+  .ui-details > .add-item-row { margin:0!important; padding:0 12px 12px; }
+  .ui-details[open] > .ui-button { margin:0 12px 12px; }
+  .ui-hero-title { min-width:0; }
+  .hero-banner { display:grid; grid-template-columns:86px minmax(0,1fr); gap:18px; align-items:center; padding:26px 22px; text-align:left; background:linear-gradient(115deg,#37294299,#161c23); }
+  .hero-banner .char-portrait { width:80px; height:80px; margin:0; }
+  .hero-banner .char-name-input { font:700 29px/1.25 Georgia,serif; text-align:left; width:100%; border-bottom:1px solid transparent; margin:0; padding:4px 0; }
+  .hero-banner .char-name-input:not([readonly]) { border-bottom-color:var(--gold); }
+  .hero-banner .name-vignette { display:none; }
+  .hero-banner .hero-crest { opacity:.12; }
+  .hero-summary { margin:6px 0 10px; color:#c3bacf; font-size:14px; line-height:1.6; }
+  .hero-edit { padding:6px 10px; min-height:36px; background:#ffffff08; font-size:12px; }
+  .char-meta { gap:12px; }
+  .meta-field { background:#1c222b; border:1px solid var(--line); border-radius:10px; padding:10px 8px; }
+  .meta-select,.meta-input { min-height:36px; }
+  .combat-stat { background:#1e2530; clip-path:none; border:1px solid var(--line); border-radius:12px; padding:13px 6px; box-shadow:none; }
+  .combat-stat::before,.combat-stat::after { display:none; }
+  .combat-stat-val { font-family:Georgia,serif; color:#eef0f5; }
+  .hp-section { background:linear-gradient(145deg,#45232b,#211a23); border-color:#a8545f77; border-radius:16px; box-shadow:none; }
+  .hp-current { color:#ffb2b7; font-size:54px; }
+  .hp-label,.hp-max,.hp-max input { color:#e7b0b5!important; }
+  .hp-section button { min-height:44px; font-family:var(--ui-font)!important; font-size:13px!important; }
+  .death-saves { background:#1c222b; border-color:var(--line); box-shadow:none; }
+  .ds-label { color:#bec6d1; font-size:14px; width:92px; flex-shrink:0; }
+  .combat-vitals .section > div:has(#temp-hp) { background:#1c222b!important; border-color:var(--line)!important; }
+  .combat-vitals .section > div:has(#temp-hp) div { color:#b1bac8!important; font-family:var(--ui-font)!important; font-size:12px!important; }
+  .condition-chip { min-height:40px; padding:8px 11px; font:13px var(--ui-font); color:#c1cad6; background:#1d232d; border-color:var(--line); }
+  .condition-chip:not(.active) { filter:none; opacity:1; color:#c1cad6!important; border-color:var(--line)!important; background:#1d232d!important; }
+  .condition-chip.active { box-shadow:inset 0 0 0 1px currentColor; }
+  .attack-card { padding:14px; margin-bottom:10px; border:1px solid var(--line); background:#1d232d; border-radius:12px; }
+  .attack-card h3 { font-size:16px; font-weight:600; margin:0 0 8px; overflow-wrap:anywhere; }
+  .attack-stats { display:flex; gap:16px; margin-bottom:12px; color:#bcc5d2; font-size:13px; }
+  .attack-stats b { display:block; font:24px Georgia,serif; color:#f0dfb8; margin-bottom:3px; }
+  .attack-actions { display:flex; gap:8px; align-items:start; }
+  .attack-actions > .ui-button { flex:1; }
+  .attack-actions .ui-details { margin:0; }
+  .attack-actions summary { list-style:none; padding:12px; }
+  .skill-row { min-height:44px; }
+  .skill-name { font-size:15px; }
+  .skill-attr { font-family:var(--ui-font); font-size:12px; color:var(--ink-light); }
+  .fab-dice { position:static!important; width:auto; height:40px; min-height:40px; border-radius:10px; padding:8px 12px; box-shadow:none; transform:none!important; gap:8px; margin:0 16px 8px auto; align-self:flex-end; display:flex; font:13px var(--ui-font); background:#25202d; border:1px solid #ad87c766; color:#e9d4ff; flex-shrink:0; }
+  .fab-dice svg { width:22px; height:22px; }
+  .fab-dice.hidden { display:none!important; }
+  .quick-roll.show { bottom:calc(var(--safe-bottom) + 126px); }
+  /* Spell and inventory master/detail panels share responsive behavior. */
+  #tab-spells > .content { display:block; padding:16px; }
+  .spell-overview { display:grid; grid-template-columns:1fr; gap:12px; margin-bottom:18px; }
+  .spell-overview .section { padding:0!important; }
+  .spell-overview .section-title { display:none; }
+  .spell-overview .combat-stat { padding:12px 4px; }
+  .spell-overview .combat-stat-label { font-size:11px; }
+  .spell-slots-grid { display:flex; flex-wrap:wrap; gap:8px; }
+  .spell-slot-card { flex:1 1 120px; min-width:0; padding:10px 12px; background:#221e30; border:1px solid #9e7ccc40; border-radius:12px; }
+  .slot-level { color:#d0bde7; }
+  .slot-dots { justify-content:center; gap:0; flex-wrap:wrap; }
+  button.slot-dot { width:40px; height:40px; margin:0; padding:0; border:0; background:transparent!important; box-shadow:none!important; position:relative; }
+  button.slot-dot::after { content:''; display:block; width:19px; height:19px; margin:auto; border-radius:50%; border:1px solid #ae86d7; background:#38284d; }
+  button.slot-dot.available::after { background:#a57bd1; box-shadow:0 0 10px #9a61dd55; }
+  button.slot-dot.bonus::after { border-color:var(--gold); }
+  button.slot-dot.bonus.available::after { background:var(--gold); }
+  .slot-count { color:#e4d4f8; font:600 14px var(--ui-font); }
+  .add-slot-card { cursor:pointer; display:flex; align-items:center; justify-content:center; min-height:44px; flex:0 1 140px; }
+  .ui-workspace { display:grid; grid-template-columns:1fr; gap:18px; min-width:0; align-items:start; }
+  .ui-master,.ui-detail { min-width:0; }
+  #spell-list,#inv-list { display:flex; flex-direction:column; gap:9px; }
+  .spell-row { width:100%; text-align:left; display:flex; align-items:center; gap:12px; padding:14px 12px; min-height:78px; color:#e9ecf1; border:1px solid var(--line); border-radius:12px; background:linear-gradient(110deg,#242a34,#191f28); cursor:pointer; }
+  .spell-row.selected { border-color:#ad8bd4; background:linear-gradient(110deg,#483559,#282234); box-shadow:inset 3px 0 #bb94ee; }
+  .spell-row-icon { width:32px; height:32px; flex-shrink:0; opacity:.85; }
+  .spell-row-copy { flex:1; min-width:0; }
+  .spell-row-name { display:block; font:600 16px/1.4 var(--ui-font); overflow-wrap:anywhere; }
+  .spell-row-meta { display:block; font:12px/1.6 var(--ui-font); color:#bfc7d4; margin-top:5px; }
+  .spell-row-flags { display:flex; flex-wrap:wrap; gap:6px; margin-top:5px; }
+  .spell-flag { color:#ddc8fa; font:11px/1.4 var(--ui-font); border:1px solid #aa85d052; padding:2px 5px; border-radius:5px; }
+  .ui-detail { display:none; border:1px solid var(--line); border-radius:16px; padding:20px; background:radial-gradient(ellipse at right top,#73519320,transparent 60%),#1b2029; }
+  .ui-detail h2 { font:700 28px/1.25 Georgia,serif; margin:12px 0 20px; color:#f4ece1; overflow-wrap:anywhere; }
+  .detail-eyebrow { color:#c6abeb; font-size:12px; line-height:1.5; letter-spacing:.5px; margin-top:14px; }
+  .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:1px; overflow:hidden; border:1px solid var(--line); border-radius:12px; background:var(--line); margin:0 0 20px; }
+  .detail-grid > div { padding:12px; min-width:0; background:#1c222c; }
+  .detail-grid dt { color:#b4bdcb; font-size:12px; margin-bottom:6px; }
+  .detail-grid dd { font-size:15px; line-height:1.4; overflow-wrap:anywhere; }
+  .detail-description { white-space:pre-line; font:16px/1.75 var(--ui-font); color:#d9dfe8; margin-bottom:18px; overflow-wrap:anywhere; }
+  .detail-damage { border-top:1px solid #c9a03a33; padding:15px 0; font-size:15px; color:#ead8b6; }
+  .detail-actions { margin-bottom:18px; display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  .detail-actions > button { flex:1 1 120px; }
+  .detail-primary { width:100%; margin:10px 0; }
+  .detail-back { margin-bottom:8px; }
+  .detail-hint { text-align:center; }
+  .currency-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:4px; background:#1d232d; border:1px solid var(--line); border-radius:12px; padding:8px 4px; }
+  .coin-card { padding:4px 0; border:0!important; border-radius:0; background:none!important; box-shadow:none; }
+  .coin-card::before,.coin-card::after { display:none!important; }
+  .coin-card .coin-metal { width:20px; height:20px; }
+  .coin-name { font:10px var(--ui-font); color:#b9c2cf; }
+  .coin-input { font:20px Georgia,serif; width:100%; min-width:0; min-height:36px; }
+  .inventory-row { display:grid; grid-template-columns:28px minmax(0,1fr) auto; align-items:center; gap:9px; width:100%; min-height:66px; text-align:left; padding:12px; background:#1e2530; border:1px solid var(--line); border-radius:12px; color:var(--ink); cursor:pointer; }
+  .inventory-row.selected { border-color:#c9a03a88; background:#302b24; }
+  .inventory-row .inv-name { font-size:15px; }
+  .inventory-row .inv-icon { width:26px; }
+  .inventory-row .inv-qty { color:#e4d1a4; font-size:16px; }
+  .quantity-control { display:flex; align-items:center; justify-content:center; gap:20px; padding:12px; margin:12px 0; border:1px solid var(--line); border-radius:12px; }
+  .quantity-control strong { font:28px Georgia,serif; }
+  .inspiration-bar { box-shadow:none; }
+  .insp-text { font:600 14px var(--ui-font); }
+  .insp-status { font-size:13px; }
+  @media (max-width:719px) {
+    #tab-spells.detail-open .spell-overview,#tab-spells.detail-open .ui-master,#tab-inventory.detail-open .ui-master,#tab-inventory.detail-open .wallet-section { display:none; }
+    #tab-spells.detail-open .ui-detail,#tab-inventory.detail-open .ui-detail { display:block; }
+    #tab-spells.detail-open .fab-dice { display:none; }
+    .hero-banner .char-name-input { font-size:26px; }
+    .ui-detail { padding:16px; }
+    .combat-actions .section { padding-top:16px!important; }
+  }
+  @media (min-width:720px) {
+    #tab-spells > .content { padding:22px 24px; }
+    .spell-overview { grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
+    .ui-workspace { grid-template-columns:minmax(0,1fr) minmax(0,1.06fr); }
+    .ui-detail { display:block; position:sticky; top:0; }
+    .detail-back { display:none; }
+    #char-main.active,#char-combat.active,#tab-dice>.content,#tab-notes>.content { padding-bottom:24px; }
+    .hero-banner { grid-template-columns:108px minmax(0,1fr); padding:28px 32px; }
+    .hero-banner .char-portrait { width:100px; height:100px; }
+    .hero-banner .char-name-input { font-size:36px; }
+    .hero-summary { font-size:16px; }
+    .nav-btn { font-size:12px; }
+    .coin-card { display:grid; grid-template-columns:24px 1fr; gap:3px 8px; align-items:center; padding:4px 10px; }
+    .coin-card .coin-metal { grid-row:span 2; }
+    .coin-name { text-align:left; font-size:12px; }
+    .coin-input { text-align:left; }
+  }
+  @media (max-width:359px) {
+    .page-header { padding-left:14px; padding-right:14px; }
+    .page-header h1 { font-size:22px; }
+    #tab-spells > .content { padding:12px; }
+    .hero-banner { padding:20px 14px; gap:12px; grid-template-columns:64px minmax(0,1fr); }
+    .hero-banner .char-portrait { width:62px; height:62px; }
+    .hero-banner .char-name-input { font-size:23px; }
+    .nav-btn { font-size:10px; }
+    .spell-row { gap:8px; padding:12px 10px; }
+    .spell-row-icon { width:26px; height:26px; }
+  }
+  @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
+}
+
 </style>
 </head>
 <body>
@@ -2058,7 +2238,7 @@
       </div>
       <div class="welcome-bottom">
         <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-        <div class="welcome-version">версия 39</div>
+        <div class="welcome-version">версия 40</div>
       </div>
     </div>
   </div>
@@ -3293,7 +3473,7 @@ function initSwipeNav() {
     if(e.touches.length!==1) { tracking=false; return; }
     const tgt = e.target;
     // не мешаем вводу, спискам с горизонтальной прокруткой и открытым модалкам
-    if(tgt.closest('input,textarea,select,.subtabs,.ai-cat-row,.emoji-grid')) { tracking=false; return; }
+    if(tgt.closest('input,textarea,select,.subtabs,.ai-cat-row,.emoji-grid,.ui-filters,.ui-detail')) { tracking=false; return; }
     if(document.querySelector('.modal-overlay.open, .ai-overlay.open')) { tracking=false; return; }
     x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; tracking=true;
   }, {passive:true});
@@ -3352,7 +3532,7 @@ function renderSpellcasting() {
   el.innerHTML =
     `<div class="combat-stat"><div class="combat-stat-val" style="font-size:26px">${dc}</div><div class="combat-stat-label">СЛ СПАСБРОСКА</div></div>`
    +`<div class="combat-stat"><div class="combat-stat-val roll-val" style="font-size:26px" onclick="rollCheck('Атака заклинанием', ${atk})">${atk>=0?'+':''}${atk}</div><div class="combat-stat-label">БОНУС АТАКИ</div></div>`
-   +`<div class="combat-stat"><div class="combat-stat-val" style="font-size:26px">${ABILITIES[ai]}</div><div class="combat-stat-label">ХАРАКТЕРИСТИКА</div></div>`;
+   +`<div class="combat-stat"><div class="combat-stat-val" style="font-size:26px">${ABILITIES[ai]}</div><div class="combat-stat-label">Базовая хар.</div></div>`;
 }
 
 // #2 — пассивные значения (10 + модификатор + бонус мастерства при владении)
@@ -3374,13 +3554,15 @@ function renderPassives() {
 function switchTab(tab, btn) {
   document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display='none');
   document.getElementById('tab-'+tab).style.display='flex';
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>{b.classList.remove('active');b.removeAttribute('aria-current');});
   btn.classList.add('active');
+  btn.setAttribute('aria-current','page');
   // на вкладке кубиков плавающая кнопка не нужна
   const fab = document.getElementById('fab-dice');
-  if(fab) fab.classList.toggle('hidden', tab==='dice');
+  if(fab) fab.classList.toggle('hidden', tab==='dice'||tab==='spells');
   const qr = document.getElementById('quick-roll'); if(qr) qr.classList.remove('show');
   if(tab==='guide') renderClassGuide();
+  if(tab==='spells') {uiHeroSummary();uiSpellDetail();}
 }
 
 function switchSubtab(group, tab, btn) {
@@ -3809,17 +3991,6 @@ function rollDamageExpr(expr, crit) {
   return t+bonus;
 }
 
-function renderAttacks() {
-  const el=document.getElementById('attacks-list'); if(!el) return;
-  if(!state.attacks.length) { el.innerHTML='<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:14px;font-size:13px">Атак нет. Добавь оружие ниже.</div>'; return; }
-  el.innerHTML = state.attacks.map((a,i)=>`
-    <div class="skill-row" style="gap:8px">
-      <button onclick="rollAttack(${i})" style="width:34px;height:34px;border-radius:8px;border:1px solid var(--crimson);background:rgba(224,67,67,0.2);color:#e08080;font-size:16px;cursor:pointer;flex-shrink:0"><img class="ui-ic" src="images/ui/target.png" alt=""></button>
-      <div class="skill-name">${esc(a.name)} ${a.damage?`<span class="skill-attr">${esc(a.damage)}</span>`:''}</div>
-      <div class="skill-bonus">${a.bonus>=0?'+':''}${a.bonus}</div>
-      <button class="inv-delete" onclick="removeAttack(${i})">✕</button>
-    </div>`).join('');
-}
 
 function addAttack() {
   const n=document.getElementById('atk-name').value.trim();
@@ -3950,12 +4121,12 @@ function renderSpellSlots() {
     for(let i=0;i<slot.total;i++){
       const avail = i < slot.total - slot.used;
       const isBonus = i >= base; // дополнительные ячейки рисуем золотыми
-      dots+=`<div class="slot-dot ${avail?'available':'used'} ${isBonus?'bonus':''}" onclick="toggleSlot(${si},${i})"></div>`;
+      dots+=`<button type="button" class="slot-dot ${avail?'available':'used'} ${isBonus?'bonus':''}" onclick="toggleSlot(${si},${i})" aria-label="Ячейка ${slot.level} уровня: ${avail?'доступна':'потрачена'}" aria-pressed="${!avail}"></button>`;
     }
-    grid.innerHTML+=`<div class="spell-slot-card"><div class="slot-level">${slot.level} УРОВЕНЬ${isPact && base>0?' · ДОГОВОР':''}</div><div class="slot-dots">${dots}</div></div>`;
+    grid.innerHTML+=`<div class="spell-slot-card"><div class="slot-level">${slot.level} УРОВЕНЬ${isPact && base>0?' · ДОГОВОР':''}</div><div class="slot-dots">${dots}</div><div class="slot-count">${slot.total-slot.used} / ${slot.total}</div></div>`;
   });
   if(!any) grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--ink-light);font-style:italic;padding:8px 0;font-size:13px">${esc(cls||'Этот класс')} не использует ячейки заклинаний${isPact?'':' по базовым правилам'}</div>`;
-  grid.innerHTML += `<div class="spell-slot-card add-slot-card" onclick="openBonusSlots()"><div class="slot-level">＋ ДОП. ЯЧЕЙКИ</div><div style="font-size:11px;color:#8878b0;margin-top:4px">предметы, черты</div></div>`;
+  grid.innerHTML += `<div class="spell-slot-card add-slot-card" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openBonusSlots()}" onclick="openBonusSlots()"><div class="slot-level">＋ ДОП. ЯЧЕЙКИ</div><div style="font-size:11px;color:#8878b0;margin-top:4px">предметы, черты</div></div>`;
 }
 
 // ============ ДОПОЛНИТЕЛЬНЫЕ ЯЧЕЙКИ ============
@@ -4008,48 +4179,6 @@ function findSpellDetails(spellObj) {
   return found || spellObj;
 }
 
-function renderSpellList() {
-  const list = document.getElementById('spell-list');
-  if(!state.spells.length) { list.innerHTML='<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:20px"><img class="empty-art" src="images/empty/spells.png" alt="">Заклинания не добавлены</div>'; return; }
-  const sorted = [...state.spells].sort((a,b)=>a.level-b.level);
-  window._mySpellCache = sorted;
-
-  list.innerHTML = sorted.map((sp,i)=>{
-    const d = findSpellDetails(sp);
-    const conc = d.concentration ? uiIc('target')+' ' : '';
-    const ritual = d.ritual ? uiIc('scroll')+' ' : '';
-    const higher = d.higherLevels ? `<br><br><em>На высоких уровнях:</em> ${esc(d.higherLevels)}` : '';
-    const metaParts = [esc(d.school||sp.school||'')];
-    if (d.castingTime || sp.cast) metaParts.push(esc(d.castingTime||sp.cast));
-    if (d.range) metaParts.push(esc(d.range));
-    const hasDetails = !!d.description;
-    const isConc = state.concentrationSpell === sp.name;
-    const concBtn = d.concentration
-      ? `<button onclick="event.stopPropagation();setConcentrationSpell('${esc(sp.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"))}')" title="Концентрация" style="background:${isConc?'#1a2a50':'none'};border:1px solid ${isConc?'#6080c0':'rgba(100,70,200,0.35)'};border-radius:6px;color:${isConc?'#9ab8f0':'#8878b0'};font-size:13px;cursor:pointer;padding:3px 6px;flex-shrink:0"><img class="ui-ic" src="images/ui/target.png" alt=""></button>`
-      : '';
-    const si = state.spells.indexOf(sp);
-    const prepBtn = sp.level>0
-      ? `<button onclick="event.stopPropagation();togglePrepared(${si})" title="${sp.prepared?'Подготовлено':'Не подготовлено'}" style="background:${sp.prepared?'rgba(201,160,58,0.22)':'none'};border:1px solid ${sp.prepared?'var(--gold)':'var(--line)'};border-radius:6px;color:${sp.prepared?'var(--gold-light)':'var(--ink-light)'};font-size:12px;cursor:pointer;padding:3px 6px;flex-shrink:0"><img class="ui-ic" src="images/ui/book.png" alt=""></button>`
-      : '';
-    const chips = metaParts.filter(Boolean).map(m=>`<span class="sp-chip">${m}</span>`).join('')
-      + (d.concentration?'<span class="sp-chip">'+uiIc('target')+' конц.</span>':'')
-      + (d.ritual?'<span class="sp-chip">'+uiIc('scroll')+' ритуал</span>':'');
-    const specialSp = (sp.prepared && sp.level>0) ? '<i class="spn"></i><i class="cr tl"></i><i class="cr tr"></i><i class="cr br"></i><i class="cr bl"></i>' : '';
-    return `
-    <div class="spell-browser-card ${isConc?'concentrating':''}${sp.prepared&&sp.level>0?' special':''}" id="myspell-${i}" onclick="${hasDetails ? `toggleMySpellCard(${i})` : ''}" style="${hasDetails ? 'cursor:pointer' : ''};opacity:${sp.level>0 && !sp.prepared ? '0.62' : '1'}">
-      ${specialSp}
-      <div class="spell-level-badge">${sp.level===0?'З':sp.level}</div>
-      <div class="spell-browser-info">
-        <div class="spell-browser-name">${esc(sp.name)}</div>
-        <div class="spell-browser-meta">${chips}</div>
-        ${hasDetails ? `<div class="spell-browser-desc">${esc(d.description)}${higher}</div>` : ''}
-      </div>
-      ${prepBtn}
-      ${concBtn}
-      <button onclick="event.stopPropagation();removeSpell(${state.spells.indexOf(sp)})" style="background:none;border:none;color:#a05050;font-size:16px;cursor:pointer;padding:2px;flex-shrink:0">✕</button>
-    </div>`;
-  }).join('');
-}
 
 function togglePrepared(i) {
   const sp = state.spells[i]; if(!sp) return;
@@ -4250,34 +4379,6 @@ function toggleAttune(i) {
   renderInventory(); saveAll();
 }
 
-function renderInventory() {
-  const list=document.getElementById('inv-list');
-  if(!state.inventory.length) {list.innerHTML='<div style="text-align:center;color:var(--ink-light);font-style:italic;padding:20px"><img class="empty-art" src="images/empty/inventory.png" alt="">Инвентарь пуст</div>';return;}
-  const anyAttune = state.inventory.some(itemRequiresAttunement);
-  const header = anyAttune
-    ? `<div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-bottom:8px;font-size:12px;color:var(--ink-light)"><img class="ui-ic" src="images/ui/gem.png" alt=""> Настройка: <b style="color:${attunedCount()>=3?'var(--crimson)':'var(--gold-light)'}">${attunedCount()}/3</b></div>`
-    : '';
-  list.innerHTML = header + state.inventory.map((it,i)=>{
-    const att = itemRequiresAttunement(it)
-      ? `<button onclick="toggleAttune(${i})" title="${it.attuned?'Настроен':'Настроить'}" style="background:${it.attuned?'rgba(201,160,58,0.22)':'none'};border:1px solid ${it.attuned?'var(--gold)':'var(--line)'};border-radius:6px;color:${it.attuned?'var(--gold-light)':'var(--ink-light)'};font-size:13px;cursor:pointer;padding:2px 6px;flex-shrink:0"><img class="ui-ic" src="images/ui/gem.png" alt=""></button>`
-      : '';
-    const special = it.attuned ? '<i class="spn"></i><i class="cr tl"></i><i class="cr tr"></i><i class="cr br"></i><i class="cr bl"></i>' : '';
-    return `
-    <div class="inv-item${it.attuned?' special':''}">
-      ${special}
-      <span class="inv-icon">${itemIconImg(it)}</span>
-      <span class="inv-name" onclick="showItemInfo(${i})" title="Открыть справку">${esc(it.name)}${it.attuned?' <span style="color:var(--gold-light);font-size:11px">✨</span>':''}</span>
-      <div style="display:flex;align-items:center;gap:6px">
-        ${att}
-        <button onclick="changeQty(${i},-1)" style="background:none;border:1px solid var(--line);border-radius:4px;width:24px;height:24px;color:var(--ink-light);font-size:14px;cursor:pointer">−</button>
-        <span class="inv-qty">${it.qty}</span>
-        <button onclick="changeQty(${i},+1)" style="background:none;border:1px solid var(--line);border-radius:4px;width:24px;height:24px;color:var(--ink-light);font-size:14px;cursor:pointer">+</button>
-        <button class="inv-delete" onclick="removeItem(${i})">✕</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
 // ============ INSPIRATION & XP ============
 function toggleInspiration() {
   state.inspiration = !state.inspiration;
@@ -4460,6 +4561,7 @@ function serializeCurrent() {
 
 // Применить персонажа к интерфейсу
 function applyCharacter(data) {
+  uiResetViews();
   const d = (data && data.state) || {};
   state.abilities = d.abilities || [10,10,10,10,10,10];
   state.skillProfs = d.skillProfs || new Array(SKILLS_DATA.length).fill(false);
@@ -4855,6 +4957,7 @@ function importCharacters(file) {
 }
 
 function renderAll() {
+  uiHeroSummary();
   renderAbilities();
   renderSkills();
   renderSavingThrows();
@@ -6584,6 +6687,216 @@ function showUpdateToast() {
   t.innerHTML = '<span>Доступно обновление</span><button onclick="location.reload()" style="background:linear-gradient(135deg,var(--crimson),#6b0f0f);border:1px solid var(--gold);border-radius:8px;color:var(--gold-light);font-family:Cinzel,serif;font-size:12px;padding:7px 12px;cursor:pointer;letter-spacing:0.5px">ОБНОВИТЬ</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#8a94a1;font-size:16px;cursor:pointer;padding:2px">✕</button>';
   document.body.appendChild(t);
 }
+// v40 presentation state is ephemeral; character saves keep the v4 schema.
+const uiView = {
+  spells: {query:'',filter:'all',selected:null,scroll:0},
+  inventory: {query:'',filter:'all',selected:null,scroll:0}
+};
+function uiButton(text, handler, cls='') {
+  return `<button type="button" class="ui-button ${cls}" onclick="${handler}">${text}</button>`;
+}
+function uiHeroSummary() {
+  const name=document.getElementById('char-name').value;
+  const cls=document.getElementById('char-class').value;
+  const lvl=document.getElementById('char-level').value;
+  const race=document.getElementById('char-race').value;
+  document.getElementById('hero-summary').textContent=[cls,race,lvl&&`Уровень ${lvl}`].filter(Boolean).join(' · ');
+  document.querySelector('#tab-spells .page-header p').textContent=[name,[cls,lvl].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+}
+function uiEditHero() {
+  const input=document.getElementById('char-name');
+  input.readOnly=!input.readOnly;
+  document.getElementById('hero-edit').textContent=input.readOnly?'Изменить имя':'Готово';
+  if(!input.readOnly) { input.focus(); input.select(); }
+  else { uiHeroSummary(); saveAll(); }
+}
+function uiFilter(kind,value) {
+  uiView[kind].filter=value;
+  document.querySelectorAll(`#${kind}-filters button`).forEach(b=>{
+    const active=b.dataset.filter===String(value);
+    b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));
+  });
+  if(kind==='spells') renderSpellList(); else renderInventory();
+}
+function uiSearch(kind,value) {
+  uiView[kind].query=value.trim().toLocaleLowerCase('ru');
+  if(kind==='spells') renderSpellList(); else renderInventory();
+}
+function uiOpen(kind,index) {
+  const tab=document.getElementById(kind==='spells'?'tab-spells':'tab-inventory');
+  const content=tab.querySelector('.content');
+  uiView[kind].scroll=content.scrollTop;
+  uiView[kind].selected=(kind==='spells'?state.spells:state.inventory)[index];
+  if(kind==='spells') renderSpellList(); else renderInventory();
+  tab.classList.add('detail-open');
+  if(matchMedia('(max-width:719px)').matches) content.scrollTop=0;
+  tab.querySelector('.ui-detail h2')?.focus({preventScroll:true});
+}
+function uiBack(kind) {
+  const tab=document.getElementById(kind==='spells'?'tab-spells':'tab-inventory');
+  tab.classList.remove('detail-open');
+  tab.querySelector('.content').scrollTop=uiView[kind].scroll;
+  tab.querySelector('.selected')?.focus({preventScroll:true});
+}
+function uiResetViews() {
+  for(const kind of ['spells','inventory']) {
+    Object.assign(uiView[kind],{query:'',filter:'all',selected:null,scroll:0});
+    const search=document.getElementById(kind+'-search'); if(search) search.value='';
+    document.getElementById(kind==='spells'?'tab-spells':'tab-inventory').classList.remove('detail-open');
+    document.querySelectorAll(`#${kind}-filters button`).forEach(b=>{
+      b.classList.toggle('active',b.dataset.filter==='all');
+      b.setAttribute('aria-pressed',String(b.dataset.filter==='all'));
+    });
+  }
+}
+function uiMakeFilters(kind,items) {
+  const target=document.getElementById(kind+'-filters');
+  if(!items.some(([value])=>String(value)===String(uiView[kind].filter))) uiView[kind].filter='all';
+  target.innerHTML=items.map(([value,label])=>`<button type="button" class="ui-filter ${String(value)===String(uiView[kind].filter)?'active':''}" aria-pressed="${String(value)===String(uiView[kind].filter)}" data-filter="${value}" onclick="uiFilter('${kind}','${value}')">${esc(label)}</button>`).join('');
+}
+function renderSpellList() {
+  const list=document.getElementById('spell-list');
+  const view=uiView.spells;
+  const levels=[...new Set(state.spells.map(s=>Number(s.level)||0))].sort((a,b)=>a-b);
+  uiMakeFilters('spells',[['all','Все'],...levels.map(l=>[String(l),l===0?'Заговоры':l+' ур.']),['prepared','Подготовлены']]);
+  const sorted=[...state.spells].sort((a,b)=>a.level-b.level);
+  window._mySpellCache=sorted;
+  const shown=sorted.filter(sp=>(view.filter==='all'||view.filter==='prepared'&&(sp.prepared||Number(sp.level)===0)||String(sp.level)===view.filter)&&sp.name.toLocaleLowerCase('ru').includes(view.query));
+  if(!state.spells.includes(view.selected)) {
+    view.selected=shown[0]||null;
+    document.getElementById('tab-spells').classList.remove('detail-open');
+  }
+  // Keep selected detail in step with filters without resetting the search field.
+  if(!shown.includes(view.selected)&&!document.getElementById('tab-spells').classList.contains('detail-open')) view.selected=shown[0]||null;
+  list.innerHTML=shown.length?shown.map(sp=>{
+    const i=state.spells.indexOf(sp), d=findSpellDetails(sp);
+    const flags=[sp.level>0&&sp.prepared?'Подготовлено':'',d.concentration?(state.concentrationSpell===sp.name?'Концентрация активна':'Концентрация'):'',d.ritual?'Ритуал':''].filter(Boolean);
+    const meta=[Number(sp.level)===0?'Заговор':`${sp.level} уровень`,d.castingTime||sp.cast,d.range].filter(Boolean).join(' · ');
+    return `<button type="button" class="spell-row ${view.selected===sp?'selected':''}" onclick="uiOpen('spells',${i})" aria-label="${esc(sp.name)}: открыть" aria-pressed="${view.selected===sp}">
+      <img class="spell-row-icon" src="images/ui/${d.concentration?'eye':'bolt'}.png" alt="">
+      <span class="spell-row-copy"><span class="spell-row-name">${esc(sp.name)}</span><span class="spell-row-meta">${esc(meta)}</span>${flags.length?`<span class="spell-row-flags">${flags.map(f=>`<span class="spell-flag">${esc(f)}</span>`).join('')}</span>`:''}</span><span aria-hidden="true">›</span></button>`;
+  }).join(''):`<div class="ui-empty">${state.spells.length?'Ничего не найдено. Измените поиск или фильтр.':'<img class="empty-art" src="images/empty/spells.png" alt="">Здесь появятся ваши заклинания.<br>Добавьте их из базы знаний.'}</div>`;
+  uiSpellDetail();
+}
+function uiSpellDetail() {
+  const panel=document.getElementById('spell-detail');
+  const sp=uiView.spells.selected;
+  if(!sp) {panel.innerHTML='<div class="ui-empty">Выберите заклинание, чтобы увидеть описание и действия.</div>';return;}
+  const i=state.spells.indexOf(sp), d=findSpellDetails(sp);
+  const meta=[['Время',d.castingTime||sp.cast||'—'],['Дальность',d.range||'—'],['Компоненты',d.components||'—'],['Длительность',d.duration||'—']];
+  const ai=CASTING_ABILITY[document.getElementById('char-class').value];
+  const atk=ai===undefined?null:profBonus()+mod(state.abilities[ai]);
+  // Only spells explicitly described as attack rolls get the attack action.
+  const usesAttack=!!d.description&&/атак[ауи] заклинанием/i.test(d.description);
+  panel.innerHTML=uiButton('‹ Заклинания',"uiBack('spells')",'detail-back')+
+    `<div class="detail-eyebrow">${sp.level===0?'ЗАГОВОР':sp.level+' УРОВЕНЬ'} · ${esc(d.school||sp.school||'Магия')}</div><h2 tabindex="-1">${esc(sp.name)}</h2>
+    <dl class="detail-grid">${meta.map(([k,v])=>`<div><dt>${k}</dt><dd>${esc(String(v))}</dd></div>`).join('')}</dl>
+    ${d.damage?`<div class="detail-damage">Урон: <strong>${esc(d.damage)}</strong></div>`:''}
+    ${usesAttack&&atk!==null?uiButton(`${uiIc('die')} Бросить атаку (${atk>=0?'+':''}${atk})`,`uiSpellAttack(${i})`,'primary detail-primary'):''}
+    <p class="ui-muted detail-hint">${sp.level===0?'Не расходует ячейки заклинаний':'Расход ячейки отмечается вручную в счётчике.'}</p>
+    <div class="detail-actions">${sp.level>0?uiButton(sp.prepared?'✓ Подготовлено':'Подготовить',`togglePrepared(${i})`):''}${d.concentration?uiButton(state.concentrationSpell===sp.name?'◉ Концентрация активна':'Концентрироваться',`uiSpellConcentration(${i})`):''}</div>
+    <div class="detail-description">${esc(d.description||'Описание не указано. Заклинание сохранено в вашем списке.')}</div>
+    ${d.higherLevels?`<details class="ui-details"><summary>На высоких уровнях</summary><div class="detail-description" style="padding:0 14px">${esc(d.higherLevels)}</div></details>`:''}
+    <details class="ui-details"><summary>Управление заклинанием</summary>${uiButton('Удалить из списка',`uiRemoveSpell(${i})`,'danger')}</details>`;
+}
+function uiSpellAttack(i) {
+  const sp=state.spells[i];
+  const ai=CASTING_ABILITY[document.getElementById('char-class').value];
+  if(!sp||ai===undefined)return;
+  rollCheck(sp.name,profBonus()+mod(state.abilities[ai]));
+}
+function uiSpellConcentration(i) {if(state.spells[i])setConcentrationSpell(state.spells[i].name);}
+function uiRemoveSpell(i) {
+  if(!state.spells[i]||!confirm(`Удалить «${state.spells[i].name}» из списка заклинаний?`))return;
+  if(state.concentrationSpell===state.spells[i].name) {
+    state.concentrationSpell=null;state.conditions=state.conditions.filter(c=>c!=='Концентрация');updateConcentrationChip();
+    document.querySelector('[data-cond="Концентрация"]')?.classList.remove('active');
+  }
+  removeSpell(i);uiBack('spells');
+}
+function uiItemEntry(item) {
+  if(item.detail) return item.detail;
+  const q=item.name.toLocaleLowerCase('ru').replace(/\s*\(.*\)$/,'');
+  return [...DB_WEAPONS,...DB_ARMOR,...DB_MAGIC_ITEMS,...DB_GEAR].find(e=>e.name.toLocaleLowerCase('ru')===q)||{};
+}
+function uiItemCategory(item) {
+  const d=uiItemEntry(item);
+  if(d.itemType==='Оружие'||DB_WEAPONS.some(e=>e.name===d.name))return 'weapon';
+  if(d.ac||DB_ARMOR.some(e=>e.name===d.name))return 'armor';
+  if(/зелье|свиток|противоядие|па[её]к|еда|масло|факел/i.test(item.name+' '+(d.itemType||'')))return 'consumable';
+  return 'other';
+}
+function renderInventory() {
+  const view=uiView.inventory;
+  const list=document.getElementById('inv-list');
+  uiMakeFilters('inventory',[['all','Все'],['weapon','Оружие'],['armor','Броня'],['consumable','Расходники'],['other','Прочее']]);
+  const shown=state.inventory.filter(it=>(view.filter==='all'||uiItemCategory(it)===view.filter)&&it.name.toLocaleLowerCase('ru').includes(view.query));
+  if(!state.inventory.includes(view.selected)) {view.selected=shown[0]||null;document.getElementById('tab-inventory').classList.remove('detail-open');}
+  if(!shown.includes(view.selected)&&!document.getElementById('tab-inventory').classList.contains('detail-open'))view.selected=shown[0]||null;
+  list.innerHTML=shown.length?shown.map(it=>`<button type="button" class="inventory-row ${view.selected===it?'selected':''}" onclick="uiOpen('inventory',${state.inventory.indexOf(it)})" aria-label="${esc(it.name)}: открыть"><span class="inv-icon">${itemIconImg(it)}</span><span class="inv-name">${esc(it.name)}${it.attuned?'<span class="spell-row-meta">✓ Настроено</span>':''}</span><span class="inv-qty">×${it.qty}</span></button>`).join(''):'<div class="ui-empty">'+(state.inventory.length?'Предметы не найдены. Измените поиск или категорию.':'Сумка пока пуста. Добавьте предмет из базы знаний или вручную.')+'</div>';
+  uiInventoryDetail();
+}
+function uiInventoryDetail() {
+  const panel=document.getElementById('inventory-detail'),it=uiView.inventory.selected;
+  if(!it){panel.innerHTML='<div class="ui-empty">Выберите предмет, чтобы увидеть описание и изменить количество.</div>';return;}
+  const i=state.inventory.indexOf(it),d=uiItemEntry(it);
+  const meta=[['Тип',d.itemType],['Вес',d.weight],['Стоимость',d.cost],['Урон',d.damage],['Броня',d.ac?'КД '+d.ac:null]].filter(([,v])=>v);
+  panel.innerHTML=uiButton('‹ Снаряжение',"uiBack('inventory')",'detail-back')+`<div class="detail-eyebrow">СНАРЯЖЕНИЕ</div><h2 tabindex="-1">${esc(it.name)}</h2>${meta.length?`<dl class="detail-grid">${meta.map(([k,v])=>`<div><dt>${k}</dt><dd>${esc(String(v))}</dd></div>`).join('')}</dl>`:''}<div class="detail-description">${esc(d.description||'Для этого предмета нет описания в справочнике.')}</div>${d.properties?.length?`<p class="ui-muted">${esc(d.properties.join(', '))}</p>`:''}<div class="quantity-control">${uiButton('−',`changeQty(${i},-1)`)}<strong aria-live="polite">${it.qty}</strong>${uiButton('+',`changeQty(${i},1)`)}</div><p class="ui-muted detail-hint">Количество предметов</p>${itemRequiresAttunement(it)?`<div class="detail-actions">${uiButton(it.attuned?'✓ Настроено':'Настроить',`toggleAttune(${i})`)}</div><p class="ui-muted">Настроено предметов: ${attunedCount()} / 3</p>`:''}<details class="ui-details"><summary>Управление предметом</summary>${uiButton('Удалить из сумки',`uiRemoveItem(${i})`,'danger')}</details>`;
+  const qtyButtons=panel.querySelectorAll('.quantity-control button');
+  qtyButtons[0].setAttribute('aria-label','Уменьшить количество');qtyButtons[1].setAttribute('aria-label','Увеличить количество');
+}
+function uiRemoveItem(i) {if(state.inventory[i]&&confirm(`Удалить «${state.inventory[i].name}» из сумки?`)){removeItem(i);uiBack('inventory');}}
+function renderAttacks() {
+  document.getElementById('attacks-list').innerHTML=state.attacks.length?state.attacks.map((a,i)=>`<article class="attack-card"><h3>${esc(a.name)}</h3><div class="attack-stats"><span><b>${a.bonus>=0?'+':''}${a.bonus}</b>К попаданию</span><span><b>${esc(a.damage||'—')}</b>Урон</span></div><div class="attack-actions">${uiButton(uiIc('die')+' Бросить атаку',`rollAttack(${i})`,'primary')}<details class="ui-details"><summary aria-label="Управление атакой">⋯</summary>${uiButton('Удалить',`uiRemoveAttack(${i})`,'danger')}</details></div></article>`).join(''):'<div class="ui-empty">Добавьте оружие или атаку заклинанием.</div>';
+}
+function uiRemoveAttack(i) {if(state.attacks[i]&&confirm(`Удалить атаку «${state.attacks[i].name}»?`))removeAttack(i);}
+function uiWrapAddForm(id,title) {
+  const row=document.getElementById(id)?.closest('.add-item-row');if(!row)return;
+  const details=document.createElement('details');details.className='ui-details';
+  const summary=document.createElement('summary');summary.textContent=title;
+  row.before(details);details.append(summary,row);
+}
+function initRedesign() {
+  // Preserve the original editable inputs and all persistence ids.
+  const name=document.getElementById('char-name');
+  const group=document.createElement('div');group.className='ui-hero-title';name.before(group);group.append(name);
+  name.readOnly=true;name.setAttribute('aria-label','Имя персонажа');
+  group.insertAdjacentHTML('beforeend','<p class="hero-summary" id="hero-summary"></p><button type="button" id="hero-edit" class="ui-button hero-edit" onclick="uiEditHero()">Изменить имя</button>');
+  const spellContent=document.querySelector('#tab-spells>.content');
+  const sections=[...spellContent.children];
+  const overview=document.createElement('div');overview.className='spell-overview';overview.append(sections[0],sections[1]);
+  spellContent.prepend(overview);
+  sections[2].remove();
+  spellContent.insertAdjacentHTML('beforeend',`<div class="ui-workspace"><div class="ui-master"><div class="ui-toolbar"><input id="spells-search" class="ui-search" type="search" placeholder="Найти заклинание" aria-label="Найти заклинание" oninput="uiSearch('spells',this.value)"></div><div id="spells-filters" class="ui-filters" aria-label="Фильтр заклинаний"></div><div class="ui-toolbar">${uiButton(uiIc('book')+' База знаний',"openAISearch('spell')")}</div><div id="spell-list" class="spell-list"></div></div><section id="spell-detail" class="ui-detail" aria-label="Описание заклинания"></section></div>`);
+  const invContent=document.querySelector('#tab-inventory>.content');
+  invContent.children[0].classList.add('wallet-section');
+  const invSection=invContent.children[1];
+  const addRow=document.getElementById('inv-input').closest('.add-item-row');
+  invSection.innerHTML=`<div class="ui-workspace"><div class="ui-master"><div class="ui-toolbar"><input id="inventory-search" class="ui-search" type="search" placeholder="Найти предмет" aria-label="Найти предмет" oninput="uiSearch('inventory',this.value)"></div><div id="inventory-filters" class="ui-filters" aria-label="Категории предметов"></div><div class="ui-toolbar">${uiButton(uiIc('book')+' База знаний',"openAISearch('item')")}</div><div id="inv-list"></div></div><section id="inventory-detail" class="ui-detail" aria-label="Описание предмета"></section></div>`;
+  invSection.querySelector('.ui-master').append(addRow);
+  uiWrapAddForm('inv-input','＋ Добавить предмет вручную');
+  uiWrapAddForm('atk-name','＋ Добавить атаку');
+  uiWrapAddForm('feat-name','＋ Добавить особенность');
+  uiWrapAddForm('res-name','＋ Добавить ресурс');
+  const fab=document.getElementById('fab-dice');
+  document.querySelector('#screen-main .nav-bar').before(fab);
+  fab.insertAdjacentHTML('beforeend','<span>Быстрый к20</span>');
+  fab.setAttribute('role','button');fab.tabIndex=0;fab.setAttribute('aria-label','Быстрый бросок к20');
+  fab.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fab.click();}});
+  document.getElementById('char-main').addEventListener('change',uiHeroSummary);
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&!document.querySelector('.modal-overlay.open,.ai-overlay.open')) {
+      if(document.getElementById('tab-spells').classList.contains('detail-open'))uiBack('spells');
+      if(document.getElementById('tab-inventory').classList.contains('detail-open'))uiBack('inventory');
+    }
+  });
+  // Snapshot existing multi-character data once, before v40 can save anything.
+  // This is separate from the source-code backup and never overwrites a snapshot.
+  try {const old=localStorage.getItem(STORE_KEY)||localStorage.getItem('dnd_hero_save');if(old&&!localStorage.getItem('dnd_backup_before_v40'))localStorage.setItem('dnd_backup_before_v40',old);}catch(e){/* storage may be full; leave existing saves untouched */}
+  uiHeroSummary();
+}
+initRedesign();
+
 </script>
 </body>
 </html>
