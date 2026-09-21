@@ -265,6 +265,7 @@
   }
 
   .meta-field { text-align: center; }
+  .meta-field.meta-wide { grid-column: 1 / -1; }
   .meta-label { font-size: 10px; color: var(--ink-light); letter-spacing: 1px; text-transform: uppercase; }
   .meta-select, .meta-input {
     font-size: 16px;
@@ -2238,7 +2239,7 @@
       </div>
       <div class="welcome-bottom">
         <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-        <div class="welcome-version">версия 40</div>
+        <div class="welcome-version">версия 41</div>
       </div>
     </div>
   </div>
@@ -2310,6 +2311,11 @@
                   <option>Полурослик</option><option>Гном</option><option>Полуорк</option>
                   <option>Тифлинг</option><option>Драконорождённый</option>
                 </select>
+              </div>
+              <div class="meta-field meta-wide">
+                <div class="meta-label">Подкласс</div>
+                <!-- варианты подставляются из SUBCLASSES по выбранному классу -->
+                <select class="meta-select" id="char-subclass" onchange="onSubclassChange()"></select>
               </div>
             </div>
           </div>
@@ -3142,6 +3148,49 @@ let hpModalMode = 'damage';
 let currentDiceSides = 6;
 
 const CLASS_HIT_DIE = {'Воин':10,'Маг':6,'Плут':8,'Клерик':8,'Паладин':10,'Следопыт':10,'Варвар':12,'Бард':8,'Монах':8,'Чародей':6,'Колдун':8,'Друид':8};
+
+// Подклассы (архетипы) по классам: Книга игрока + самые ходовые из «Ксанатара» и «Таши».
+// Ключи — те же русские названия классов, что и в остальных таблицах.
+const SUBCLASSES = {
+  'Воин':     ['Чемпион','Мастер боевых искусств','Мистический рыцарь','Кавалерист','Самурай','Рыцарь эха','Стрелок'],
+  'Маг':      ['Школа Ограждения','Школа Вызова','Школа Прорицания','Школа Очарования','Школа Воплощения','Школа Иллюзии','Школа Некромантии','Школа Преобразования','Магия войны','Певец клинка'],
+  'Плут':     ['Вор','Убийца','Мистический ловкач','Скаут','Мастер клинков','Дознаватель','Фантом'],
+  'Клерик':   ['Домен Знания','Домен Жизни','Домен Света','Домен Природы','Домен Бури','Домен Обмана','Домен Войны','Домен Кузни','Домен Могилы','Домен Сумерек','Домен Порядка'],
+  'Паладин':  ['Клятва Преданности','Клятва Древних','Клятва Мести','Клятва Завоевания','Клятва Искупления','Клятва Славы','Клятвопреступник'],
+  'Следопыт': ['Охотник','Повелитель зверей','Странник горизонта','Убийца монстров','Сумрачный охотник','Странник Феи','Роевой хранитель'],
+  'Варвар':   ['Путь Берсерка','Путь Тотемного воина','Путь Предков','Путь Зилота','Путь Штормового вестника','Путь Зверя','Путь Дикой магии'],
+  'Бард':     ['Коллегия Знаний','Коллегия Доблести','Коллегия Мечей','Коллегия Шёпотов','Коллегия Гламура','Коллегия Красноречия','Коллегия Творения'],
+  'Монах':    ['Путь Открытой ладони','Путь Тени','Путь Четырёх стихий','Путь Кэнсэя','Путь Пьяного мастера','Путь Солнечной души','Путь Милосердия','Путь Астрального Я'],
+  'Чародей':  ['Драконья кровь','Дикая магия','Божественная душа','Теневая магия','Штормовое чародейство','Абберантный разум','Часовая душа'],
+  'Колдун':   ['Архифея','Исчадие','Великий Древний','Небожитель','Гексклинок','Нежить','Бездонный','Джинн'],
+  'Друид':    ['Круг Земли','Круг Луны','Круг Снов','Круг Пастыря','Круг Спор','Круг Звёзд','Круг Пожаров']
+};
+const SUBCLASS_OTHER = '__other';
+
+// Пересобрать список подклассов под текущий класс. `keep` — значение, которое надо
+// сохранить (из сейва или введённое вручную): если его нет в таблице, добавляем как
+// свой вариант, чтобы пользовательские подклассы переживали перезагрузку.
+function syncSubclassOptions(keep) {
+  const sel = document.getElementById('char-subclass'); if(!sel) return;
+  const cls = document.getElementById('char-class')?.value || '';
+  const list = SUBCLASSES[cls] || [];
+  const want = keep !== undefined ? keep : sel.value;
+  const custom = want && want !== SUBCLASS_OTHER && !list.includes(want) ? [want] : [];
+  sel.innerHTML = '<option value="">— не выбран —</option>'
+    + list.concat(custom).map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')
+    + `<option value="${SUBCLASS_OTHER}">Другой…</option>`;
+  sel.value = want && want !== SUBCLASS_OTHER ? want : '';
+}
+
+function onSubclassChange() {
+  const sel = document.getElementById('char-subclass');
+  if(sel.value === SUBCLASS_OTHER) {
+    const name = (prompt('Название подкласса:') || '').trim();
+    syncSubclassOptions(name);   // пусто → «не выбран»
+  }
+  uiHeroSummary();
+  saveAll();
+}
 
 // Фирменный цвет каждого класса (в духе D&D Beyond)
 const CLASS_THEMES = {
@@ -4403,6 +4452,7 @@ function onLevelChange() {
 
 function onClassChange() {
   state.hitDice.die=CLASS_HIT_DIE[document.getElementById('char-class').value]||8;
+  syncSubclassOptions(''); // подкласс другого класса не имеет смысла — сбрасываем
   renderHitDice();
   renderSpellcasting();
   syncSpellSlots(); renderSpellSlots();
@@ -4544,7 +4594,7 @@ function changeEmoji() { openPortraitPicker(); }
 // ============ SAVE / LOAD ============
 // ============ ХРАНИЛИЩЕ ПЕРСОНАЖЕЙ ============
 const STORE_KEY = 'dnd_store_v4';
-const FIELD_IDS = ['char-name','char-class','char-level','char-race','char-bg','char-xp','char-traits','temp-hp','stat-ac','stat-speed','coin-cp','coin-sp','coin-ep','coin-gp','coin-pp','notes-campaign','notes-locations','notes-npc','notes-misc'];
+const FIELD_IDS = ['char-name','char-class','char-subclass','char-level','char-race','char-bg','char-xp','char-traits','temp-hp','stat-ac','stat-speed','coin-cp','coin-sp','coin-ep','coin-gp','coin-pp','notes-campaign','notes-locations','notes-npc','notes-misc'];
 
 function genId() { return 'c' + Date.now() + Math.floor(Math.random()*100000); }
 
@@ -4586,6 +4636,7 @@ function applyCharacter(data) {
   state.bonusSlots = (d.bonusSlots && d.bonusSlots.length===9) ? d.bonusSlots : new Array(9).fill(0);
   const fields = (data && data.fields) || {};
   FIELD_IDS.forEach(id => { const el=document.getElementById(id); if(el && fields[id]!==undefined) el.value=fields[id]; });
+  syncSubclassOptions(fields['char-subclass'] || ''); // варианты зависят от класса, поэтому после полей
   // Кости Хитов: берём из сейва или вычисляем по классу/уровню
   if(d.hitDice) state.hitDice = d.hitDice;
   else {
@@ -4622,7 +4673,7 @@ function blankCharacterData() {
       bonusSlots:[0,0,0,0,0,0,0,0,0], hitDice:{total:1,used:0,die:10}
     },
     fields: {
-      'char-name':'Новый герой','char-class':'Воин','char-level':'1',
+      'char-name':'Новый герой','char-class':'Воин','char-subclass':'','char-level':'1',
       'char-race':'Человек','char-bg':'Простолюдин','char-xp':'0','char-traits':'',
       'temp-hp':'0','stat-ac':'10','stat-speed':'30',
       'coin-cp':'0','coin-sp':'0','coin-ep':'0','coin-gp':'0','coin-pp':'0',
@@ -4640,8 +4691,9 @@ function renderCharMenu() {
   const el = document.getElementById('char-list-menu');
   el.innerHTML = store.list.map(c => {
     const active = c.id === store.active;
-    const cls = (c.data && c.data.fields && c.data.fields['char-class']) || '';
-    const lvl = (c.data && c.data.fields && c.data.fields['char-level']) || '';
+    const f = (c.data && c.data.fields) || {};
+    const cls = [f['char-class'], f['char-subclass']].filter(Boolean).join(' — ');
+    const lvl = f['char-level'] || '';
     return `<div style="display:flex;align-items:center;gap:8px;padding:10px;border:1px solid ${active?'var(--gold)':'var(--parchment-dark)'};border-radius:10px;margin-bottom:6px;background:${active?'rgba(200,150,42,0.12)':'transparent'}">
       <div style="flex:1;cursor:pointer" onclick="switchCharacter('${c.id}')">
         <div style="font-family:Cinzel,serif;font-size:15px;color:var(--ink)">${esc(c.name||'Без имени')} ${active?'✓':''}</div>
@@ -4896,7 +4948,7 @@ function printCharacter() {
   const featHtml = (state.features||[]).length ? state.features.map(f=>`<b>${esc(f.name)}</b>${f.desc?': '+esc(f.desc):''}`).join('<br>') : '—';
   document.getElementById('print-sheet').innerHTML = `
     <h1>${esc(g('char-name'))}</h1>
-    <p class="sub">${esc(g('char-class'))} · уровень ${esc(g('char-level'))} · ${esc(g('char-race'))} · ${esc(g('char-bg'))}</p>
+    <p class="sub">${esc(g('char-class'))}${g('char-subclass')?' — '+esc(g('char-subclass')):''} · уровень ${esc(g('char-level'))} · ${esc(g('char-race'))} · ${esc(g('char-bg'))}</p>
     <table class="abil"><tr>${abilRows}</tr></table>
     <div class="grid2">
       <div><b>HP:</b> ${state.hp.current}/${state.hp.max} &nbsp; <b>КД:</b> ${esc(g('stat-ac'))} &nbsp; <b>Скорость:</b> ${esc(g('stat-speed'))} &nbsp; <b>Бонус мастерства:</b> +${pb}</div>
@@ -6698,9 +6750,10 @@ function uiButton(text, handler, cls='') {
 function uiHeroSummary() {
   const name=document.getElementById('char-name').value;
   const cls=document.getElementById('char-class').value;
+  const sub=document.getElementById('char-subclass')?.value||'';
   const lvl=document.getElementById('char-level').value;
   const race=document.getElementById('char-race').value;
-  document.getElementById('hero-summary').textContent=[cls,race,lvl&&`Уровень ${lvl}`].filter(Boolean).join(' · ');
+  document.getElementById('hero-summary').textContent=[[cls,sub].filter(Boolean).join(' — '),race,lvl&&`Уровень ${lvl}`].filter(Boolean).join(' · ');
   document.querySelector('#tab-spells .page-header p').textContent=[name,[cls,lvl].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
 }
 function uiEditHero() {

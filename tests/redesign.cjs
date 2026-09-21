@@ -56,6 +56,23 @@ const fs=require('node:fs');
   assert.equal(await page.evaluate(()=>state.inventory.find(i=>/Кинжал/i.test(i.name)).qty),qty+1);
   assert.equal(await page.evaluate(()=>state.concentrationSpell),'Сглаз');
   assert.equal(await page.evaluate(()=>localStorage.getItem('dnd_backup_before_v40')),original);
+  // Subclass: options follow the class, the value persists, class change resets it, custom names survive reload.
+  await page.getByRole('button',{name:'Герой',exact:true}).click();
+  assert.equal(await page.locator('#char-class').inputValue(),'Колдун');
+  assert.ok((await page.locator('#char-subclass option').allTextContents()).includes('Исчадие'));
+  await page.locator('#char-subclass').selectOption('Исчадие');
+  assert.match(await page.locator('#hero-summary').textContent(),/Колдун — Исчадие/);
+  await page.reload();await page.locator('.welcome-btn').click();
+  assert.equal(await page.locator('#char-subclass').inputValue(),'Исчадие');
+  page.once('dialog',d=>d.accept('Свой путь'));
+  await page.locator('#char-subclass').selectOption('__other');
+  assert.equal(await page.locator('#char-subclass').inputValue(),'Свой путь');
+  await page.reload();await page.locator('.welcome-btn').click();
+  assert.equal(await page.locator('#char-subclass').inputValue(),'Свой путь');
+  await page.locator('#char-class').selectOption('Воин');
+  assert.equal(await page.locator('#char-subclass').inputValue(),'');
+  assert.ok((await page.locator('#char-subclass option').allTextContents()).includes('Чемпион'));
+  await page.locator('#char-class').selectOption('Колдун');
   // Arbitrary names and long descriptions stay text, never executable markup.
   await page.evaluate(()=>{
     state.spells.push({name:'<img src=x onerror="window.injected=true">',level:9,description:'Очень длинный текст '.repeat(80)});
