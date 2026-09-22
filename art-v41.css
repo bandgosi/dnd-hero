@@ -1,0 +1,93 @@
+/* v41: original illustrations with solid surfaces under information. */
+@media screen {
+  .hero-banner { position:relative; overflow:hidden; isolation:isolate; background:#14181e; grid-template-columns:100px minmax(0,1fr); padding:138px 20px 22px; gap:18px; }
+  .class-cover { position:absolute; z-index:-2; top:0; left:0; width:100%; aspect-ratio:2/1; background-image:url('images/art/classes.webp'); background-size:300% 400%; background-repeat:no-repeat; }
+  .hero-banner::after { content:''; position:absolute; z-index:-1; inset:0; background:linear-gradient(180deg,transparent 10%,#14181e30 34%,#14181ee8 67%,#14181e 90%); pointer-events:none; }
+  .hero-banner .hero-crest { display:none; }
+  .hero-banner .char-portrait { width:96px; height:96px; background:#11151c; border:2px solid #c9a03a99; box-shadow:0 5px 22px #0009; }
+  .portrait-ring { opacity:.5; }
+  .hero-banner .char-name-input { font-size:29px; text-shadow:0 2px 6px #000; }
+  .hero-summary { font-size:13px; color:#e0d8cd; }
+  .hero-edit { background:#151b23cf; border-color:#c9a03a40; color:#dfd4bb; }
+  .portrait-link { margin:0 0 0 6px; }
+  .hero-overview { grid-column:1/-1; margin:16px; display:grid; grid-template-columns:1fr; gap:12px; min-width:0; }
+  .overview-health { border:1px solid var(--line); border-radius:14px; padding:16px; background:#1d232b; }
+  .overview-title { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .overview-title h2 { font:22px Georgia,serif; }
+  .overview-title span { color:#c5cbd5; font-size:18px; }
+  .overview-title b { font:700 28px Georgia,serif; color:#ef929c; }
+  .overview-track { height:9px; background:#ffffff0b; border-radius:10px; overflow:hidden; margin:14px 0; }
+  .overview-track i { display:block; height:100%; background:linear-gradient(90deg,#b83c4c,#e66b79); border-radius:10px; }
+  .overview-actions { display:flex; gap:10px; }
+  .overview-actions .ui-button { flex:1; }
+  .overview-actions .ui-button:last-child { color:#abd1b0; border-color:#89aa8d55; }
+  .overview-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+  .overview-stats>div { background:#1d232b; border:1px solid var(--line); border-radius:12px; padding:12px 6px; text-align:center; }
+  .overview-stats b { display:block; font:28px Georgia,serif; margin-bottom:6px; }
+  .overview-stats span { font-size:12px; color:#bec6d2; }
+  .overview-magic { display:flex; align-items:center; gap:14px; min-width:0; padding:14px; text-align:left; background:linear-gradient(110deg,#382741,#24202e); color:#e0d0f3; border:1px solid #b08bd35c; border-radius:12px; cursor:pointer; }
+  .overview-magic>span:nth-child(2) { flex:1; }
+  .overview-magic strong { display:block; font:18px Georgia,serif; }
+  .overview-magic small { display:block; margin-top:5px; font-size:14px; }
+  .overview-orb { font-size:32px; color:#c9a3f4; text-shadow:0 0 10px #a875e966; }
+  #tab-spells>.page-header { padding-top:calc(var(--safe-top) + 28px); padding-bottom:24px; background:linear-gradient(90deg,#0c0f1340,#0c0f1310),url('images/art/grimoire.webp') center 52%/cover; }
+  #tab-spells>.page-header h1 { color:#f5eee1; text-shadow:0 2px 7px #000; }
+  #tab-spells>.page-header p { color:#ded7e8; text-shadow:0 2px 5px #000; }
+  .school-symbol { --school-color:#c5a3ef; display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; flex-shrink:0; border-radius:50%; color:var(--school-color); background:radial-gradient(circle,#a987df15,transparent 70%); }
+  .school-symbol svg { width:32px; height:32px; filter:drop-shadow(0 0 5px #a987df22); }
+  .school-symbol.large { display:flex; width:48px; height:48px; float:right; margin:10px 0 6px 12px; }
+  .school-symbol.large svg { width:42px; height:42px; }
+  .school-abjuration { --school-color:#debe72; }
+  .school-conjuration { --school-color:#83c9bb; }
+  .school-divination { --school-color:#9abfed; }
+  .school-enchantment { --school-color:#d5a2de; }
+  .school-necromancy { --school-color:#a7bc9c; }
+  .school-transmutation { --school-color:#e2b384; }
+  .spell-row { padding:13px 12px; min-height:74px; }
+  .spell-row-name { font:600 17px/1.4 Georgia,'Times New Roman',serif; }
+  .spell-row-meta { color:#c0c5d1; }
+  .spell-row.selected { border-color:#b08ad4aa; background:linear-gradient(110deg,#463354aa,#22202c); }
+  .ui-detail { background:radial-gradient(ellipse at right top,#75509315,transparent 55%),#191f28; }
+  .detail-grid { clear:both; }
+  .item-illustration { width:min(100%,220px); aspect-ratio:1; margin:12px auto 20px; background:url('images/art/items.webp') var(--art-x) var(--art-y)/400% 200%; border-radius:18px; box-shadow:inset 0 0 30px #14181e55; }
+  .item-engraving { display:flex; justify-content:center; margin:14px auto 20px; }
+  .item-engraving img { width:96px; height:96px; object-fit:contain; opacity:.85; }
+  .rarity-badge { --rarity:#c0c7d3; display:table; width:fit-content; font:12px/1.5 var(--ui-font); color:var(--rarity); border:1px solid currentColor; padding:3px 8px; border-radius:7px; margin-top:7px; }
+  .rarity-uncommon { --rarity:#9bc6a3; }
+  .rarity-rare { --rarity:#9cbfeb; }
+  .rarity-very-rare { --rarity:#c6a6ed; }
+  .rarity-legendary { --rarity:#e8c37a; }
+  .rarity-artifact { --rarity:#edac86; }
+  .ui-detail.rarity-legendary,.ui-detail.rarity-artifact { border-color:#c9a03a99; box-shadow:inset 0 0 0 4px #c9a03a0d; }
+  .portrait-gallery-choice img { width:100%; height:100%; object-fit:cover; border-radius:10px; }
+  .empty-art { opacity:.8; filter:drop-shadow(0 8px 18px #0006); }
+  .hp-bar-fill { transition:width .35s ease; }
+  .art-pulse { animation:art-pulse .4s ease-out; }
+  .art-heal { animation:art-heal .4s ease-out; }
+  .art-damage { animation:art-damage .4s ease-out; }
+  .art-critical { animation:art-critical .6s ease-out; }
+  @keyframes art-pulse { 50% {box-shadow:0 0 0 3px #b99aef50,inset 0 0 20px #b99aef22;} }
+  @keyframes art-heal { 50% {box-shadow:0 0 0 3px #89c79e66;} }
+  @keyframes art-damage { 50% {box-shadow:0 0 0 3px #ec919966;} }
+  @keyframes art-critical { 50% {box-shadow:0 -3px 20px #e8c37a55; border-top-color:#e8c37a;} }
+  @media (min-width:720px) {
+    .hero-banner { padding:168px 30px 26px; grid-template-columns:124px minmax(0,1fr); }
+    .hero-banner .char-portrait { width:120px; height:120px; }
+    .hero-banner .char-name-input { font-size:36px; }
+    .hero-summary { font-size:16px; }
+    .hero-overview { margin:0; grid-template-columns:1fr 1fr; align-items:start; }
+    .overview-health { grid-row:span 2; }
+    .hero-banner .class-cover { top:50%; transform:translateY(-50%); }
+    #tab-spells>.page-header { background-position:center 51%; background-size:100% auto; padding-top:calc(var(--safe-top) + 30px); padding-bottom:30px; }
+  }
+  @media (max-width:359px) {
+    .hero-banner { grid-template-columns:78px minmax(0,1fr); padding:124px 14px 20px; gap:12px; }
+    .hero-banner .char-portrait { width:76px; height:76px; }
+    .hero-banner .char-name-input { font-size:24px; }
+    .school-symbol { width:30px; height:30px; }
+    .school-symbol svg { width:28px; height:28px; }
+    .spell-row-name { font-size:16px; }
+  }
+  @media (max-height:500px) { .hero-banner {padding-top:56px;} #tab-spells>.page-header {padding-top:calc(var(--safe-top) + 12px);padding-bottom:12px;} }
+  @media (prefers-reduced-motion:reduce) { .hp-bar-fill {transition:none;} .art-pulse,.art-heal,.art-damage,.art-critical {animation:none;} }
+}

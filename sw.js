@@ -1,7 +1,13 @@
-const CACHE_NAME = 'dnd-hero-v41';
+const CACHE_NAME = 'dnd-hero-v42';
 const ASSETS = [
   './',
   './index.html',
+  './art-v41.css',
+  './art-v41.js',
+  './images/art/classes.webp',
+  './images/art/grimoire.webp',
+  './images/art/halfling.webp',
+  './images/art/items.webp',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
