@@ -9,11 +9,11 @@ const fs=require('node:fs'),path=require('node:path');
   const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true});
   const page=await context.newPage();const errors=[];page.on('pageerror',e=>{errors.push(e.message);console.error('APP ERROR:',e.message);});
   await page.goto('http://localhost:8002');
-  await page.waitForFunction(async()=>navigator.serviceWorker.controller&&(await caches.keys()).includes('dnd-hero-v42'));
+  await page.waitForFunction(async()=>navigator.serviceWorker.controller&&(await caches.keys()).includes('dnd-hero-v43'));
   await page.waitForLoadState('networkidle');await page.waitForFunction(()=>typeof artApplyClass==='function'&&document.querySelector('.hero-overview'));await page.locator('.welcome-btn').click();
-  await page.evaluate(()=>localStorage.setItem('fx_sound','0'));
+  await page.waitForLoadState('networkidle');await page.waitForFunction(()=>typeof ART_CLASS_ORDER!=='undefined');if(await page.locator('.welcome-btn').isVisible())await page.locator('.welcome-btn').click();await page.evaluate(()=>localStorage.setItem('fx_sound','0'));
   const assets=await page.evaluate(async()=>{
-    const cache=await caches.open('dnd-hero-v42');
+    const cache=await caches.open('dnd-hero-v43');
     return Promise.all(['art-v41.css','art-v41.js','images/art/classes.webp','images/art/grimoire.webp','images/art/halfling.webp','images/art/items.webp'].map(async p=>!!await cache.match(new URL(p,location.href).href)));
   });assert.ok(assets.every(Boolean),'All artwork/code must be available offline');
   const classes=await page.evaluate(()=>ART_CLASS_ORDER);

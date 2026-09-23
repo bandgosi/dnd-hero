@@ -2225,6 +2225,7 @@
 }
 
 </style>
+<link rel="stylesheet" href="art-v41.css">
 </head>
 <body>
 <div class="app" id="app">
@@ -2239,7 +2240,7 @@
       </div>
       <div class="welcome-bottom">
         <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-        <div class="welcome-version">версия 41</div>
+        <div class="welcome-version">версия 42</div>
       </div>
     </div>
   </div>
@@ -6759,7 +6760,7 @@ function uiHeroSummary() {
 function uiEditHero() {
   const input=document.getElementById('char-name');
   input.readOnly=!input.readOnly;
-  document.getElementById('hero-edit').textContent=input.readOnly?'Изменить имя':'Готово';
+  document.getElementById('hero-edit').textContent=input.readOnly?'Изменить':'Готово';
   if(!input.readOnly) { input.focus(); input.select(); }
   else { uiHeroSummary(); saveAll(); }
 }
@@ -6886,7 +6887,7 @@ function renderInventory() {
   const shown=state.inventory.filter(it=>(view.filter==='all'||uiItemCategory(it)===view.filter)&&it.name.toLocaleLowerCase('ru').includes(view.query));
   if(!state.inventory.includes(view.selected)) {view.selected=shown[0]||null;document.getElementById('tab-inventory').classList.remove('detail-open');}
   if(!shown.includes(view.selected)&&!document.getElementById('tab-inventory').classList.contains('detail-open'))view.selected=shown[0]||null;
-  list.innerHTML=shown.length?shown.map(it=>`<button type="button" class="inventory-row ${view.selected===it?'selected':''}" onclick="uiOpen('inventory',${state.inventory.indexOf(it)})" aria-label="${esc(it.name)}: открыть"><span class="inv-icon">${itemIconImg(it)}</span><span class="inv-name">${esc(it.name)}${it.attuned?'<span class="spell-row-meta">✓ Настроено</span>':''}</span><span class="inv-qty">×${it.qty}</span></button>`).join(''):'<div class="ui-empty">'+(state.inventory.length?'Предметы не найдены. Измените поиск или категорию.':'Сумка пока пуста. Добавьте предмет из базы знаний или вручную.')+'</div>';
+  list.innerHTML=shown.length?shown.map(it=>`<button type="button" class="inventory-row ${view.selected===it?'selected':''}" onclick="uiOpen('inventory',${state.inventory.indexOf(it)})" aria-label="${esc(it.name)}: открыть"><span class="inv-icon">${itemIconImg(it)}</span><span class="inv-name">${esc(it.name)}${it.attuned?'<span class="spell-row-meta">✓ Настроено</span>':''}</span><span class="inv-qty">×${it.qty}</span></button>`).join(''):'<div class="ui-empty">'+(state.inventory.length?'Предметы не найдены. Измените поиск или категорию.':'<img class="empty-art" src="images/empty/inventory.png" alt="">Сумка пока пуста. Добавьте предмет из базы знаний или вручную.')+'</div>';
   uiInventoryDetail();
 }
 function uiInventoryDetail() {
@@ -6914,7 +6915,7 @@ function initRedesign() {
   const name=document.getElementById('char-name');
   const group=document.createElement('div');group.className='ui-hero-title';name.before(group);group.append(name);
   name.readOnly=true;name.setAttribute('aria-label','Имя персонажа');
-  group.insertAdjacentHTML('beforeend','<p class="hero-summary" id="hero-summary"></p><button type="button" id="hero-edit" class="ui-button hero-edit" onclick="uiEditHero()">Изменить имя</button>');
+  group.insertAdjacentHTML('beforeend','<p class="hero-summary" id="hero-summary"></p><button type="button" id="hero-edit" class="ui-button hero-edit" aria-label="Изменить имя" onclick="uiEditHero()">Изменить</button>');
   const spellContent=document.querySelector('#tab-spells>.content');
   const sections=[...spellContent.children];
   const overview=document.createElement('div');overview.className='spell-overview';overview.append(sections[0],sections[1]);
@@ -6951,5 +6952,6 @@ function initRedesign() {
 initRedesign();
 
 </script>
+<script src="art-v41.js"></script>
 </body>
 </html>

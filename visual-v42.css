@@ -1,0 +1,44 @@
+@media screen {
+.content {background:var(--bg)!important;}
+.line-icon {width:1.2em;height:1.2em;vertical-align:-.2em;flex-shrink:0;object-fit:contain;}
+.nav-btn svg {stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.nav-btn.active {color:#e5c784!important;}
+.battle-entry {grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;min-height:52px;}
+.battle-entry span {font-size:12px;font-weight:400;opacity:.8;}
+.ability-card {display:flex;flex-direction:column;align-items:center;padding:14px 8px!important;background:#171c24!important;border:1px solid #323b48!important;box-shadow:none!important;}
+.ability-card .ability-name {order:0;font-size:12px;}
+.ability-card .ability-mod {order:1;font-size:32px!important;line-height:1.3;min-height:48px;min-width:64px;background:none;border:0;color:#efd497;cursor:pointer;}
+.ability-card .ability-score {order:2;font-size:16px!important;width:62px!important;border:1px solid #394351!important;border-radius:8px!important;color:#bdc6d4!important;padding:6px!important;}
+#battle-conditions {display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 16px;}
+.condition-chip {min-height:44px;display:inline-flex;align-items:center;gap:6px;}
+.condition-chip.active {background:#332c45;color:#e3d3fa;border-color:#8e73b0;}
+.battle-slot-row {display:flex;align-items:center;gap:12px;justify-content:space-between;padding:12px 0;border-bottom:1px solid #303743;}
+.battle-slot-row>span {flex-shrink:0;color:#d8c4f4;}.battle-slot-row small {display:block;color:#aeb8c8;margin-top:4px;}
+.battle-slot-row .slot-dots {flex-wrap:wrap;justify-content:flex-end;}
+.inventory-row.equipped {border-left:3px solid #d6b56e;background:#25231f;}
+.equipment-label {display:block;font-size:12px;color:#d6b56e;margin-top:4px;}
+.equip-button {display:flex;gap:8px;align-items:center;}
+.roll-receipt {position:fixed;z-index:1500;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom));width:min(330px,calc(100vw - 32px));padding:18px 36px 18px 20px;border:1px solid #76623f;border-radius:18px;background:#191e27;box-shadow:0 12px 36px #0009;pointer-events:none;text-align:center;}
+.roll-receipt[hidden]{display:none;}.roll-receipt span,.roll-receipt small {display:block;overflow-wrap:anywhere;color:#c6cdda;}.roll-receipt strong {display:block;font-size:42px;line-height:1.3;color:#e7cf9a;}.receipt-close {position:absolute;right:6px;top:4px;width:36px;height:36px;background:none;border:0;color:#cbd2dd;font-size:24px;pointer-events:auto;}
+.natural-twenty {border-color:#ebcb80;animation:art-critical .65s ease;}.natural-one {border-color:#b4646e;}.natural-one strong {color:#ef9ca6;}
+.v42-dialog {background:#191e27;color:#e9ecf1;border:1px solid #615374;border-radius:20px;padding:24px;max-width:min(440px,calc(100vw - 32px));}.v42-dialog::backdrop {background:#0009;}.v42-dialog p{line-height:1.65;}
+@media(max-width:719px){
+#tab-spells.detail-open .ui-detail,#tab-inventory.detail-open .ui-detail{position:fixed;z-index:300;inset:auto 0 calc(70px + env(safe-area-inset-bottom));max-height:calc(90dvh - 70px);overflow-y:auto;border-radius:24px 24px 0 0;padding:10px 18px 20px;box-shadow:0 -80px 0 80px #0009;background:#191e27;animation:sheet-rise .2s ease-out;}
+.ui-detail:before {content:'';display:block;width:38px;height:4px;border-radius:3px;background:#647080;margin:0 auto 10px;}
+.detail-back {position:sticky;top:0;z-index:2;background:#222a36!important;min-height:44px;}
+.detail-actions {position:sticky;bottom:0;background:#191e27;padding:10px 0;}
+}
+@keyframes sheet-rise {from {transform:translateY(30px);opacity:.5;}to{transform:translateY(0);opacity:1;}}
+@media(prefers-reduced-motion:reduce){.roll-receipt,.ui-detail{animation:none!important;}}
+}
+
+@media screen {.welcome-logo{width:100px;height:100px;object-fit:contain;margin-bottom:12px;border-radius:22px;}.battle-bookkeeping{margin:0 16px 12px}.combat-vitals>.section:first-child{display:none}.hp-section{margin-top:16px}.combat-actions .attack-card{margin-bottom:10px}}
+@media screen {
+.abilities-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.ability-card{min-width:0}.ability-name{max-width:100%;overflow-wrap:anywhere;letter-spacing:0!important;font-family:var(--ui-font)!important;}
+#char-combat .hp-section{padding:12px 16px;background:#241d24;border-color:#68414a;}
+#char-combat .hp-current{font-size:40px;line-height:1.15}#char-combat .hp-controls{margin:6px 0;}
+#char-combat .combat-stat{padding:8px 4px;}#char-combat .combat-stat-label{font-size:10px;}#char-combat .combat-stat-val{font-size:26px;}
+#char-combat .section-title{margin-bottom:10px;}#char-combat .combat-stats-grid{margin-bottom:6px;}
+@media(min-width:720px){.abilities-grid{grid-template-columns:repeat(6,minmax(0,1fr));}}
+}
+@media screen {.attack-actions .primary{background:#514329;border-color:#8e7547;color:#f7e4be;}.battle-entry.primary{background:#514329;border-color:#8e7547;color:#f7e4be;}}
