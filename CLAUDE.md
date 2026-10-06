@@ -59,7 +59,7 @@ All rules content lives in constants inside `index.html`, in Russian:
 
 ### Additional persistent state
 
-Beyond the core fields, `state` also carries `resources` (class counters with short/long-rest recovery), `features` (name/desc list), `bonusSlots`, `concentrationSpell`, `portraitImg` (256px JPEG data URL), and per-item `attuned` / per-spell `prepared` flags. All must be defaulted in both `applyCharacter()` and `blankCharacterData()`.
+Beyond the core fields, `state` also carries `resources` (class counters with short/long-rest recovery), `features` (name/desc list), `bonusSlots`, `concentrationSpell`, `portraitImg` (256px JPEG data URL), per-item `attuned` / per-spell `prepared` flags, and an optional per-feature `collapsed` flag (tap the feature name → `toggleFeature(i)`; absent means expanded, so it needs no default). All must be defaulted in both `applyCharacter()` and `blankCharacterData()`.
 
 ### Feedback, quick-roll, sharing
 

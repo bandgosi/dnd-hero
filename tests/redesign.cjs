@@ -73,6 +73,15 @@ const fs=require('node:fs');
   assert.equal(await page.locator('#char-subclass').inputValue(),'');
   assert.ok((await page.locator('#char-subclass option').allTextContents()).includes('Чемпион'));
   await page.locator('#char-class').selectOption('Колдун');
+  // Features collapse/expand by tapping the name; the state survives reload.
+  await page.evaluate(()=>{state.features=[{name:'Удача',desc:'Перебросьте единицу.'}];renderFeatures();saveAll();});
+  await page.locator('.feat-toggle',{hasText:'Удача'}).click();
+  assert.equal(await page.locator('#features-list .feat-desc').count(),0);
+  assert.equal(await page.locator('.feat-toggle').getAttribute('aria-expanded'),'false');
+  await page.reload();await page.locator('.welcome-btn').click();
+  assert.equal(await page.locator('#features-list .feat-desc').count(),0);
+  await page.locator('.feat-toggle',{hasText:'Удача'}).click();
+  assert.equal(await page.locator('#features-list .feat-desc').textContent(),'Перебросьте единицу.');
   // Arbitrary names and long descriptions stay text, never executable markup.
   await page.evaluate(()=>{
     state.spells.push({name:'<img src=x onerror="window.injected=true">',level:9,description:'Очень длинный текст '.repeat(80)});

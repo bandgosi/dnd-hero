@@ -266,6 +266,10 @@
 
   .meta-field { text-align: center; }
   .meta-field.meta-wide { grid-column: 1 / -1; }
+  .feat-toggle { display:flex; align-items:center; gap:8px; width:100%; min-height:32px; padding:0; background:none; border:0; text-align:left; cursor:pointer; color:inherit; font:inherit; }
+  .feat-name { flex:1; min-width:0; font-family:Cinzel,serif; font-size:14px; color:var(--gold-light); overflow-wrap:anywhere; }
+  .feat-chev { flex-shrink:0; color:var(--ink-light); font-size:12px; }
+  .feat-desc { font-size:13px; color:var(--ink-light); margin-top:2px; line-height:1.5; white-space:pre-line; }
   .meta-label { font-size: 10px; color: var(--ink-light); letter-spacing: 1px; text-transform: uppercase; }
   .meta-select, .meta-input {
     font-size: 16px;
@@ -2242,7 +2246,7 @@
       </div>
       <div class="welcome-bottom">
         <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-        <div class="welcome-version">версия 43</div>
+        <div class="welcome-version">версия 44</div>
       </div>
     </div>
   </div>
@@ -3920,11 +3924,21 @@ function renderFeatures() {
   el.innerHTML = fs.map((f,i)=>`
     <div style="padding:10px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start">
       <div style="flex:1;min-width:0">
-        <div style="font-family:Cinzel,serif;font-size:14px;color:var(--gold-light)">${esc(f.name)}</div>
-        ${f.desc?`<div style="font-size:13px;color:var(--ink-light);margin-top:2px;line-height:1.5">${esc(f.desc)}</div>`:''}
+        ${f.desc
+          ? `<button type="button" class="feat-toggle" onclick="toggleFeature(${i})" aria-expanded="${!f.collapsed}"><span class="feat-name">${esc(f.name)}</span><span class="feat-chev" aria-hidden="true">${f.collapsed?'▸':'▾'}</span></button>
+             ${f.collapsed?'':`<div class="feat-desc">${esc(f.desc)}</div>`}`
+          : `<div class="feat-name">${esc(f.name)}</div>`}
       </div>
       <button class="inv-delete" onclick="removeFeature(${i})">✕</button>
     </div>`).join('');
+}
+
+// Свернуть/развернуть описание особенности по тапу на название.
+// collapsed — необязательный флаг: в старых сейвах его нет, значит развёрнуто.
+function toggleFeature(i) {
+  const f = state.features[i]; if(!f) return;
+  f.collapsed = !f.collapsed;
+  renderFeatures(); saveAll();
 }
 
 function addFeature() {
