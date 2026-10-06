@@ -2238,15 +2238,22 @@
   <!-- WELCOME SCREEN -->
   <div class="screen active" id="screen-welcome">
     <div class="welcome-bg">
-      <div class="welcome-top">
+      <div class="welcome-scene" aria-hidden="true"></div>
+      <div class="welcome-brand">
         <img class="welcome-logo" src="icons/icon-192.png" alt="">
-        <div class="welcome-title">D&D ГЕРОЙ</div>
-        <svg viewBox="0 0 230 26" xmlns="http://www.w3.org/2000/svg" style="width:250px;max-width:75%;margin-bottom:4px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.7))"><path d="M5 13 C40 8 80 18 105 13 L115 6 L125 13 C150 18 190 8 225 13" stroke="#C9A03A" stroke-width="1.6" fill="none"/><path d="M115 3 L121 13 L115 23 L109 13 Z" fill="#E04343" stroke="#F0C657" stroke-width="1.2"/><circle cx="30" cy="12" r="1.3" fill="#F0C657"/><circle cx="200" cy="12" r="1.3" fill="#F0C657"/></svg>
-        <div class="welcome-sub">Книга приключений всегда с тобой</div>
+        <div><div class="welcome-title">D&D ГЕРОЙ</div><div class="welcome-edition">ТВОЯ КНИГА ПРИКЛЮЧЕНИЙ</div></div>
       </div>
       <div class="welcome-bottom">
-        <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-        <div class="welcome-version">версия 44</div>
+        <div class="welcome-kicker"><span></span> ЛИСТ ПЕРСОНАЖА · 5e</div>
+        <h1 class="welcome-heading">У каждой легенды<br>есть свой герой.</h1>
+        <p class="welcome-sub">Персонаж, магия и броски кубиков. Всё для следующего приключения.</p>
+        <div class="welcome-features" aria-label="Возможности приложения">
+          <span><img src="images/ui/shield.png" alt="">Персонаж</span>
+          <span><img src="images/ui/book.png" alt="">Заклинания</span>
+          <span><img src="images/ui/die.png" alt="">Кубики</span>
+        </div>
+        <button class="welcome-btn" onclick="startApp()"><span>Начать приключение</span><span aria-hidden="true">→</span></button>
+        <div class="welcome-footer"><span class="welcome-offline"><i aria-hidden="true"></i>Работает без интернета</span><span class="welcome-version">версия 46</span></div>
       </div>
     </div>
   </div>

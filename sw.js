@@ -1,5 +1,6 @@
-const CACHE_NAME = 'dnd-hero-v44';
+const CACHE_NAME = 'dnd-hero-v46';
 const ASSETS = [
+  './images/welcome-amethyst.webp',
   './',
   './index.html',
   './art-v41.css',

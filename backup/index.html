@@ -266,6 +266,10 @@
 
   .meta-field { text-align: center; }
   .meta-field.meta-wide { grid-column: 1 / -1; }
+  .feat-toggle { display:flex; align-items:center; gap:8px; width:100%; min-height:32px; padding:0; background:none; border:0; text-align:left; cursor:pointer; color:inherit; font:inherit; }
+  .feat-name { flex:1; min-width:0; font-family:Cinzel,serif; font-size:14px; color:var(--gold-light); overflow-wrap:anywhere; }
+  .feat-chev { flex-shrink:0; color:var(--ink-light); font-size:12px; }
+  .feat-desc { font-size:13px; color:var(--ink-light); margin-top:2px; line-height:1.5; white-space:pre-line; }
   .meta-label { font-size: 10px; color: var(--ink-light); letter-spacing: 1px; text-transform: uppercase; }
   .meta-select, .meta-input {
     font-size: 16px;
@@ -2226,6 +2230,7 @@
 
 </style>
 <link rel="stylesheet" href="art-v41.css">
+<link rel="stylesheet" href="visual-v42.css">
 </head>
 <body>
 <div class="app" id="app">
@@ -2234,13 +2239,14 @@
   <div class="screen active" id="screen-welcome">
     <div class="welcome-bg">
       <div class="welcome-top">
+        <img class="welcome-logo" src="icons/icon-192.png" alt="">
         <div class="welcome-title">D&D ГЕРОЙ</div>
         <svg viewBox="0 0 230 26" xmlns="http://www.w3.org/2000/svg" style="width:250px;max-width:75%;margin-bottom:4px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.7))"><path d="M5 13 C40 8 80 18 105 13 L115 6 L125 13 C150 18 190 8 225 13" stroke="#C9A03A" stroke-width="1.6" fill="none"/><path d="M115 3 L121 13 L115 23 L109 13 Z" fill="#E04343" stroke="#F0C657" stroke-width="1.2"/><circle cx="30" cy="12" r="1.3" fill="#F0C657"/><circle cx="200" cy="12" r="1.3" fill="#F0C657"/></svg>
         <div class="welcome-sub">Книга приключений всегда с тобой</div>
       </div>
       <div class="welcome-bottom">
         <button class="welcome-btn" onclick="startApp()">НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
-        <div class="welcome-version">версия 42</div>
+        <div class="welcome-version">версия 44</div>
       </div>
     </div>
   </div>
@@ -3918,11 +3924,21 @@ function renderFeatures() {
   el.innerHTML = fs.map((f,i)=>`
     <div style="padding:10px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start">
       <div style="flex:1;min-width:0">
-        <div style="font-family:Cinzel,serif;font-size:14px;color:var(--gold-light)">${esc(f.name)}</div>
-        ${f.desc?`<div style="font-size:13px;color:var(--ink-light);margin-top:2px;line-height:1.5">${esc(f.desc)}</div>`:''}
+        ${f.desc
+          ? `<button type="button" class="feat-toggle" onclick="toggleFeature(${i})" aria-expanded="${!f.collapsed}"><span class="feat-name">${esc(f.name)}</span><span class="feat-chev" aria-hidden="true">${f.collapsed?'▸':'▾'}</span></button>
+             ${f.collapsed?'':`<div class="feat-desc">${esc(f.desc)}</div>`}`
+          : `<div class="feat-name">${esc(f.name)}</div>`}
       </div>
       <button class="inv-delete" onclick="removeFeature(${i})">✕</button>
     </div>`).join('');
+}
+
+// Свернуть/развернуть описание особенности по тапу на название.
+// collapsed — необязательный флаг: в старых сейвах его нет, значит развёрнуто.
+function toggleFeature(i) {
+  const f = state.features[i]; if(!f) return;
+  f.collapsed = !f.collapsed;
+  renderFeatures(); saveAll();
 }
 
 function addFeature() {
@@ -4621,6 +4637,7 @@ function applyCharacter(data) {
   state.spells = d.spells || [];
   state.spellSlots = (d.spellSlots && d.spellSlots.length) ? d.spellSlots : (initSpellSlots(), state.spellSlots);
   state.inventory = d.inventory || [];
+  state.inventory.forEach(item=>{item.equipped = item.equipped === true;});
   state.conditions = d.conditions || [];
   state.dsSuccess = d.dsSuccess || [false,false,false];
   state.dsFailure = d.dsFailure || [false,false,false];
@@ -6953,5 +6970,6 @@ initRedesign();
 
 </script>
 <script src="art-v41.js"></script>
+<script src="visual-v42.js"></script>
 </body>
 </html>
