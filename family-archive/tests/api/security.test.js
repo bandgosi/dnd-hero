@@ -530,6 +530,9 @@ test('импорт: гигантские диапазоны в крошечно�
       [(x) => x.replace('</sheetData>', `</sheetData><!--'-->${'<x><y/></x>'.repeat(100000)}<!--'-->`), /слишком большой или сложный/],
       [(x) => x.replace('</sheetData>', `</sheetData><t><![CDATA[']]></t>${'<x><y/></x>'.repeat(100000)}`), /слишком большой или сложный/],
       [(x) => x.replace('<sheetData>', `<x ${Array.from({ length: 250000 }, (_, i) => `a${i}=""`).join('')}/><sheetData>`), /слишком большой или сложный/],
+      [(x) => x.replace('<sheetData>', `<x ${'a' + '=a'.repeat(1e6)}/><sheetData>`), /слишком большой или сложный/],
+      // То, что не ловит быстрый подсчёт, останавливает предел памяти отдельного процесса разбора.
+      [(x) => x.replace('<sheetData>', `<x${'\t'.repeat(7.6 * 1024 * 1024)}/><sheetData>`), /слишком большой или сложный/],
       [(x) => x.replace('<sheetData>', `<x ${Array.from({ length: 250000 }, (_, i) => `a${i}= ""`).join(' ')}/><sheetData>`), /слишком большой или сложный/],
     ];
     for (const [patch, error] of cases) {

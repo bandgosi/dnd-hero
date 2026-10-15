@@ -346,11 +346,11 @@ export function createApp({ db, config }) {
   });
 
   // ---------- Импорт ----------
-  app.post('/api/imports/preview', importSlots, importUpload.single('file'), (req, res) => {
+  app.post('/api/imports/preview', importSlots, importUpload.single('file'), asyncHandler(async (req, res) => {
     if (!req.file) throw badRequest('Выберите файл .xlsx');
     const fileName = uploadName(req.file.originalname, 'файл.xlsx');
-    res.json(imports.createPreview(db, config, { buffer: req.file.buffer, fileName, includeHidden: req.body?.includeHidden === '1' }));
-  });
+    res.json(await imports.createPreview(db, config, { buffer: req.file.buffer, fileName, includeHidden: req.body?.includeHidden === '1' }));
+  }));
   app.post('/api/imports/commit', (req, res) => {
     ensureSpace(config, config.maxImportBytes, 'для импорта');
     res.json(imports.commitImport(db, config, req.body || {}));

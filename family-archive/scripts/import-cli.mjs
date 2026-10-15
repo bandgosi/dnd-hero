@@ -16,7 +16,7 @@ if (!file) {
 const config = loadConfig();
 const db = openDb(config.dbFile);
 const buffer = fs.readFileSync(file);
-const preview = createPreview(db, config, { buffer, fileName: path.basename(file) });
+const preview = await createPreview(db, config, { buffer, fileName: path.basename(file) });
 console.log(`Файл: ${preview.fileName}`);
 console.log(`SHA-256: ${preview.checksum}`);
 for (const c of preview.checks) console.log(` • ${c.text}`);

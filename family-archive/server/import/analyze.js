@@ -65,8 +65,9 @@ export function analyzeWorkbook(wb, { includeHidden = false } = {}) {
         skipped.push({ sheet: sheet.name, cell: c.ref, raw: clip(c.value), reason: 'Ячейка содержит только пробелы' });
         continue;
       }
-      if (c.value.trim().length > MAX_RECORD_CHARS) {
-        skipped.push({ sheet: sheet.name, cell: c.ref, raw: clip(c.value), long: true, reason: `Слишком длинный текст (${c.value.trim().length} символов) — для имени это необычно; ячейка не импортирована` });
+      // Ячейка с огромным хвостом пробелов — тоже «длинная»: исходная строка хранится целиком.
+      if (c.value.trim().length > MAX_RECORD_CHARS || c.value.length > 4 * MAX_RECORD_CHARS) {
+        skipped.push({ sheet: sheet.name, cell: c.ref, raw: clip(c.value), long: true, reason: `Слишком длинный текст (${c.value.length} символов) — для имени это необычно; ячейка не импортирована` });
         continue;
       }
       if (!included) continue;
@@ -360,6 +361,12 @@ function buildSuggestions(records, geometry) {
       const ia = I(a), ib = I(b);
       return !!(ia.sStem && ia.sStem === ib.sStem && a.parse.patronymic && b.parse.patronymic && ia.sibKey === ib.sibKey);
     };
+    // Совпадают фамилия и имя (и отчество, если оно есть у обоих) — не зависит от ограничения числа
+    // предположений «один ли это человек»: такие записи не предлагаются как пара.
+    const sameName = (a, b) => {
+      const ia = I(a), ib = I(b);
+      return !!(ia.sStem && ia.sStem === ib.sStem && a.parse.given_name && ia.gKey === ib.gKey && !(a.parse.patronymic && b.parse.patronymic && ia.pKey !== ib.pKey));
+    };
     const sorted = [...recs].sort((a, b) => a.span.top - b.span.top || a.span.left - b.span.left);
 
     // 1. Возможные родители по отчеству (только записи выше).
@@ -415,7 +422,7 @@ function buildSuggestions(records, geometry) {
         if (il.pcAll.includes(u) || iu.pcAll.includes(l)) continue;
         if (siblingsLike(u, l)) continue;
         if (iu.gen !== il.gen) continue;
-        if (samePairs.some(([a, b]) => (a === u && b === l) || (a === l && b === u))) continue;
+        if (sameName(u, l)) continue;
         const frame = sameFrame(u, l);
         const basis = [
           { code: 'adjacent', text: `Записи ${u.cell} и ${l.cell} стоят в наброске вплотную одна под другой.` },

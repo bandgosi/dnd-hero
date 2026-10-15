@@ -2,8 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { readWorkbook, XlsxError } from '../xlsx/reader.js';
-import { analyzeWorkbook } from '../import/analyze.js';
+import { fork } from 'node:child_process';
 import { newId, nowIso, sha256, badRequest, notFound, unprocessable, conflict, cleanText, parseJson } from '../lib/util.js';
 import { searchKey, parseFullName } from '../../shared/names.js';
 import { logChange } from './history.js';
@@ -101,25 +100,41 @@ function buildDiff(db, previous, records) {
   return { previousImportId: previous.id, entries, removed };
 }
 
-export function createPreview(db, config, { buffer, fileName, includeHidden = false }) {
+// Книга разбирается в отдельном процессе с пределом памяти и времени (см. import/parse-child.js):
+// сервер не разбирает чужой XML сам, поэтому подложный файл не может его остановить.
+const PARSE_HEAP_MB = 160;
+const PARSE_TIMEOUT_MS = 2 * 60 * 1000;
+function parseInChild(buffer, includeHidden) {
+  return new Promise((resolve, reject) => {
+    const child = fork(new URL('../import/parse-child.js', import.meta.url), [], {
+      execArgv: ['--disable-warning=ExperimentalWarning', `--max-old-space-size=${PARSE_HEAP_MB}`],
+      stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
+      serialization: 'advanced',
+    });
+    let settled = false;
+    const finish = (fn, v) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (child.exitCode === null) child.kill('SIGKILL');
+      fn(v);
+    };
+    const tooBig = 'Файл слишком большой или сложный для импорта. Удалите лишнее оформление или разбейте книгу.';
+    const timer = setTimeout(() => finish(reject, unprocessable(tooBig)), PARSE_TIMEOUT_MS);
+    child.once('message', (m) => (m?.error ? finish(reject, unprocessable(m.error)) : finish(resolve, m.analysis)));
+    child.once('error', () => finish(reject, unprocessable('Не удалось прочитать файл Excel. Повторите попытку.')));
+    // 'close' — после получения всех сообщений; без ответа процесс завершается при нехватке памяти.
+    child.once('close', () => finish(reject, unprocessable(tooBig)));
+    child.send({ buffer, includeHidden });
+  });
+}
+
+export async function createPreview(db, config, { buffer, fileName, includeHidden = false }) {
   cleanupPreviews();
   if (!buffer?.length) throw badRequest('Файл пустой');
   if (buffer.length > config.maxImportBytes) throw unprocessable(`Файл больше ${Math.round(config.maxImportBytes / 1024 / 1024)} МБ`);
   const checksum = sha256(buffer);
-  let wb;
-  try {
-    wb = readWorkbook(buffer);
-  } catch (e) {
-    if (e instanceof XlsxError) throw unprocessable(e.message);
-    throw unprocessable('Не удалось прочитать файл Excel. Убедитесь, что это файл .xlsx.');
-  }
-  let analysis;
-  try {
-    analysis = analyzeWorkbook(wb, { includeHidden });
-  } catch (e) {
-    if (e instanceof XlsxError) throw unprocessable(e.message);
-    throw e;
-  }
+  const analysis = await parseInChild(buffer, includeHidden);
   const nameKey = fileNameKey(fileName);
   const duplicate = db.get("SELECT * FROM imports WHERE checksum = ? AND status = 'completed' ORDER BY created_at DESC LIMIT 1", checksum);
   let mode = 'new';

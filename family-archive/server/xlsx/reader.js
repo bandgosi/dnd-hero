@@ -204,8 +204,8 @@ export function readWorkbook(buffer, { maxEntryBytes = 8 * 1024 * 1024, maxTotal
   }
   if (!names.length) throw new XlsxError('Файл не похож на книгу Excel (.xlsx): не удалось распаковать архив');
   // Быстрый подсчёт до разбора: каждый узел XML (элемент, инструкция, CDATA, комментарий) и каждое
-  // слово внутри тега (атрибут — в любой записи, даже без значения) становятся объектами в памяти,
-  // поэтому строятся они только для книги разумного размера.
+  // слово внутри тега (атрибут — в любой записи, даже без значения) становятся объектами в памяти.
+  // Это лишь быстрый отсев: сервер разбирает книгу в отдельном процессе с пределом памяти.
   let nodes = 0;
   let attributes = 0;
   for (const data of Object.values(raw)) {
@@ -233,8 +233,8 @@ export function readWorkbook(buffer, { maxEntryBytes = 8 * 1024 * 1024, maxTotal
       }
       if (b === 34 || b === 39) quote = b;
       else if (b === 62) inTag = false;
-      else if (b === 32 || b === 9 || b === 10 || b === 13) boundary = true;
-      else if (b !== 61 && b !== 47 && b !== 63) {
+      else if (b === 32 || b === 9 || b === 10 || b === 13 || b === 61) boundary = true; // пробелы и «=» разделяют слова, как у парсера
+      else if (b !== 47 && b !== 63) {
         if (boundary) attributes++; // начало слова внутри тега: имя атрибута (даже без значения)
         boundary = false;
       }
