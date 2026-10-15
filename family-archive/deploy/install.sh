@@ -528,6 +528,7 @@ else
     systemctl restart "$SERVICE.socket"
     systemctl start "$SERVICE" || true
   }
+  systemctl daemon-reload
   systemctl enable "$SERVICE.socket" "$SERVICE" >/dev/null 2>&1
   start_service
   if ! health; then
