@@ -7,6 +7,7 @@ import path from 'node:path';
 import http from 'node:http';
 import { spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
+import { crc32 as zlibCrc } from 'node:zlib';
 import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
 import { startServer, photoForm, makePng, xlsxForm } from '../helpers/harness.js';
 import { fixtureXlsx, buildXlsx } from '../helpers/fixture.js';
@@ -14,7 +15,7 @@ import { loadConfig, configProblems } from '../../server/config.js';
 import { hashPassword, clientKey, netKey } from '../../server/auth.js';
 import { stripImageMetadata } from '../../server/lib/imagemeta.js';
 import { sniffImage } from '../../server/services/photos.js';
-import { createBackup, listBackups, changedSinceLastBackup } from '../../server/services/backup.js';
+import { createBackup, listBackups, changedSinceLastBackup, removeStaleTemp } from '../../server/services/backup.js';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
 
@@ -392,6 +393,81 @@ test('копии: повторно импортированный файл, дл
     const r = await s.post('/api/backups/restore', { token: pv.data.token });
     assert.equal(r.status, 200, JSON.stringify(r.data));
     assert.ok((await s.get('/api/data')).data.persons.some((p) => p.display_name.length === 400));
+  } finally {
+    await s.close();
+  }
+});
+
+// PNG с дополнительным блоком, где встречаются сигнатуры ZIP (PK…): такие байты бывают и в обычных фото.
+function pngWithZipSignatures(w = 8, h = 8) {
+  const png = makePng(w, h, [120, 90, 60]);
+  const body = Buffer.concat([Buffer.from('zzZz', 'latin1'), Buffer.from('PK\x07\x08PK\x01\x02PK\x03\x04PK\x05\x06', 'latin1')]);
+  const len = Buffer.alloc(4);
+  len.writeUInt32BE(body.length - 4);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(zlibCrc(body));
+  const iend = png.length - 12;
+  return Buffer.concat([png.subarray(0, iend), len, body, crc, png.subarray(iend)]);
+}
+
+test('восстановление возвращает файлы байт в байт (Excel внутри копии, фото с сигнатурами PK)', async () => {
+  const s = await startServer();
+  try {
+    const data = await seed(s);
+    const png = pngWithZipSignatures();
+    const fd = new FormData();
+    for (const k of ['original', 'display', 'thumb']) fd.append(k, new Blob([png], { type: 'image/png' }), `${k}.png`);
+    assert.equal((await s.form(`/api/persons/${data.persons[0].id}/photos`, fd)).status, 201);
+    const hashes = () => {
+      const out = {};
+      for (const sub of ['photos', 'imports']) {
+        for (const f of fs.readdirSync(path.join(s.dir, sub), { recursive: true })) {
+          const p = path.join(s.dir, sub, f);
+          if (fs.statSync(p).isFile()) out[`${sub}/${f}`] = crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+        }
+      }
+      return out;
+    };
+    const before = hashes();
+    assert.ok(Object.keys(before).some((k) => k.startsWith('imports/')) && Object.keys(before).some((k) => k.startsWith('photos/')));
+    const bk = await s.post('/api/backups');
+    const pv = await s.post('/api/backups/restore-preview', { name: bk.data.name });
+    assert.deepEqual(pv.data.missingPhotos, []);
+    assert.equal((await s.post('/api/backups/restore', { token: pv.data.token })).status, 200);
+    assert.deepEqual(hashes(), before);
+    // Имя сохранённого файла Excel — его контрольная сумма: файл цел.
+    for (const [k, h] of Object.entries(before)) if (k.startsWith('imports/')) assert.equal(`imports/${h}.xlsx`, k);
+  } finally {
+    await s.close();
+  }
+});
+
+test('копии: нехватка места не уничтожает последние копии; остатки прерванных копий убираются', async () => {
+  const s = await startServer();
+  try {
+    await seed(s);
+    const config = loadConfig({ DATA_DIR: s.dir });
+    await createBackup(s.db, config, { label: 'auto' });
+    s.db.run("INSERT INTO meta (key, value) VALUES ('x', '1') ON CONFLICT(key) DO UPDATE SET value = '2'");
+    await createBackup(s.db, config, { label: 'auto' });
+    const autos = listBackups(config).filter((b) => b.kind === 'auto').map((b) => b.name);
+    assert.equal(autos.length, 2);
+    // Места не хватит даже после удаления всех автоматических копий — они остаются на месте.
+    const tight = loadConfig({ DATA_DIR: s.dir, DISK_RESERVE_MB: String(1024 * 1024 * 1024) });
+    await assert.rejects(createBackup(s.db, tight, { label: 'auto' }), (e) => e.status === 507);
+    assert.deepEqual(listBackups(config).filter((b) => b.kind === 'auto').map((b) => b.name), autos);
+    // Временные файлы: чужой живой процесс — не трогаем, умерший — удаляем.
+    const dir = path.join(s.dir, 'backups');
+    const dead = path.join(dir, 'family-archive-20200101-000000.zip.999999999.part');
+    const alive = path.join(dir, `family-archive-20200101-000001.zip.${process.pid}.part`);
+    const deadSnap = path.join(dir, 'family-archive-20200101-000000.zip.999999999.snap');
+    fs.writeFileSync(dead, 'x');
+    fs.writeFileSync(alive, 'x');
+    fs.mkdirSync(deadSnap);
+    removeStaleTemp(config);
+    assert.ok(!fs.existsSync(dead) && !fs.existsSync(deadSnap) && fs.existsSync(alive));
+    fs.rmSync(alive);
+    assert.deepEqual(fs.readdirSync(dir).filter((f) => /\.(part|snap)$/.test(f)), [], 'после копий не остаётся временных файлов');
   } finally {
     await s.close();
   }

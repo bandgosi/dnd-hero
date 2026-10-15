@@ -375,8 +375,8 @@ export function createApp({ db, config }) {
   // ---------- Резервные копии и экспорт ----------
   app.get('/api/backups', (req, res) => res.json({ backups: backup.listBackups(config) }));
   app.get('/api/storage', (req, res) => {
-    const err = db.get("SELECT value FROM meta WHERE key = 'auto_backup_error'")?.value;
-    res.json({ ...storageUsage(config), autoBackupError: parseJson(err, null) });
+    const meta = (k) => parseJson(db.get('SELECT value FROM meta WHERE key = ?', k)?.value, null);
+    res.json({ ...storageUsage(config), autoBackupError: meta('auto_backup_error'), backupWarning: meta('backup_warning') });
   });
   app.post('/api/backups/restore-discard', (req, res) => {
     backup.discardRestore(req.body?.token);

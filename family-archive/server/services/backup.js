@@ -9,33 +9,16 @@ import { Zip, ZipDeflate, ZipPassThrough } from 'fflate';
 import { readZipFile } from '../lib/zip.js';
 import { nowIso, badRequest, notFound, unprocessable, conflict } from '../lib/util.js';
 import { logChange } from './history.js';
+import { BACKUP_TABLES, countsOf } from './backup-data.js';
 import { isUuid, isPhotoFile, isImportFile, isBackupName } from '../lib/safety.js';
 import { ensureSpace, hasSpace, diskSpace } from './storage.js';
 
 export const BACKUP_FORMAT = 'family-archive-backup';
 export const BACKUP_FORMAT_VERSION = 1;
 
-// Порядок важен для вставки при восстановлении.
-export const BACKUP_TABLES = [
-  'persons', 'imports', 'source_records', 'parent_child', 'partnerships', 'photos', 'sources',
-  'questions', 'question_persons', 'hypotheses', 'name_reviews', 'change_log', 'change_log_persons',
-];
+export { BACKUP_TABLES };
 
 const stamp = () => new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '').replace('T', '-');
-
-function countsOf(data) {
-  return {
-    persons: data.persons?.length || 0,
-    parentChild: data.parent_child?.length || 0,
-    partnerships: data.partnerships?.length || 0,
-    photos: data.photos?.length || 0,
-    hypotheses: data.hypotheses?.length || 0,
-    questions: data.questions?.length || 0,
-    sources: data.sources?.length || 0,
-    imports: data.imports?.length || 0,
-    sourceRecords: data.source_records?.length || 0,
-  };
-}
 
 const fileSize = (p) => {
   try {
@@ -99,7 +82,11 @@ async function createBackupNow(db, config, { label = null, appVersion = '1.0.0' 
   let name = `${base}${cleanLabel ? '-' + cleanLabel : ''}.zip`;
   for (let n = 2; fs.existsSync(path.join(config.backupsDir, name)) && n < 1000; n++) name = `${base}-${n}${cleanLabel ? '-' + cleanLabel : ''}.zip`;
   const file = path.join(config.backupsDir, name);
-  const tmp = `${file}.part`;
+  // В имени временных файлов — номер процесса: после сбоя их можно отличить от копии,
+  // которую прямо сейчас делает другой процесс (например, команда backup).
+  removeStaleTemp(config);
+  const tmp = `${file}.${process.pid}.part`;
+  const snap = `${file}.${process.pid}.snap`;
   // Отдельное соединение только для чтения: снимок базы на начало копии (WAL), пока приложение
   // продолжает работать; таблицы читаются построчно и сразу пишутся в архив.
   const separate = db.file && db.file !== ':memory:';
@@ -133,6 +120,18 @@ async function createBackupNow(db, config, { label = null, appVersion = '1.0.0' 
     const need = files.reduce((n, f) => n + f.size, 0) + fileSize(db.file) + fileSize(`${db.file}-wal`) + 1024 * 1024;
     if (cleanLabel === 'auto') makeRoomForAuto(config, need);
     ensureSpace(config, need, 'для резервной копии');
+    // Снимок файлов жёсткими ссылками (мгновенно, без копирования) в момент снимка базы:
+    // фото, заменённое или удалённое во время записи копии, в ней останется целым.
+    fs.mkdirSync(snap, { recursive: true });
+    files.forEach((f, i) => {
+      const link = path.join(snap, String(i));
+      try {
+        fs.linkSync(f.path, link);
+        f.path = link;
+      } catch {
+        /* файловая система без жёстких ссылок — файл читается из исходного места */
+      }
+    });
 
     const out = fs.createWriteStream(tmp);
     const done = new Promise((resolve, reject) => {
@@ -178,13 +177,17 @@ async function createBackupNow(db, config, { label = null, appVersion = '1.0.0' 
       f.push(new Uint8Array(0), true);
     };
     // data.json пишется по частям: {"persons":[…],"imports":[…],…}
+    let dataBytes = 0;
+    let dataRows = 0;
     const addData = async () => {
       const f = new ZipDeflate('data.json', { level: 6 });
       zip.add(f);
       const enc = new TextEncoder();
       let buf = '{';
       const flush = async (final) => {
-        f.push(enc.encode(buf), final);
+        const bytes = enc.encode(buf);
+        dataBytes += bytes.length;
+        f.push(bytes, final);
         buf = '';
         if (zipError) throw zipError;
         await waitDrain();
@@ -193,6 +196,7 @@ async function createBackupNow(db, config, { label = null, appVersion = '1.0.0' 
         buf += `${i ? ',' : ''}${JSON.stringify(BACKUP_TABLES[i])}:[`;
         let first = true;
         for (const row of rowsOf(rd, `SELECT * FROM ${BACKUP_TABLES[i]}`)) {
+          dataRows++;
           buf += (first ? '' : ',') + JSON.stringify(row);
           first = false;
           if (buf.length > 256 * 1024) await flush(false);
@@ -227,7 +231,13 @@ async function createBackupNow(db, config, { label = null, appVersion = '1.0.0' 
     logChange(db, { actor: 'system', action: 'backup.create', summary: `Создана резервная копия ${name}`, details: { name, size, counts, missing } });
     db.run("INSERT INTO meta (key, value) VALUES ('last_backup_log_id', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", String(snapshotLogId));
     pruneBackups(config);
-    return { name, size, createdAt: manifest.createdAt, counts, missing };
+    // Копия, которую это приложение не сможет восстановить, — повод предупредить сразу, а не при восстановлении.
+    let warning = null;
+    if (dataBytes > MAX_DATA_JSON || dataRows > MAX_BACKUP_ROWS) {
+      warning = `Данных стало больше, чем приложение может восстановить из копии (${Math.round(dataBytes / 1048576)} МБ при пределе ${Math.round(MAX_DATA_JSON / 1048576)} МБ). Копия сохранена — фото и данные в ней целы, но восстановить её через приложение не получится.`;
+      db.run("INSERT INTO meta (key, value) VALUES ('backup_warning', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", JSON.stringify({ at: nowIso(), message: warning }));
+    } else db.run("DELETE FROM meta WHERE key = 'backup_warning'");
+    return { name, size, createdAt: manifest.createdAt, counts, missing, warning };
   } finally {
     if (inTx) {
       try {
@@ -237,17 +247,44 @@ async function createBackupNow(db, config, { label = null, appVersion = '1.0.0' 
       }
     }
     if (separate) rd.close();
+    fs.rmSync(snap, { recursive: true, force: true });
   }
 }
 
-// Перед автоматической копией при нехватке места удаляются самые старые автоматические копии.
+const pidAlive = (pid) => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    return e.code === 'EPERM';
+  }
+};
+
+// Остатки прерванных копий (.part и снимки .snap): процесс, который их создал, больше не работает.
+export function removeStaleTemp(config) {
+  if (!fs.existsSync(config.backupsDir)) return;
+  for (const f of fs.readdirSync(config.backupsDir)) {
+    const m = /\.(\d+)\.(part|snap)$/.exec(f);
+    const p = path.join(config.backupsDir, f);
+    if (m ? !pidAlive(Number(m[1])) : f.endsWith('.part') && Date.now() - fs.statSync(p).mtimeMs > 3600000) fs.rmSync(p, { recursive: true, force: true });
+  }
+}
+
+// Перед автоматической копией при нехватке места удаляются самые старые автоматические копии —
+// но только если этого хватит; иначе ничего не удаляется (последние копии важнее).
 function makeRoomForAuto(config, need) {
+  if (hasSpace(config, need)) return;
   const inUse = filesInRestore();
   const autos = listBackups(config).filter((b) => b.kind === 'auto' && !inUse.has(path.resolve(config.backupsDir, b.name)));
-  while (autos.length && !hasSpace(config, need)) {
-    const b = autos.pop();
-    fs.rmSync(path.join(config.backupsDir, b.name), { force: true });
+  const { free } = diskSpace(config.dataDir);
+  let freed = 0;
+  let count = 0;
+  for (let i = autos.length - 1; i >= 0 && free + freed - need < config.diskReserveBytes; i--) {
+    freed += autos[i].size;
+    count++;
   }
+  if (free + freed - need < config.diskReserveBytes) return;
+  for (const b of autos.slice(autos.length - count)) fs.rmSync(path.join(config.backupsDir, b.name), { force: true });
 }
 
 // Были ли изменения после последней копии (чтобы не плодить одинаковые автоматические копии).
@@ -318,33 +355,11 @@ function allowedEntry(name) {
 // Чтение архива копии: только разрешённые имена (см. allowedEntry).
 const readZip = (file, opts) => readZipFile(file, { allowed: allowedEntry, ...opts });
 
-const isStr = (v) => typeof v === 'string' && v.length > 0 && v.length < 300;
-
-// Проверка содержимого копии до восстановления.
-function validateBackupData(data) {
-  for (const t of ['persons', 'parent_child', 'partnerships', 'photos', 'hypotheses']) {
-    if (!Array.isArray(data[t])) throw unprocessable(`В копии нет таблицы ${t}`);
-  }
-  for (const t of BACKUP_TABLES) {
-    if (data[t] !== undefined && !Array.isArray(data[t])) throw unprocessable(`Таблица ${t} в копии повреждена`);
-    for (const row of data[t] || []) if (!row || typeof row !== 'object' || Array.isArray(row)) throw unprocessable(`Таблица ${t} в копии повреждена`);
-  }
-  // Длина имени — как допускает само приложение (импорт и карточка), с запасом.
-  if (!data.persons.every((p) => isStr(p.id) && typeof p.display_name === 'string' && p.display_name.length > 0 && p.display_name.length <= 5000)) throw unprocessable('Копия повреждена: неверные записи людей');
-  for (const ph of data.photos) {
-    if (!isUuid(ph.id) || !isStr(ph.person_id) || !['original_file', 'display_file', 'thumb_file'].every((k) => isPhotoFile(ph[k]))) {
-      throw unprocessable('Копия содержит недопустимые имена файлов фотографий');
-    }
-  }
-  for (const imp of data.imports || []) {
-    if (imp.stored_file != null && !isImportFile(imp.stored_file)) throw unprocessable('Копия содержит недопустимые имена файлов импорта');
-  }
-}
-
 const restoreTokens = new Map();
 const TOKEN_TTL_MS = 30 * 60 * 1000;
-const MAX_BACKUP_ROWS = 400000;
-const MAX_DATA_JSON = 32 * 1024 * 1024;
+export const MAX_BACKUP_ROWS = 400000;
+export const MAX_DATA_JSON = 32 * 1024 * 1024;
+const CHILD_HEAP_MB = 200;
 const MAX_ZIP_ENTRIES = 200000;
 
 // Старые предпросмотры восстановления забываются, загруженные для них файлы удаляются.
@@ -374,14 +389,12 @@ setInterval(() => cleanupRestoreTokens(null), 5 * 60 * 1000).unref();
 // Файлы, выбранные для восстановления, не удаляются при очистке старых копий.
 const filesInRestore = () => new Set([...restoreTokens.values()].map((t) => path.resolve(t.zipFile)));
 
-// data.json разбирается в отдельном процессе с пределом памяти (см. backup-data-child.js);
-// сюда возвращается уже очищенный текст с ограниченным числом записей.
-function parseBackupData(db, zipFile) {
-  const columns = {};
-  for (const table of BACKUP_TABLES) columns[table] = db.all(`PRAGMA table_info(${table})`).map((c) => c.name);
+// data.json разбирается (и при восстановлении записывается в базу) отдельным процессом с пределом
+// памяти (см. backup-data-child.js): сюда возвращается только сводка.
+function runDataChild(db, zipFile, mode, manifest = null) {
   return new Promise((resolve, reject) => {
     const child = fork(new URL('../lib/backup-data-child.js', import.meta.url), [], {
-      execArgv: ['--max-old-space-size=128'],
+      execArgv: ['--disable-warning=ExperimentalWarning', `--max-old-space-size=${CHILD_HEAP_MB}`],
       stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
       serialization: 'advanced',
     });
@@ -393,29 +406,20 @@ function parseBackupData(db, zipFile) {
       if (child.exitCode === null) child.kill('SIGKILL');
       fn(v);
     };
-    const timer = setTimeout(() => finish(reject, unprocessable('Разбор резервной копии занял слишком много времени')), 120000);
-    child.once('message', (m) => {
-      if (m?.error) return finish(reject, unprocessable(m.error));
-      try {
-        finish(resolve, JSON.parse(m.data));
-      } catch {
-        finish(reject, unprocessable('Файлы резервной копии повреждены'));
-      }
-    });
+    const timer = setTimeout(() => finish(reject, unprocessable('Обработка резервной копии заняла слишком много времени')), 10 * 60 * 1000);
+    child.once('message', (m) => (m?.error ? finish(reject, unprocessable(m.error)) : finish(resolve, m.summary)));
     child.once('error', () => finish(reject, unprocessable('Не удалось проверить резервную копию')));
     // 'close' — после получения всех сообщений от процесса (в отличие от 'exit').
     child.once('close', () => finish(reject, unprocessable('Файл данных в копии слишком большой или повреждён')));
-    child.send({ zipFile: path.resolve(zipFile), columns, maxRows: MAX_BACKUP_ROWS, maxText: MAX_DATA_JSON });
+    child.send({ mode, zipFile: path.resolve(zipFile), dbFile: db.file, maxRows: MAX_BACKUP_ROWS, maxText: MAX_DATA_JSON, manifest });
   });
 }
 
-// Чтение и проверка manifest.json и data.json из архива.
-// listAll — нужен полный список файлов архива (предпросмотр); иначе чтение останавливается после manifest.json.
-async function readBackupTexts(db, config, zipFile, { listAll = false } = {}) {
+// manifest.json и список файлов архива (читаются здесь; data.json — только в отдельном процессе).
+async function readManifest(zipFile) {
   if (!fs.existsSync(zipFile)) throw conflict('Файл резервной копии больше не существует. Выберите копию ещё раз.');
-  // Здесь читаются только список файлов и manifest.json; data.json разбирает отдельный процесс.
-  const { texts, entries } = await readZip(zipFile, { wantText: (n) => n === 'manifest.json', maxText: 1024 * 1024, maxSkipped: config.maxBackupBytes * 4, maxEntries: MAX_ZIP_ENTRIES, stopAfter: listAll ? null : ['manifest.json'] });
-  if (!texts['manifest.json']) throw unprocessable('Это не резервная копия «Истории нашего рода»: нет manifest.json');
+  const { texts, entries } = await readZip(zipFile, { wantText: (n) => n === 'manifest.json', maxText: 1024 * 1024, maxEntries: MAX_ZIP_ENTRIES });
+  if (!texts['manifest.json'] || !entries.includes('data.json')) throw unprocessable('Это не резервная копия «Истории нашего рода»: нет manifest.json или data.json');
   let manifest;
   try {
     manifest = JSON.parse(texts['manifest.json'].toString('utf8'));
@@ -426,35 +430,17 @@ async function readBackupTexts(db, config, zipFile, { listAll = false } = {}) {
   if (!Number.isInteger(manifest.formatVersion) || manifest.formatVersion > BACKUP_FORMAT_VERSION) {
     throw unprocessable(`Версия формата копии (${manifest.formatVersion}) новее, чем поддерживает приложение (${BACKUP_FORMAT_VERSION}). Обновите приложение.`);
   }
-  const data = await parseBackupData(db, zipFile);
-  validateBackupData(data);
-  const ids = new Set(data.persons.map((p) => p.id));
-  const broken = [...data.parent_child.filter((r) => !ids.has(r.parent_id) || !ids.has(r.child_id)), ...data.partnerships.filter((r) => !ids.has(r.person1_id) || !ids.has(r.person2_id))].length;
-  if (broken) throw unprocessable(`Копия повреждена: ${broken} связей ссылаются на отсутствующих людей`);
-  return { manifest, data, entries };
-}
-
-// Файлы архива, на которые ссылаются данные: только они распаковываются при восстановлении.
-function referencedFiles(data) {
-  const set = new Set();
-  for (const ph of data.photos) for (const k of ['original_file', 'display_file', 'thumb_file']) set.add(`photos/${ph.id}/${ph[k]}`);
-  for (const imp of data.imports || []) if (imp.stored_file) set.add(`imports/${imp.stored_file}`);
-  return set;
+  return { manifest, entries };
 }
 
 export async function restorePreview(db, config, zipFile, { uploaded = false } = {}) {
   cleanupRestoreTokens(config);
-  const { manifest, data, entries } = await readBackupTexts(db, config, zipFile, { listAll: true });
+  const { manifest, entries } = await readManifest(zipFile);
+  const summary = await runDataChild(db, zipFile, 'summary');
   const entrySet = new Set(entries);
-  const missingPhotos = [];
-  for (const ph of data.photos) {
-    for (const k of ['original_file', 'display_file', 'thumb_file']) {
-      if (!entrySet.has(`photos/${ph.id}/${ph[k]}`)) missingPhotos.push(`${ph.id}/${ph[k]}`);
-    }
-  }
-  // Разобранные данные не держим в памяти: при восстановлении архив читается заново.
+  const missingPhotos = summary.photoFiles.filter((n) => !entrySet.has(n)).map((n) => n.replace(/^photos\//, ''));
   const token = crypto.randomUUID();
-  const counts = countsOf(data);
+  const counts = summary.counts;
   restoreTokens.set(token, { zipFile, manifest, counts, uploaded, createdAt: Date.now() });
   return {
     token,
@@ -478,8 +464,9 @@ export async function restorePreview(db, config, zipFile, { uploaded = false } =
 export async function restoreBackup(db, config, token) {
   const t = restoreTokens.get(token);
   if (!t) throw conflict('Предпросмотр восстановления устарел. Загрузите копию ещё раз.');
-  const { manifest, data } = await readBackupTexts(db, config, t.zipFile);
-  const wanted = referencedFiles(data);
+  const { manifest } = await readManifest(t.zipFile);
+  const summary = await runDataChild(db, t.zipFile, 'summary');
+  const wanted = new Set([...summary.photoFiles, ...summary.importFiles]);
   const work = path.join(config.dataDir, `restore-${Date.now()}`);
   fs.mkdirSync(work, { recursive: true });
   try {
@@ -491,19 +478,10 @@ export async function restoreBackup(db, config, token) {
       maxTotal: Math.min(room, config.maxBackupBytes * 2),
       // Не зависит от текущего MAX_PHOTO_MB: раньше могли приниматься файлы крупнее.
       maxFile: Math.max(200 * 1024 * 1024, config.maxPhotoBytes * 2, config.maxImportBytes * 2),
-      maxSkipped: 64 * 1024 * 1024,
       maxEntries: MAX_ZIP_ENTRIES,
     });
-    db.tx(() => {
-      db.exec('PRAGMA defer_foreign_keys = ON');
-      for (const table of [...BACKUP_TABLES].reverse()) db.exec(`DELETE FROM ${table}`);
-      db.exec("DELETE FROM sqlite_sequence WHERE name = 'change_log'");
-      // Счётчик журнала начинается заново — отметка последней копии больше не действует.
-      db.run("DELETE FROM meta WHERE key = 'last_backup_log_id'");
-      // Столбцы уже отобраны при разборе (только существующие в базе).
-      for (const table of BACKUP_TABLES) for (const row of data[table] || []) db.insert(table, row);
-      logChange(db, { actor: 'system', action: 'backup.restore', summary: `Данные восстановлены из резервной копии от ${manifest.createdAt}`, details: { counts: countsOf(data), manifest } });
-    });
+    // Запись в базу — тоже в отдельном процессе (своё соединение, одна транзакция).
+    const done = await runDataChild(db, t.zipFile, 'restore', manifest);
     // Подмена каталогов файлов после успешной записи базы.
     const trash = path.join(config.dataDir, `trash-${Date.now()}`);
     fs.mkdirSync(trash, { recursive: true });
@@ -516,7 +494,7 @@ export async function restoreBackup(db, config, token) {
     fs.rmSync(trash, { recursive: true, force: true });
     restoreTokens.delete(token);
     if (t.uploaded) fs.rmSync(t.zipFile, { force: true });
-    return { counts: countsOf(data), manifest };
+    return { counts: done.counts, manifest };
   } finally {
     fs.rmSync(work, { recursive: true, force: true });
   }

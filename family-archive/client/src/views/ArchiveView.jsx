@@ -86,6 +86,7 @@ function StorageCard({ storage }) {
     <div className="storage">
       <div className="storage-bar" role="img" aria-label={`Диск занят на ${pct}%`}><span style={{ width: `${pct}%` }} className={low ? 'is-low' : ''} /></div>
       <p className={low ? 'field-error' : 'muted'}>Свободно {fmtSize(storage.free)} из {fmtSize(storage.total)}{low ? ' — места мало, удалите ненужные копии' : ''}.</p>
+      {storage.backupWarning && <p className="field-error" role="alert">{storage.backupWarning.message}</p>}
       {storage.autoBackupError && (
         <p className="field-error" role="alert">Автоматическая копия не создана ({fmtDateTime(storage.autoBackupError.at)}): {storage.autoBackupError.message}</p>
       )}
@@ -140,6 +141,7 @@ export function ArchiveView() {
     try {
       const r = await save(() => api.post('/api/backups'), { reload: false });
       ui.toast(`Резервная копия создана: ${r.name}`);
+      if (r.warning) ui.toast(r.warning, 'error');
       await loadBackups();
     } catch (e) {
       reportError(ui, e);

@@ -1,58 +1,40 @@
-// Разбор data.json резервной копии в отдельном процессе с ограниченной памятью
-// (запускается из backup.js с --max-old-space-size): испорченный или подложный файл может
-// исчерпать память только этого процесса, а не сервера. data.json читается из архива здесь же,
-// основной процесс его содержимого не касается. Остаются только известные таблицы и столбцы,
-// значения — строки, числа или пусто. Результат — очищенный JSON-текст.
+// Отдельный процесс для data.json резервной копии (запускается из backup.js с собственным
+// пределом памяти --max-old-space-size): испорченный или подложный файл может исчерпать память
+// только этого процесса. data.json читается из архива здесь же; основной процесс его содержимого
+// не касается.
+//   summary — разобрать, очистить, проверить и вернуть сводку (числа записей, нужные файлы);
+//   restore — то же и заменить данные базы содержимым копии (своё соединение с базой).
 import { readZipFile } from './zip.js';
+import { Db } from '../db.js';
+import { BACKUP_TABLES, cleanData, validateBackupData, summarize, insertData } from '../services/backup-data.js';
 
-class BadData extends Error {}
-
-function clean({ text, columns, maxRows }) {
-  let data;
+async function run({ mode, zipFile, dbFile, maxRows, maxText, manifest }) {
+  const db = new Db(dbFile);
   try {
-    data = JSON.parse(text);
-  } catch {
-    throw new BadData('Файлы резервной копии повреждены (не удалось прочитать JSON)');
+    const columns = {};
+    for (const table of BACKUP_TABLES) columns[table] = db.all(`PRAGMA table_info(${table})`).map((c) => c.name);
+    const { texts } = await readZipFile(zipFile, { allowed: (n) => n === 'data.json', wantText: (n) => n === 'data.json', maxText });
+    if (!texts['data.json']) throw Object.assign(new Error('Это не резервная копия «Истории нашего рода»: нет data.json'), { status: 422 });
+    let text = texts['data.json'].toString('utf8');
+    delete texts['data.json'];
+    const data = cleanData(text, columns, maxRows);
+    text = null;
+    validateBackupData(data);
+    const summary = summarize(data);
+    if (mode === 'restore') insertData(db, data, manifest);
+    return { summary };
+  } finally {
+    db.close();
   }
-  if (!data || typeof data !== 'object' || Array.isArray(data)) throw new BadData('Файлы резервной копии повреждены');
-  const out = {};
-  let rows = 0;
-  for (const [table, cols] of Object.entries(columns)) {
-    const list = data[table];
-    if (list === undefined) continue;
-    if (!Array.isArray(list)) throw new BadData(`Таблица ${table} в копии повреждена`);
-    rows += list.length;
-    if (rows > maxRows) throw new BadData('В копии слишком много записей');
-    const known = new Set(cols);
-    for (const row of list) {
-      if (!row || typeof row !== 'object' || Array.isArray(row)) throw new BadData(`Таблица ${table} в копии повреждена`);
-      let kept = 0;
-      for (const k of Object.keys(row)) {
-        const v = row[k];
-        if (!known.has(k)) delete row[k];
-        else if (v === null || typeof v === 'string' || (typeof v === 'number' && Number.isFinite(v))) kept++;
-        else if (typeof v === 'boolean') {
-          row[k] = v ? 1 : 0;
-          kept++;
-        } else throw new BadData(`Таблица ${table} в копии повреждена`);
-      }
-      if (!kept) throw new BadData(`Таблица ${table} в копии повреждена`);
-    }
-    out[table] = list;
-  }
-  return out;
 }
 
-process.once('message', async ({ zipFile, columns, maxRows, maxText }) => {
+process.once('message', async (msg) => {
   let reply;
   try {
-    const { texts } = await readZipFile(zipFile, { allowed: (n) => n === 'data.json', wantText: (n) => n === 'data.json', maxText, stopAfter: ['data.json'] });
-    if (!texts['data.json']) throw new BadData('Это не резервная копия «Истории нашего рода»: нет data.json');
-    const text = texts['data.json'].toString('utf8');
-    delete texts['data.json'];
-    reply = { data: JSON.stringify(clean({ text, columns, maxRows })) };
+    reply = await run(msg);
   } catch (e) {
-    reply = { error: e instanceof BadData || e?.status ? e.message : 'Файлы резервной копии повреждены' };
+    const constraint = String(e?.code || '').startsWith('ERR_SQLITE');
+    reply = { error: e?.status ? e.message : constraint ? 'Данные копии нарушают ограничения базы — восстановление отменено, данные не изменены' : 'Файлы резервной копии повреждены' };
   }
   process.send(reply, () => process.exit(0));
 });
