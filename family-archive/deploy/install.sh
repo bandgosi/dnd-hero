@@ -37,6 +37,7 @@ DOMAIN=""
 DOMAIN_SET=0
 DOMAIN_CHANGED=0
 FIREWALL_DONE=0
+WEB_PORTS_DONE=0
 EMAIL=""
 LOCAL_ONLY=0
 SKIP_FIREWALL=0
@@ -145,6 +146,8 @@ if ((UPDATE)); then
   [[ -n $EMAIL ]] || EMAIL="$(conf_value EMAIL || true)"
   [[ "$(conf_value SKIP_FIREWALL || true)" == 1 ]] && SKIP_FIREWALL=1
   [[ "$(conf_value FIREWALL_DONE || true)" == 1 ]] && FIREWALL_DONE=1
+  [[ "$(conf_value WEB_PORTS_DONE || true)" == 1 ]] && WEB_PORTS_DONE=1
+  ((DOMAIN_CHANGED)) && WEB_PORTS_DONE=0
   # Установки прежних версий не записывали эту отметку: брандмауэр у них уже настраивался при установке.
   if [[ -f $INSTALL_CONF ]] && ! grep -q '^FIREWALL_DONE=' "$INSTALL_CONF"; then FIREWALL_DONE=1; fi
   OLD_PORT="$(awk -F= '$1=="PORT"{print $2}' "$ENV_FILE" | tail -n1)"
@@ -388,6 +391,7 @@ write_install_conf() {
     echo "EMAIL=$(printf '%q' "$EMAIL")"
     echo "SKIP_FIREWALL=$SKIP_FIREWALL"
     echo "FIREWALL_DONE=$FIREWALL_DONE"
+    echo "WEB_PORTS_DONE=$WEB_PORTS_DONE"
     echo "SERVICE=$SERVICE"
     echo "SERVICE_USER=$SERVICE_USER"
   } >"$INSTALL_CONF"
@@ -706,12 +710,15 @@ setup_firewall() {
 
 if ((!SKIP_SYSTEM)); then
   if [[ -n $DOMAIN ]]; then
-    setup_caddy
     # Домен добавлен позже, а брандмауэр (настроенный установщиком) уже включён: нужны порты 80 и 443.
-    if ((DOMAIN_CHANGED && !SKIP_FIREWALL)) && command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q '^Status: active'; then
+    # Отметка сохраняется, поэтому и после прерванного запуска порты будут открыты при следующем.
+    if ((FIREWALL_DONE && !SKIP_FIREWALL && !WEB_PORTS_DONE)) && command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q '^Status: active'; then
       ufw allow 80/tcp >/dev/null
       ufw allow 443/tcp >/dev/null
+      WEB_PORTS_DONE=1
+      write_install_conf
     fi
+    setup_caddy
   elif ((DOMAIN_CHANGED)) && [[ -f /etc/caddy/conf.d/family-archive.caddy ]]; then
     rm -f /etc/caddy/conf.d/family-archive.caddy
     systemctl reload caddy 2>/dev/null || true
@@ -722,6 +729,7 @@ if ((!SKIP_SYSTEM)); then
   if ((!SKIP_FIREWALL && !FIREWALL_DONE)); then
     setup_firewall
     FIREWALL_DONE=1
+    [[ -n $DOMAIN ]] && WEB_PORTS_DONE=1
     write_install_conf
   fi
 fi

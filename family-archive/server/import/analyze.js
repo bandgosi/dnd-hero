@@ -8,7 +8,7 @@
 //   основания и вопросы для пользователя.
 import { hasBorder, cellRef, indexToCol, XlsxError } from '../xlsx/reader.js';
 import {
-  parseFullName, patronymicMatchesName, surnameStem, searchKey, familyLabel,
+  parseFullName, patronymicStem, givenNameKeys, surnameStem, searchKey, familyLabel,
   doubleLetterSuggestion, patronymicGenderForm, surnameGenderForm,
 } from '../../shared/names.js';
 
@@ -65,13 +65,13 @@ export function analyzeWorkbook(wb, { includeHidden = false } = {}) {
         skipped.push({ sheet: sheet.name, cell: c.ref, raw: clip(c.value), reason: 'Ячейка содержит только пробелы' });
         continue;
       }
-      totalText += c.value.length;
-      if (totalText > MAX_TOTAL_TEXT) throw new XlsxError('В ячейках книги слишком много текста для импорта имён. Проверьте, нет ли на листах длинных заметок или повторяющихся огромных значений.');
       if (c.value.trim().length > MAX_RECORD_CHARS) {
         skipped.push({ sheet: sheet.name, cell: c.ref, raw: clip(c.value), long: true, reason: `Слишком длинный текст (${c.value.trim().length} символов) — для имени это необычно; ячейка не импортирована` });
         continue;
       }
       if (!included) continue;
+      totalText += c.value.length;
+      if (totalText > MAX_TOTAL_TEXT) throw new XlsxError('В ячейках книги слишком много текста для импорта имён. Проверьте, нет ли на листах длинных заметок или повторяющихся огромных значений.');
       const span = m ? { top: m.top, left: m.left, bottom: m.bottom, right: m.right } : { top: c.row, left: c.col, bottom: c.row, right: c.col };
       const text = c.value.trim();
       sheetRecords.push({
@@ -337,9 +337,16 @@ function buildSuggestions(records, geometry) {
     const frames = [...(geo?.frames || [])].sort((a, b) => area(a) - area(b));
     const info = new Map();
     for (const r of recs) {
+      // Ключи сравнения считаются один раз на запись (циклы ниже перебирают пары записей).
+      const pKey = r.parse.patronymic ? searchKey(r.parse.patronymic) : null;
       info.set(r.key, {
         r,
         sStem: surnameStem(r.parse.surname),
+        gKey: r.parse.given_name ? searchKey(r.parse.given_name) : null,
+        gKeys: r.parse.given_name ? givenNameKeys(r.parse.given_name) : [],
+        pKey,
+        pStem: r.parse.patronymic ? patronymicStem(r.parse.patronymic) : null,
+        sibKey: pKey ? pKey.replace(/(ич|на)$/, '').replace(/ов$|ев$/, '') : null,
         pc: [],
         pcAll: [],
         gen: 0,
@@ -351,9 +358,7 @@ function buildSuggestions(records, geometry) {
     const sameFrame = (a, b) => frames.find((f) => f.records.includes(a.key) && f.records.includes(b.key));
     const siblingsLike = (a, b) => {
       const ia = I(a), ib = I(b);
-      return !!(ia.sStem && ia.sStem === ib.sStem && a.parse.patronymic && b.parse.patronymic &&
-        searchKey(a.parse.patronymic).replace(/(ич|на)$/, '').replace(/ов$|ев$/, '') ===
-        searchKey(b.parse.patronymic).replace(/(ич|на)$/, '').replace(/ов$|ев$/, ''));
+      return !!(ia.sStem && ia.sStem === ib.sStem && a.parse.patronymic && b.parse.patronymic && ia.sibKey === ib.sibKey);
     };
     const sorted = [...recs].sort((a, b) => a.span.top - b.span.top || a.span.left - b.span.left);
 
@@ -361,7 +366,7 @@ function buildSuggestions(records, geometry) {
     for (const x of sorted) {
       const ix = I(x);
       if (x.parse.patronymic) {
-        const cands = recs.filter((y) => y !== x && y.span.bottom < x.span.top && y.parse.given_name && patronymicMatchesName(x.parse.patronymic, y.parse.given_name));
+        const cands = ix.pStem ? recs.filter((y) => y !== x && y.span.bottom < x.span.top && y.parse.given_name && I(y).gKeys.includes(ix.pStem)) : [];
         ix.pcAll = cands;
         let chosen = cands.filter((y) => I(y).sStem && I(y).sStem === ix.sStem);
         if (!chosen.length) chosen = cands;
@@ -389,9 +394,8 @@ function buildSuggestions(records, geometry) {
         const a = recs[i], b = recs[j];
         const ia = I(a), ib = I(b);
         if (!ia.sStem || ia.sStem !== ib.sStem) continue;
-        if (!a.parse.given_name || searchKey(a.parse.given_name) !== searchKey(b.parse.given_name)) continue;
-        const pa = a.parse.patronymic, pb = b.parse.patronymic;
-        if (pa && pb && searchKey(pa) !== searchKey(pb)) continue;
+        if (!a.parse.given_name || ia.gKey !== ib.gKey) continue;
+        if (a.parse.patronymic && b.parse.patronymic && ia.pKey !== ib.pKey) continue;
         if (samePairsTotal >= MAX_SAME_PAIRS) {
           samePairsCut = true;
           break;

@@ -98,6 +98,7 @@ async function createBackupNow(db, config, { label = null, appVersion = '1.0.0' 
     const count = (t) => rd.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get().n;
     // Последняя запись журнала, вошедшая в снимок: правки во время записи копии в неё не попадут.
     const snapshotLogId = rd.prepare('SELECT MAX(id) AS m FROM change_log').get().m || 0;
+    const restoreAtStart = rd.prepare("SELECT value FROM meta WHERE key = 'last_restore_id'").get()?.value ?? null;
     const counts = {
       persons: count('persons'), parentChild: count('parent_child'), partnerships: count('partnerships'), photos: count('photos'),
       hypotheses: count('hypotheses'), questions: count('questions'), sources: count('sources'), imports: count('imports'), sourceRecords: count('source_records'),
@@ -119,7 +120,7 @@ async function createBackupNow(db, config, { label = null, appVersion = '1.0.0' 
     // Место: фото хранятся в копии без сжатия, данные — не больше размера базы.
     const need = files.reduce((n, f) => n + f.size, 0) + fileSize(db.file) + fileSize(`${db.file}-wal`) + 1024 * 1024;
     // fflate пишет архивы без ZIP64: копия больше 4 ГБ была бы повреждена.
-    if (need > 4 * 1024 ** 3 - 64 * 1024 * 1024) throw new ApiError(507, 'Архив стал больше 4 ГБ — такая резервная копия не поддерживается. Скачайте фотографии отдельно или разделите архив.');
+    if (need > 4 * 1024 ** 3 - 64 * 1024 * 1024) throw new ApiError(507, 'Фотографий стало больше 4 ГБ — полную резервную копию приложение создать не может (а без неё недоступны восстановление и откат импорта). Сохраните папку данных сервера вручную, как описано в README («Резервная копия вручную»).');
     if (cleanLabel === 'auto') makeRoomForAuto(config, need);
     ensureSpace(config, need, 'для резервной копии');
     // Снимок файлов жёсткими ссылками (мгновенно, без копирования) в момент снимка базы:
@@ -231,7 +232,10 @@ async function createBackupNow(db, config, { label = null, appVersion = '1.0.0' 
     }
     const size = fs.statSync(file).size;
     logChange(db, { actor: 'system', action: 'backup.create', summary: `Создана резервная копия ${name}`, details: { name, size, counts, missing } });
-    db.run("INSERT INTO meta (key, value) VALUES ('last_backup_log_id', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", String(snapshotLogId));
+    // Если за время записи копии данные заменило восстановление, отметка к ним уже не относится.
+    if ((db.get("SELECT value FROM meta WHERE key = 'last_restore_id'")?.value ?? null) === restoreAtStart) {
+      db.run("INSERT INTO meta (key, value) VALUES ('last_backup_log_id', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", String(snapshotLogId));
+    }
     pruneBackups(config);
     // Копия, которую это приложение не сможет восстановить, — повод предупредить сразу, а не при восстановлении.
     let warning = null;
@@ -383,6 +387,15 @@ const filesInRestore = () => new Set([...restoreTokens.values()].map((t) => path
 // которую вот-вот заменят, или их файлы исчезли бы при подмене папок).
 let restoring = false;
 export const isRestoring = () => restoring;
+export function beginRestore(db) {
+  if (restoring) throw conflict('Восстановление уже идёт.');
+  restoring = true;
+  db.writeBlock = () => conflict('Идёт восстановление из резервной копии — изменения временно недоступны. Повторите через минуту.');
+}
+export function endRestore(db) {
+  restoring = false;
+  db.writeBlock = null;
+}
 
 // Данные копии разбираются, проверяются и при восстановлении записываются отдельным процессом
 // с пределом памяти (см. backup-data-child.js): сюда возвращаются только числа.
@@ -458,14 +471,14 @@ export async function restorePreview(db, config, zipFile, { uploaded = false } =
 export async function restoreBackup(db, config, token) {
   const t = restoreTokens.get(token);
   if (!t) throw conflict('Предпросмотр восстановления устарел. Загрузите копию ещё раз.');
-  if (restoring) throw conflict('Восстановление уже идёт.');
-  const { manifest } = await readManifest(t.zipFile);
+  // Вызывающий код включает запрет изменений (beginRestore) заранее — до страховочной копии.
+  const own = !restoring;
+  if (own) beginRestore(db);
   const work = path.join(config.dataDir, `restore-${Date.now()}`);
   const restoreId = crypto.randomUUID();
-  restoring = true;
-  db.writeBlock = () => conflict('Идёт восстановление из резервной копии — изменения временно недоступны. Повторите через минуту.');
-  fs.mkdirSync(work, { recursive: true });
   try {
+    const { manifest } = await readManifest(t.zipFile);
+    fs.mkdirSync(work, { recursive: true });
     // Распаковка нужных файлов и запись в базу — в отдельном процессе. Распаковка не должна занять
     // весь диск: предел — свободное место за вычетом запаса.
     const room = Math.max(0, diskSpace(config.dataDir).free - config.diskReserveBytes);
@@ -498,8 +511,7 @@ export async function restoreBackup(db, config, token) {
     if (t.uploaded) fs.rmSync(t.zipFile, { force: true });
     return { counts, manifest };
   } finally {
-    restoring = false;
-    db.writeBlock = null;
+    if (own) endRestore(db);
     fs.rmSync(work, { recursive: true, force: true });
   }
 }

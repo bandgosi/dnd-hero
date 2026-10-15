@@ -211,28 +211,32 @@ export function readWorkbook(buffer, { maxEntryBytes = 8 * 1024 * 1024, maxTotal
   for (const data of Object.values(raw)) {
     let inTag = false;
     let quote = 0;
-    let space = false;
+    let boundary = false;
     for (let i = 0; i < data.length; i++) {
       const b = data[i];
-      if (!inTag) {
-        if (b === 60) {
-          inTag = true;
-          quote = 0;
-          space = false;
-          if (data[i + 1] !== 47) nodes++; // всё, кроме </
-        }
+      // Любой «<» начинает новый узел, в каком бы состоянии ни был разбор (в правильном XML «<»
+      // внутри значения атрибута не встречается) — кавычка в комментарии или CDATA не спрячет узлы.
+      if (b === 60) {
+        inTag = true;
+        quote = 0;
+        boundary = false;
+        if (data[i + 1] !== 47) nodes++; // всё, кроме </
         continue;
       }
+      if (!inTag) continue;
       if (quote) {
-        if (b === quote) quote = 0;
+        if (b === quote) {
+          quote = 0;
+          boundary = true; // после значения может сразу идти следующий атрибут: a="1"b="2"
+        }
         continue;
       }
       if (b === 34 || b === 39) quote = b;
       else if (b === 62) inTag = false;
-      else {
-        const sp = b === 32 || b === 9 || b === 10 || b === 13;
-        if (space && !sp) attributes++;
-        space = sp;
+      else if (b === 32 || b === 9 || b === 10 || b === 13) boundary = true;
+      else if (b !== 61 && b !== 47 && b !== 63) {
+        if (boundary) attributes++; // начало слова внутри тега: имя атрибута (даже без значения)
+        boundary = false;
       }
     }
     if (nodes > MAX_XML_NODES || attributes > MAX_XML_ATTRIBUTES) {

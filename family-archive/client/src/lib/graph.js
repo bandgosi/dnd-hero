@@ -269,7 +269,8 @@ export function buildExcel({ data, index, importRow, sheetName }) {
   };
   const widthOf = (sp) => {
     let w = 0;
-    for (let c = sp.left; c <= sp.right; c++) w += colW.get(c) || 210;
+    // В сжатой схеме столбцов внутри объединения может не быть — они не добавляют ширины.
+    for (let c = sp.left; c <= sp.right; c++) w += colW.get(c) ?? (geo.compact ? 0 : 210);
     return w;
   };
   const rowY = new Map();

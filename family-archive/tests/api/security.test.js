@@ -526,6 +526,10 @@ test('импорт: гигантские диапазоны в крошечно�
       [(x) => x.replace('<sheetData>', `<x>${'<![CDATA[]]>'.repeat(200000)}</x><sheetData>`), /слишком большой или сложный/],
       [(x) => x.replace('<sheetData>', `<x ${Array.from({ length: 250000 }, (_, i) => `a${i}="1"`).join(' ')}/><sheetData>`), /слишком большой или сложный/],
       [(x) => x.replace('<sheetData>', `<x${' y'.repeat(300000)}/><sheetData>`), /слишком большой или сложный/],
+      // Кавычка внутри комментария или CDATA не прячет следующие узлы; атрибуты без пробелов тоже считаются.
+      [(x) => x.replace('</sheetData>', `</sheetData><!--'-->${'<x><y/></x>'.repeat(100000)}<!--'-->`), /слишком большой или сложный/],
+      [(x) => x.replace('</sheetData>', `</sheetData><t><![CDATA[']]></t>${'<x><y/></x>'.repeat(100000)}`), /слишком большой или сложный/],
+      [(x) => x.replace('<sheetData>', `<x ${Array.from({ length: 250000 }, (_, i) => `a${i}=""`).join('')}/><sheetData>`), /слишком большой или сложный/],
       [(x) => x.replace('<sheetData>', `<x ${Array.from({ length: 250000 }, (_, i) => `a${i}= ""`).join(' ')}/><sheetData>`), /слишком большой или сложный/],
     ];
     for (const [patch, error] of cases) {

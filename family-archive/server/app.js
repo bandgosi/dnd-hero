@@ -424,9 +424,16 @@ export function createApp({ db, config }) {
     const token = req.body?.token;
     // Сначала проверка предпросмотра: страховочная копия не создаётся (и не вытесняет старые) впустую.
     if (!backup.hasRestoreToken(token)) throw new ApiError(409, 'Предпросмотр восстановления устарел. Загрузите копию ещё раз.');
-    const before = await backup.createBackup(db, config, { label: 'before-restore', appVersion: config.appVersion });
-    const r = await backup.restoreBackup(db, config, token);
-    res.json({ ...r, backupBefore: before });
+    // Изменения запрещаются ещё до страховочной копии: правка, сделанная во время её записи,
+    // не попала бы ни в неё, ни в восстановленные данные.
+    backup.beginRestore(db);
+    try {
+      const before = await backup.createBackup(db, config, { label: 'before-restore', appVersion: config.appVersion });
+      const r = await backup.restoreBackup(db, config, token);
+      res.json({ ...r, backupBefore: before });
+    } finally {
+      backup.endRestore(db);
+    }
   }));
 
   app.get('/api/export/persons.csv', (req, res) => {
