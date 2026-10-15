@@ -33,6 +33,9 @@ PORT=3000
 PORT_SET=0
 OLD_PORT=""
 DOMAIN=""
+DOMAIN_SET=0
+DOMAIN_CHANGED=0
+FIREWALL_DONE=0
 EMAIL=""
 LOCAL_ONLY=0
 SKIP_FIREWALL=0
@@ -82,7 +85,7 @@ EOF
 
 while (($#)); do
   case "$1" in
-    --domain) DOMAIN="${2:-}"; shift 2 ;;
+    --domain) DOMAIN="${2:-}"; DOMAIN_SET=1; shift 2 ;;
     --email) EMAIL="${2:-}"; shift 2 ;;
     --local-only) LOCAL_ONLY=1; shift ;;
     --port) PORT="${2:-}"; PORT_SET=1; shift 2 ;;
@@ -120,12 +123,27 @@ conf_value() {
   # shellcheck source=/dev/null
   (. "$INSTALL_CONF" && printf '%s' "${!1:-}")
 }
+valid_domain() { [[ $1 =~ ^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{1,62}$ ]]; }
+if [[ -n $EMAIL && ! $EMAIL =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]]; then die "неверный адрес почты: $EMAIL"; fi
 if ((UPDATE)); then
   [[ -f $ENV_FILE ]] || die "приложение ещё не установлено — запустите установку без --update."
   # Из прежних настроек берём домен, почту и выбор брандмауэра (путь к исходникам — текущий).
-  DOMAIN="$(conf_value DOMAIN || true)"
+  OLD_DOMAIN="$(conf_value DOMAIN || true)"
+  DOMAIN="$(printf '%s' "$DOMAIN" | tr '[:upper:]' '[:lower:]')"
+  if ((DOMAIN_SET)) && [[ -n $DOMAIN && $DOMAIN != "$OLD_DOMAIN" ]]; then
+    # Повторный запуск с другим --domain: домен добавляется или исправляется.
+    valid_domain "$DOMAIN" || die "неверное доменное имя: $DOMAIN"
+    DOMAIN_CHANGED=1
+  elif ((LOCAL_ONLY)) && [[ -n $OLD_DOMAIN ]]; then
+    # Повторный запуск с --local-only: доступ из интернета отключается.
+    DOMAIN=""
+    DOMAIN_CHANGED=1
+  else
+    DOMAIN="$OLD_DOMAIN"
+  fi
   [[ -n $EMAIL ]] || EMAIL="$(conf_value EMAIL || true)"
   [[ "$(conf_value SKIP_FIREWALL || true)" == 1 ]] && SKIP_FIREWALL=1
+  [[ "$(conf_value FIREWALL_DONE || true)" == 1 ]] && FIREWALL_DONE=1
   OLD_PORT="$(awk -F= '$1=="PORT"{print $2}' "$ENV_FILE" | tail -n1)"
   OLD_PORT="${OLD_PORT:-3000}"
   ((PORT_SET)) || PORT="$OLD_PORT"
@@ -139,10 +157,9 @@ else
     [[ -n $DOMAIN ]] || LOCAL_ONLY=1
   fi
   if [[ -n $DOMAIN ]]; then
-    [[ $DOMAIN =~ ^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{1,62}$ ]] || die "неверное доменное имя: $DOMAIN"
+    valid_domain "$DOMAIN" || die "неверное доменное имя: $DOMAIN"
     LOCAL_ONLY=0
   fi
-  if [[ -n $EMAIL && ! $EMAIL =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]]; then die "неверный адрес почты: $EMAIL"; fi
 fi
 
 avail_mb() { df -Pm "$1" | awk 'NR==2{print $4}'; }
@@ -157,9 +174,15 @@ check_port() {
   command -v ss >/dev/null || return 0
   busy="$(ss -Hltnp "sport = :$PORT" 2>/dev/null || true)"
   [[ -z $busy ]] && return 0
-  if ((!SKIP_SYSTEM)) && systemctl is-active --quiet "$SERVICE.socket" 2>/dev/null &&
-    [[ "$(systemctl show -p Listen --value "$SERVICE.socket" 2>/dev/null)" == "127.0.0.1:$PORT "* ]]; then
-    return 0
+  if ((!SKIP_SYSTEM)); then
+    if systemctl is-active --quiet "$SERVICE.socket" 2>/dev/null &&
+      [[ "$(systemctl show -p Listen --value "$SERVICE.socket" 2>/dev/null)" == "127.0.0.1:$PORT "* ]]; then
+      return 0
+    fi
+    # Порт занят нашей же службой (версия без отдельного сокета) — при обновлении она будет остановлена.
+    local pid
+    pid="$(systemctl show -p MainPID --value "$SERVICE" 2>/dev/null || echo 0)"
+    if [[ -n $pid && $pid != 0 ]] && grep -q "pid=$pid," <<<"$busy"; then return 0; fi
   fi
   printf '%s\n' "$busy" >&2
   die "порт $PORT уже занят другой программой. Укажите свободный порт, например: --port 3010"
@@ -293,13 +316,13 @@ if [[ ! -f $ENV_FILE ]]; then
   else
     [[ -t 0 ]] || die "нет терминала для ввода пароля: используйте --generate-password."
     while :; do
-      read -rsp "Придумайте пароль (не короче 10 символов): " PW
+      IFS= read -rsp "Придумайте пароль (не короче 10 символов): " PW
       echo
       if ((${#PW} < 10)); then
         warn "слишком короткий пароль."
         continue
       fi
-      read -rsp "Повторите пароль: " PW2
+      IFS= read -rsp "Повторите пароль: " PW2
       echo
       [[ $PW == "$PW2" ]] && break
       warn "пароли не совпадают."
@@ -336,34 +359,46 @@ if [[ ! -f $ENV_FILE ]]; then
   mv "$ENV_TMP" "$ENV_FILE"
   ((GENERATED)) && SHOW_PW="$PW"
   unset PW PW2 HASH
-elif ((PORT_SET)) && [[ $PORT != "$OLD_PORT" ]]; then
-  # Смена порта при обновлении (--port); прежние настройки — для отката.
+elif [[ $PORT != "$OLD_PORT" ]] || ((DOMAIN_CHANGED)); then
+  # Смена порта (--port) или домена (--domain / --local-only); прежние настройки — для отката.
   cp -p "$ENV_FILE" "$ENV_FILE.prev"
   ENV_TMP="$(mktemp "$CONF_DIR/env.XXXXXX")"
-  awk -v p="$PORT" '/^PORT=/{print "PORT=" p; next} {print}' "$ENV_FILE" >"$ENV_TMP"
+  awk -v p="$PORT" -v d="$DOMAIN" -v dc="$DOMAIN_CHANGED" '
+    /^PORT=/ { print "PORT=" p; next }
+    dc == 1 && /^(ALLOWED_HOSTS|TRUST_PROXY|COOKIE_SECURE)=/ { next }
+    { print }
+    END { if (dc == 1 && d != "") { print "ALLOWED_HOSTS=" d; print "TRUST_PROXY=loopback"; print "COOKIE_SECURE=1" } }
+  ' "$ENV_FILE" >"$ENV_TMP"
   chmod 0600 "$ENV_TMP"
   mv "$ENV_TMP" "$ENV_FILE"
-  info "порт приложения изменён: $OLD_PORT → $PORT"
+  [[ $PORT != "$OLD_PORT" ]] && info "порт приложения изменён: $OLD_PORT → $PORT"
+  ((DOMAIN_CHANGED)) && info "адрес изменён: ${DOMAIN:-только через SSH-туннель}"
 fi
-{
-  echo "SRC_DIR=$(printf '%q' "$SRC_DIR")"
-  echo "APP_DIR=$(printf '%q' "$APP_DIR")"
-  echo "NODE_ROOT=$(printf '%q' "$NODE_ROOT")"
-  echo "DATA_DIR=$(printf '%q' "$DATA_DIR")"
-  echo "ENV_FILE=$(printf '%q' "$ENV_FILE")"
-  echo "DOMAIN=$(printf '%q' "$DOMAIN")"
-  echo "EMAIL=$(printf '%q' "$EMAIL")"
-  echo "SKIP_FIREWALL=$SKIP_FIREWALL"
-  echo "SERVICE=$SERVICE"
-  echo "SERVICE_USER=$SERVICE_USER"
-} >"$INSTALL_CONF"
-chmod 0600 "$INSTALL_CONF"
+write_install_conf() {
+  {
+    echo "SRC_DIR=$(printf '%q' "$SRC_DIR")"
+    echo "APP_DIR=$(printf '%q' "$APP_DIR")"
+    echo "NODE_ROOT=$(printf '%q' "$NODE_ROOT")"
+    echo "DATA_DIR=$(printf '%q' "$DATA_DIR")"
+    echo "ENV_FILE=$(printf '%q' "$ENV_FILE")"
+    echo "DOMAIN=$(printf '%q' "$DOMAIN")"
+    echo "EMAIL=$(printf '%q' "$EMAIL")"
+    echo "SKIP_FIREWALL=$SKIP_FIREWALL"
+    echo "FIREWALL_DONE=$FIREWALL_DONE"
+    echo "SERVICE=$SERVICE"
+    echo "SERVICE_USER=$SERVICE_USER"
+  } >"$INSTALL_CONF"
+  chmod 0600 "$INSTALL_CONF"
+}
+write_install_conf
 
 # ---------- Служба systemd ----------
 # Прежние файлы служб сохраняются для отката.
-for f in "$UNIT_FILE" "$SOCKET_FILE"; do
+for f in "$UNIT_FILE" "$SOCKET_FILE" "$DROPIN_DIR/10-compat.conf"; do
   if [[ -f $f ]]; then cp -p "$f" "$f.prev"; else rm -f "$f.prev"; fi
 done
+SOCKET_EXISTED=0
+[[ -f $SOCKET_FILE ]] && SOCKET_EXISTED=1
 write_unit() {
   mkdir -p "$(dirname "$UNIT_FILE")"
   # Запасной режим без фильтра системных вызовов не переносится между запусками:
@@ -474,7 +509,8 @@ mv "$STAGE" "$APP_DIR"
 rollback() {
   warn "$1"
   ((SKIP_SYSTEM)) || systemctl stop "$SERVICE" 2>/dev/null || true
-  rm -f "$DROPIN_DIR/10-compat.conf"
+  # Запасной режим возвращается таким, каким был у прежней версии.
+  if [[ -f $DROPIN_DIR/10-compat.conf.prev ]]; then mv -f "$DROPIN_DIR/10-compat.conf.prev" "$DROPIN_DIR/10-compat.conf"; else rm -f "$DROPIN_DIR/10-compat.conf"; fi
   if [[ -n $PREV_NODE && -d $PREV_NODE && "$(readlink "$NODE_ROOT")" != "$PREV_NODE" ]]; then ln -sfn "$PREV_NODE" "$NODE_ROOT"; fi
   local note=""
   [[ -n $BACKUP_NOTE ]] && note=" Резервная копия перед обновлением: $BACKUP_NOTE"
@@ -487,9 +523,14 @@ rollback() {
       PORT="$OLD_PORT"
     fi
     if ((!SKIP_SYSTEM)); then
-      for f in "$UNIT_FILE" "$SOCKET_FILE"; do [[ -f $f.prev ]] && mv -f "$f.prev" "$f"; done
+      # Прежняя версия без отдельного сокета: новый сокет убирается, иначе он занял бы её порт.
+      if ((!SOCKET_EXISTED)); then
+        systemctl disable --now "$SERVICE.socket" >/dev/null 2>&1 || true
+        rm -f "$SOCKET_FILE"
+      fi
+      for f in "$UNIT_FILE" "$SOCKET_FILE"; do if [[ -f $f.prev ]]; then mv -f "$f.prev" "$f"; fi; done
       systemctl daemon-reload
-      systemctl restart "$SERVICE.socket" 2>/dev/null || true
+      ((SOCKET_EXISTED)) && { systemctl restart "$SERVICE.socket" 2>/dev/null || true; }
       systemctl restart "$SERVICE" || true
       if health; then
         die "новая версия не запустилась — возвращена прежняя, она работает.$note Подробности: sudo journalctl -u $SERVICE -n 50"
@@ -547,7 +588,7 @@ else
   fi
   info "служба работает (только на 127.0.0.1:$PORT)"
 fi
-rm -rf "$APP_DIR.old" "$APP_DIR.failed" "$UNIT_FILE.prev" "$SOCKET_FILE.prev" "$ENV_FILE.prev"
+rm -rf "$APP_DIR.old" "$APP_DIR.failed" "$UNIT_FILE.prev" "$SOCKET_FILE.prev" "$ENV_FILE.prev" "$DROPIN_DIR/10-compat.conf.prev"
 # Старые версии Node.js больше не нужны для отката.
 find "$PREFIX/opt" -maxdepth 1 -type d -name 'node-v22.*' ! -path "$(readlink "$NODE_ROOT")" -exec rm -rf {} +
 
@@ -658,9 +699,25 @@ setup_firewall() {
 }
 
 if ((!SKIP_SYSTEM)); then
-  [[ -n $DOMAIN ]] && setup_caddy
-  # Брандмауэр настраивается только при первой установке: обновление не трогает правила администратора.
-  ((SKIP_FIREWALL || UPDATE)) || setup_firewall
+  if [[ -n $DOMAIN ]]; then
+    setup_caddy
+    # Домен добавлен позже, а брандмауэр уже включён: сайту нужны порты 80 и 443.
+    if command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q '^Status: active'; then
+      ufw allow 80/tcp >/dev/null
+      ufw allow 443/tcp >/dev/null
+    fi
+  elif ((DOMAIN_CHANGED)) && [[ -f /etc/caddy/conf.d/family-archive.caddy ]]; then
+    rm -f /etc/caddy/conf.d/family-archive.caddy
+    systemctl reload caddy 2>/dev/null || true
+    info "сайт в Caddy отключён: архив доступен только через SSH-туннель."
+  fi
+  # Брандмауэр настраивается один раз (и при повторном запуске, если первая установка прервалась
+  # раньше); дальше обновления не трогают правила администратора.
+  if ((!SKIP_FIREWALL && !FIREWALL_DONE)); then
+    setup_firewall
+    FIREWALL_DONE=1
+    write_install_conf
+  fi
 fi
 
 # ---------- Итог ----------

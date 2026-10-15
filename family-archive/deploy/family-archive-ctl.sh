@@ -51,8 +51,8 @@ case "${1:-help}" in
     for d in photos backups imports; do
       [[ -d $DATA_DIR/$d ]] && du -sh "$DATA_DIR/$d" | awk -v n="$d" '{print "  " n ": " $1}'
     done
-    du -ch "$DATA_DIR"/family.db* 2>/dev/null | awk 'END{print "  база: " $1}'
-    [[ -n ${DOMAIN:-} ]] && echo "Адрес: https://$DOMAIN"
+    du -ch "$DATA_DIR"/family.db* 2>/dev/null | awk 'END{print "  база: " $1}' || true
+    if [[ -n ${DOMAIN:-} ]]; then echo "Адрес: https://$DOMAIN"; fi
     ;;
   logs)
     n="${2:-100}"
@@ -67,9 +67,9 @@ case "${1:-help}" in
     run_app_script scripts/backup-cli.mjs
     ;;
   password)
-    read -rsp "Новый пароль (не короче 10 символов): " pw
+    IFS= read -rsp "Новый пароль (не короче 10 символов): " pw
     echo
-    read -rsp "Повторите пароль: " pw2
+    IFS= read -rsp "Повторите пароль: " pw2
     echo
     [[ $pw == "$pw2" ]] || {
       echo "Пароли не совпадают." >&2
@@ -97,7 +97,7 @@ case "${1:-help}" in
     # git запускается от имени владельца папки с исходниками (не от root): так его настройки
     # и права на файлы репозитория остаются прежними.
     owner="$(stat -c %U "$SRC_DIR" 2>/dev/null || true)"
-    home="$(getent passwd "$owner" | cut -d: -f6)"
+    home="$(getent passwd "$owner" | cut -d: -f6 || true)"
     as_owner() { runuser -u "$owner" -- env HOME="${home:-/}" "$@"; }
     if [[ -z $owner ]] || ! as_owner git -C "$SRC_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
       echo "Не найдена папка с исходниками ($SRC_DIR) или это не копия git. Скачайте проект заново и запустите deploy/install.sh --update." >&2
