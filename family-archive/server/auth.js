@@ -49,6 +49,16 @@ function parseCookies(header) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Счётчики попыток не растут без предела: сначала забываются устаревшие, затем самые давние.
+function pruneCounters(map, now, max = 10000) {
+  if (map.size <= max) return;
+  for (const [k, list] of map) if (!list.length || now - list[list.length - 1] >= 15 * 60 * 1000) map.delete(k);
+  for (const k of map.keys()) {
+    if (map.size <= max) break;
+    map.delete(k);
+  }
+}
 const hmac = (key, s) => crypto.createHmac('sha256', key).update(s).digest('base64url');
 
 // Секрет установки: лежит в папке данных (не в базе и не в резервных копиях).
@@ -66,15 +76,27 @@ function installSecret(dataDir) {
 
 // Ключ клиента для ограничения попыток: IPv4 целиком, IPv6 — по сети /64
 // (у одного абонента обычно целая сеть /64, иначе ограничение легко обойти).
-export function clientKey(ip) {
-  let a = String(ip || 'unknown').toLowerCase().split('%')[0];
-  if (a.startsWith('::ffff:') && a.includes('.')) return a.slice(7);
-  if (!a.includes(':')) return a;
+function parseIp(ip) {
+  const a = String(ip || 'unknown').toLowerCase().split('%')[0];
+  if (a.startsWith('::ffff:') && a.includes('.')) return { v4: a.slice(7) };
+  if (!a.includes(':')) return { v4: a };
   const [head, tail] = a.split('::');
   const h = head ? head.split(':') : [];
   const t = tail ? tail.split(':') : [];
   const groups = a.includes('::') ? [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill('0'), ...t] : h;
-  return `${groups.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, '')).join(':')}::/64`;
+  return { v6: groups.map((g) => g.replace(/^0+(?=.)/, '')) };
+}
+export function clientKey(ip) {
+  const p = parseIp(ip);
+  return p.v4 ?? `${p.v6.slice(0, 4).join(':')}::/64`;
+}
+// Сеть клиента (IPv4 /24, IPv6 /48): общий предел для адресов одной сети — против подбора
+// с множества адресов одного провайдера или туннеля.
+export function netKey(ip) {
+  const p = parseIp(ip);
+  if (p.v6) return `${p.v6.slice(0, 3).join(':')}::/48`;
+  const o = p.v4.split('.');
+  return o.length === 4 ? `${o.slice(0, 3).join('.')}.0/24` : p.v4;
 }
 
 export function createAuth(db, config) {
@@ -105,6 +127,7 @@ export function createAuth(db, config) {
   db.run('DELETE FROM sessions WHERE expires_at < ?', nowIso());
 
   const perIp = new Map();
+  const perNet = new Map();
   let globalFails = [];
   let inFlight = 0;
   const WINDOW = 15 * 60 * 1000;
@@ -194,24 +217,34 @@ export function createAuth(db, config) {
   async function login(req, res) {
     if (!enabled) return res.json({ ok: true });
     const ip = clientKey(req.ip);
+    const net = netKey(req.ip);
     const now = Date.now();
+    const known = knownDevice(req);
     const mine = (perIp.get(ip) || []).filter((t) => now - t < WINDOW);
+    const ours = (perNet.get(net) || []).filter((t) => now - t < WINDOW);
     globalFails = globalFails.filter((t) => now - t < WINDOW);
-    // Обычно — 10 попыток за 15 минут с адреса. Если идёт подбор с многих адресов (50 неудач на всех),
-    // новым устройствам остаётся по 3 попытки с адреса; полной блокировки, которая заперла бы и семью, нет.
-    const limit = globalFails.length >= 50 && !knownDevice(req) ? 3 : 10;
-    if (mine.length >= limit) {
+    // Обычно — 10 попыток за 15 минут с адреса и 30 с сети. Если идёт подбор с многих адресов
+    // (50 неудач на всех), новым устройствам остаётся по 3 попытки с адреса; знакомые устройства
+    // от строгого режима и предела сети освобождены — полной блокировки, которая заперла бы семью, нет.
+    const limit = globalFails.length >= 50 && !known ? 3 : 10;
+    if (mine.length >= limit || (!known && ours.length >= 30)) {
       return res.status(429).json({ error: 'Слишком много неудачных попыток входа. Подождите 15 минут.' });
     }
-    // Проверка пароля дорогая (scrypt): одновременно — не больше нескольких.
-    if (inFlight >= MAX_IN_FLIGHT) {
+    // Проверка пароля дорогая (scrypt): одновременно — не больше нескольких; для знакомых
+    // устройств всегда остаётся запас.
+    if (inFlight >= (known ? MAX_IN_FLIGHT + 2 : MAX_IN_FLIGHT)) {
       return res.status(429).json({ error: 'Сервер занят проверкой входа. Повторите через несколько секунд.' });
     }
     // Попытка засчитывается сразу, чтобы параллельные запросы не обходили ограничение.
     mine.push(now);
     perIp.set(ip, mine);
+    if (!known) {
+      ours.push(now);
+      perNet.set(net, ours);
+    }
     globalFails.push(now);
-    if (perIp.size > 10000) perIp.clear();
+    pruneCounters(perIp, now);
+    pruneCounters(perNet, now);
     let ok = false;
     inFlight++;
     try {
@@ -228,6 +261,10 @@ export function createAuth(db, config) {
     const i = globalFails.lastIndexOf(now);
     if (i >= 0) globalFails.splice(i, 1);
     perIp.delete(ip);
+    if (!known) {
+      const j = ours.lastIndexOf(now);
+      if (j >= 0) ours.splice(j, 1);
+    }
     const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(now + config.sessionDays * 86400000).toISOString();
     db.run('INSERT INTO sessions (token_hash, created_at, expires_at) VALUES (?, ?, ?)', sha256(token), nowIso(), expires);

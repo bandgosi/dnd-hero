@@ -26,8 +26,9 @@ export default defineConfig({
     port: 5173,
     fs: { allow: [path.resolve(import.meta.dirname)] },
     proxy: {
-      '/api': `http://127.0.0.1:${API_PORT}`,
-      '/media': `http://127.0.0.1:${API_PORT}`,
+      // Host остаётся как в браузере (localhost:5173): сервер сверяет его с Origin.
+      '/api': { target: `http://127.0.0.1:${API_PORT}`, changeOrigin: false },
+      '/media': { target: `http://127.0.0.1:${API_PORT}`, changeOrigin: false },
     },
   },
 });

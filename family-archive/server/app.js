@@ -86,16 +86,19 @@ export function createApp({ db, config }) {
 
   app.use('/api', auth.requireAuth);
   app.use('/media', auth.requireAuth);
+  // Выход на всех устройствах работает и при заполненном диске (например, если потерян телефон).
+  app.post('/api/auth/logout-all', auth.logoutAll);
   // Изменяющие запросы: при почти заполненном диске отклоняются (удаление разрешено — оно освобождает
   // место), одновременно обрабатывается ограниченное число (их тела держатся в памяти).
   const writeSlots = limitConcurrent(16);
+  // Запросы, которые только освобождают место (отмена загруженных копий и предпросмотров импорта).
+  const FREEING = new Set(['/backups/restore-discard', '/imports/discard']);
   app.use('/api', (req, res, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
-    if (req.method !== 'DELETE') ensureSpace(config, 1024 * 1024 + (Number(req.headers['content-length']) || 0), 'для сохранения изменений');
+    if (req.method !== 'DELETE' && !FREEING.has(req.path.toLowerCase())) ensureSpace(config, 1024 * 1024 + (Number(req.headers['content-length']) || 0), 'для сохранения изменений');
     writeSlots(req, res, next);
   });
   app.use('/api', json);
-  app.post('/api/auth/logout-all', auth.logoutAll);
 
   // ---------- Все данные для интерфейса ----------
   app.get('/api/data', (req, res) => {

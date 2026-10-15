@@ -11,7 +11,7 @@ import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
 import { startServer, photoForm, makePng, xlsxForm } from '../helpers/harness.js';
 import { fixtureXlsx, buildXlsx } from '../helpers/fixture.js';
 import { loadConfig, configProblems } from '../../server/config.js';
-import { hashPassword, clientKey } from '../../server/auth.js';
+import { hashPassword, clientKey, netKey } from '../../server/auth.js';
 import { stripImageMetadata } from '../../server/lib/imagemeta.js';
 import { sniffImage } from '../../server/services/photos.js';
 import { createBackup, listBackups, changedSinceLastBackup } from '../../server/services/backup.js';
@@ -143,7 +143,7 @@ test('вход: подбор с разных адресов включает с�
     assert.equal(first.status, 200);
     const device = first.headers.getSetCookie().find((c) => c.startsWith('fa_device=')).split(';')[0];
     // 50 неудачных попыток с пяти адресов (по 10) — срабатывает общий предел.
-    const attempts = ['198.51.100.1', '198.51.100.2', '198.51.100.3', '198.51.100.4', '198.51.100.5'].flatMap((ip) => Array(10).fill(ip));
+    const attempts = ['198.51.100.1', '198.51.101.1', '198.51.102.1', '198.51.103.1', '198.51.104.1'].flatMap((ip) => Array(10).fill(ip));
     for (let i = 0; i < attempts.length; i += 4) {
       const r = await Promise.all(attempts.slice(i, i + 4).map((ip) => login(ip, 'неверный-пароль')));
       assert.ok(r.every((x) => x.status === 401));
@@ -155,9 +155,18 @@ test('вход: подбор с разных адресов включает с�
     // …знакомое устройство с того же адреса входит, и семья с нового устройства тоже может войти.
     assert.equal((await login('203.0.113.30', 'семейный-пароль-1', device)).status, 200, 'знакомое устройство входит');
     assert.equal((await login('203.0.113.40', 'семейный-пароль-1')).status, 200, 'полной блокировки нет');
-    // IPv6: адреса одной сети /64 считаются одним клиентом.
+    // Много адресов одной сети /24: не больше 30 неудач за 15 минут на всю сеть.
+    let netRejected = 0;
+    for (let i = 1; i <= 36; i += 4) {
+      const r = await Promise.all([0, 1, 2, 3].map((k) => login(`192.0.2.${i + k}`, 'неверный-пароль')));
+      netRejected += r.filter((x) => x.status === 429).length;
+    }
+    assert.ok(netRejected >= 4, `отклонено в сети: ${netRejected}`);
+    // IPv6: адреса одной сети /64 считаются одним клиентом, сеть /48 — общий предел.
     assert.equal(clientKey('2001:db8:1:2::a'), clientKey('2001:db8:1:2:ffff::b'));
     assert.notEqual(clientKey('2001:db8:1:2::a'), clientKey('2001:db8:1:3::a'));
+    assert.equal(netKey('2001:db8:1:2::a'), netKey('2001:db8:1:ffff::b'));
+    assert.equal(netKey('192.0.2.7'), netKey('192.0.2.200'));
   } finally {
     await s.close();
   }
@@ -474,7 +483,9 @@ test('резервные копии: хранение последних N, пр
     const bk = await tight.post('/api/backups');
     assert.equal(bk.status, 507);
     assert.match(bk.data.error, /Недостаточно места/);
-    // …а удаление (освобождает место) разрешено.
+    // …а удаление, отмена загрузок и выход на всех устройствах разрешены.
+    assert.equal((await tight.post('/api/auth/logout-all')).status, 200);
+    assert.equal((await tight.post('/api/backups/restore-discard', { token: 'x' })).status, 200);
     assert.equal((await tight.raw('DELETE', '/api/backups/family-archive-20200101-000000.zip')).status === 507, false);
   } finally {
     await tight.close();

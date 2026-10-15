@@ -125,8 +125,9 @@ export function ArchiveView() {
     if (!ok) return;
     try {
       await api.post('/api/auth/logout-all');
-    } finally {
       window.location.reload();
+    } catch (e) {
+      reportError(ui, e);
     }
   };
   useEffect(() => {
