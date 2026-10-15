@@ -55,6 +55,27 @@ export function createApp({ db, config }) {
   const photoUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.maxPhotoBytes, files: 3, fields: 10 } });
   const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.maxImportBytes, files: 1, fields: 5 } });
   const backupUpload = multer({ dest: config.tmpDir, limits: { fileSize: config.maxBackupBytes, files: 1, fields: 2 } });
+  // Тяжёлые загрузки обрабатываются по нескольку одновременно: памяти на сервере немного.
+  const limitConcurrent = (limit) => {
+    let busy = 0;
+    return (req, res, next) => {
+      if (busy >= limit) return res.status(429).json({ error: 'Сервер обрабатывает другие файлы. Повторите через несколько секунд.' });
+      busy++;
+      let released = false;
+      const release = () => {
+        if (!released) {
+          released = true;
+          busy--;
+        }
+      };
+      res.on('finish', release);
+      res.on('close', release);
+      next();
+    };
+  };
+  const photoSlots = limitConcurrent(3);
+  const importSlots = limitConcurrent(2);
+  const restoreSlots = limitConcurrent(1);
 
   // ---------- Вход ----------
   app.get('/api/auth/status', auth.status);
@@ -220,11 +241,18 @@ export function createApp({ db, config }) {
   });
 
   // ---------- Источники ----------
+  // Ссылка — только http(s): javascript: и data: в href недопустимы.
+  const cleanUrl = (v) => {
+    const url = cleanText(v, { max: 2000 });
+    if (!url) return url;
+    if (!/^https?:\/\/[^\s]+$/i.test(url)) throw badRequest('Ссылка должна начинаться с http:// или https://');
+    return url;
+  };
   const sourceFields = (b) => ({
     title: cleanText(b.title, { max: 500 }),
     kind: oneOf(b.kind, ['document', 'oral', 'photo', 'archive', 'web', 'excel', 'other'], 'other', 'Вид источника'),
     details: cleanText(b.details, { max: 20000 }),
-    url: cleanText(b.url, { max: 2000 }),
+    url: cleanUrl(b.url),
   });
   app.post('/api/persons/:id/sources', (req, res) => {
     const p = persons.getPerson(db, req.params.id);
@@ -262,7 +290,7 @@ export function createApp({ db, config }) {
 
   // ---------- Фотографии ----------
   const photoFiles = photoUpload.fields([{ name: 'original', maxCount: 1 }, { name: 'display', maxCount: 1 }, { name: 'thumb', maxCount: 1 }]);
-  app.post('/api/persons/:id/photos', photoFiles, (req, res) => {
+  app.post('/api/persons/:id/photos', photoSlots, photoFiles, (req, res) => {
     const f = req.files || {};
     if (!f.original?.[0] || !f.display?.[0] || !f.thumb?.[0]) throw badRequest('Нужны исходный файл, кадрированное фото и миниатюра');
     const ph = photos.addPhoto(db, config, req.params.id, {
@@ -274,7 +302,7 @@ export function createApp({ db, config }) {
     });
     res.status(201).json({ photo: ph });
   });
-  app.put('/api/photos/:id', photoFiles, (req, res) => {
+  app.put('/api/photos/:id', photoSlots, photoFiles, (req, res) => {
     const f = req.files || {};
     const ph = photos.updatePhoto(db, config, req.params.id, {
       files: { display: f.display?.[0]?.buffer, thumb: f.thumb?.[0]?.buffer },
@@ -303,7 +331,7 @@ export function createApp({ db, config }) {
   });
 
   // ---------- Импорт ----------
-  app.post('/api/imports/preview', importUpload.single('file'), (req, res) => {
+  app.post('/api/imports/preview', importSlots, importUpload.single('file'), (req, res) => {
     if (!req.file) throw badRequest('Выберите файл .xlsx');
     const fileName = uploadName(req.file.originalname, 'файл.xlsx');
     res.json(imports.createPreview(db, config, { buffer: req.file.buffer, fileName, includeHidden: req.body?.includeHidden === '1' }));
@@ -349,10 +377,12 @@ export function createApp({ db, config }) {
   // Перед приёмом большого файла проверяем, поместится ли он на диск.
   const roomForUpload = (req, res, next) => {
     const len = Number(req.headers['content-length'] || 0);
-    if (len > 0) ensureSpace(config, len, 'для загрузки резервной копии');
+    // Без указанного размера место заранее не проверить — такие загрузки не принимаются.
+    if (!(len > 0)) return res.status(411).json({ error: 'Не указан размер загружаемого файла' });
+    ensureSpace(config, len, 'для загрузки резервной копии');
     next();
   };
-  app.post('/api/backups/restore-preview', roomForUpload, backupUpload.single('file'), asyncHandler(async (req, res) => {
+  app.post('/api/backups/restore-preview', restoreSlots, roomForUpload, backupUpload.single('file'), asyncHandler(async (req, res) => {
     let file;
     let uploaded = false;
     if (req.file) {
@@ -368,8 +398,10 @@ export function createApp({ db, config }) {
       throw e;
     }
   }));
-  app.post('/api/backups/restore', asyncHandler(async (req, res) => {
+  app.post('/api/backups/restore', restoreSlots, asyncHandler(async (req, res) => {
     const token = req.body?.token;
+    // Сначала проверка предпросмотра: страховочная копия не создаётся (и не вытесняет старые) впустую.
+    if (!backup.hasRestoreToken(token)) throw new ApiError(409, 'Предпросмотр восстановления устарел. Загрузите копию ещё раз.');
     const before = await backup.createBackup(db, config, { label: 'before-restore', appVersion: config.appVersion });
     const r = await backup.restoreBackup(db, config, token);
     res.json({ ...r, backupBefore: before });
@@ -386,7 +418,10 @@ export function createApp({ db, config }) {
     res.send(relationsCsv(db));
   });
 
-  app.get('/api/changes', (req, res) => res.json({ changes: recentChanges(db, Math.min(500, Number(req.query.limit) || 100)) }));
+  app.get('/api/changes', (req, res) => {
+    const n = Math.trunc(Number(req.query.limit));
+    res.json({ changes: recentChanges(db, n >= 1 ? Math.min(500, n) : 100) });
+  });
 
   app.use('/api', (req, res) => res.status(404).json({ error: 'Неизвестный адрес API' }));
 

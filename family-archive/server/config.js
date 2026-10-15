@@ -14,7 +14,9 @@ export function loadConfig(env = process.env) {
   const num = (v, d) => (v === undefined || v === '' || !Number.isFinite(Number(v)) ? d : Number(v));
   const mb = (v, d) => Math.max(1, num(v, d)) * 1024 * 1024;
   const allowedHosts = (env.ALLOWED_HOSTS || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-  const trustProxy = env.TRUST_PROXY || '';
+  // Число — количество доверенных прокси (строку «1» Express понял бы как адрес 0.0.0.1).
+  const tp = String(env.TRUST_PROXY || '').trim();
+  const trustProxy = /^\d+$/.test(tp) ? Number(tp) || '' : tp === 'true' ? true : tp === 'false' ? '' : tp;
   return {
     host,
     port: num(env.PORT, 3000),

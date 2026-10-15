@@ -95,10 +95,22 @@ export function indexToCol(n) {
   return s;
 }
 
+// Пределы Excel: столбцы A…XFD, строки 1…1 048 576.
+export const MAX_COL = 16384;
+export const MAX_ROW = 1048576;
+// Пределы книги: крошечный файл может объявить гигантские диапазоны, и разбор исчерпал бы память.
+const MAX_SHEETS = 200;
+const MAX_CELLS = 300000;
+const MAX_MERGES = 50000;
+const MAX_MERGED_AREA = 200000;
+
 export function parseRef(ref) {
-  const m = /^\$?([A-Za-z]{1,3})\$?(\d+)$/.exec(ref);
+  const m = /^\$?([A-Za-z]{1,3})\$?(\d{1,7})$/.exec(ref);
   if (!m) return null;
-  return { col: colToIndex(m[1]), row: Number(m[2]) };
+  const col = colToIndex(m[1]);
+  const row = Number(m[2]);
+  if (col < 1 || col > MAX_COL || row < 1 || row > MAX_ROW) return null;
+  return { col, row };
 }
 
 export function parseRange(ref) {
@@ -216,6 +228,9 @@ export function readWorkbook(buffer, { maxEntryBytes = 32 * 1024 * 1024, maxTota
   if (stPath && files[stPath]) styles = parseBorders(parser.parse(files[stPath]));
 
   const sheetsMeta = asArray(wbDoc?.workbook?.sheets?.sheet);
+  if (sheetsMeta.length > MAX_SHEETS) throw new XlsxError(`В книге слишком много листов (${sheetsMeta.length}, допустимо до ${MAX_SHEETS})`);
+  let cellCount = 0;
+  let mergedArea = 0;
   const sheets = sheetsMeta.map((s, index) => {
     const rel = wbRels.find((r) => r.id === s.id);
     const sheetPath = rel ? resolveTarget(wbDir, rel.target) : null;
@@ -246,20 +261,28 @@ export function readWorkbook(buffer, { maxEntryBytes = 32 * 1024 * 1024, maxTota
     if (fmt.defaultColWidth) base.defaultColWidth = Number(fmt.defaultColWidth);
     else if (fmt.baseColWidth) base.defaultColWidth = Number(fmt.baseColWidth) + 0.83;
     if (fmt.defaultRowHeight) base.defaultRowHeight = Number(fmt.defaultRowHeight);
+    // Ширины столбцов хранятся диапазонами (min…max), без разворачивания по одному столбцу.
     for (const c of asArray(ws.cols?.col)) {
-      for (let i = Number(c.min); i <= Number(c.max) && i <= 16384; i++) {
-        base.columns.push({ index: i, width: c.width != null ? Number(c.width) : null, hidden: c.hidden === '1' || c.hidden === 'true', custom: c.customWidth === '1' });
-      }
+      const min = Number(c.min);
+      const max = Number(c.max);
+      if (!Number.isInteger(min) || !Number.isInteger(max) || min < 1 || min > max || max > MAX_COL) continue;
+      if (base.columns.length >= MAX_COL) break;
+      base.columns.push({ min, max, width: c.width != null ? Number(c.width) : null, hidden: c.hidden === '1' || c.hidden === 'true', custom: c.customWidth === '1' });
     }
+    const tooManyCells = () => new XlsxError(`В книге слишком много строк и ячеек (больше ${MAX_CELLS.toLocaleString('ru-RU')}). Удалите лишнее оформление или разбейте книгу.`);
+    const badRef = (ref) => new XlsxError(`Файл повреждён: недопустимый адрес ячейки на листе «${name}»${ref ? ` (${String(ref).slice(0, 20)})` : ''}`);
     let rowCursor = 0;
     for (const row of asArray(ws.sheetData?.row)) {
       const r = row.r != null ? Number(row.r) : rowCursor + 1;
+      if (!Number.isInteger(r) || r < 1 || r > MAX_ROW) throw badRef(row.r);
+      if (++cellCount > MAX_CELLS) throw tooManyCells();
       rowCursor = r;
       if (row.ht != null || row.hidden) base.rows.push({ index: r, height: row.ht != null ? Number(row.ht) : null, hidden: row.hidden === '1' || row.hidden === 'true' });
       let colCursor = 0;
       for (const c of asArray(row.c)) {
         const pos = c.r ? parseRef(c.r) : { row: r, col: colCursor + 1 };
-        if (!pos) continue;
+        if (!pos || pos.col > MAX_COL) throw badRef(c.r);
+        if (++cellCount > MAX_CELLS) throw tooManyCells();
         colCursor = pos.col;
         const styleIndex = c.s != null ? Number(c.s) : 0;
         const xf = styles.xfs[styleIndex] || { borderId: 0 };
@@ -306,9 +329,14 @@ export function readWorkbook(buffer, { maxEntryBytes = 32 * 1024 * 1024, maxTota
         });
       }
     }
-    for (const m of asArray(ws.mergeCells?.mergeCell)) {
+    const mergeList = asArray(ws.mergeCells?.mergeCell);
+    if (mergeList.length > MAX_MERGES) throw new XlsxError(`На листе «${name}» слишком много объединённых ячеек`);
+    for (const m of mergeList) {
       const rg = parseRange(m.ref);
-      if (rg) base.merges.push(rg);
+      if (!rg) throw new XlsxError(`Файл повреждён: недопустимый объединённый диапазон на листе «${name}» (${String(m.ref).slice(0, 30)})`);
+      mergedArea += (rg.bottom - rg.top + 1) * (rg.right - rg.left + 1);
+      if (mergedArea > MAX_MERGED_AREA) throw new XlsxError('Объединённые диапазоны в книге слишком большие (больше 200 000 ячеек)');
+      base.merges.push(rg);
     }
     // Связанные части листа: рисунки, комментарии, таблицы.
     const sheetRels = readRels(files, `${path.posix.dirname(sheetPath)}/_rels/${path.posix.basename(sheetPath)}.rels`);

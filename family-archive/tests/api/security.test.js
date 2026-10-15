@@ -6,11 +6,12 @@ import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
 import { spawnSync } from 'node:child_process';
-import { zipSync, strToU8 } from 'fflate';
+import crypto from 'node:crypto';
+import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
 import { startServer, photoForm, makePng, xlsxForm } from '../helpers/harness.js';
 import { fixtureXlsx, buildXlsx } from '../helpers/fixture.js';
 import { loadConfig, configProblems } from '../../server/config.js';
-import { hashPassword } from '../../server/auth.js';
+import { hashPassword, clientKey } from '../../server/auth.js';
 import { stripImageMetadata } from '../../server/lib/imagemeta.js';
 import { sniffImage } from '../../server/services/photos.js';
 import { createBackup, listBackups, changedSinceLastBackup } from '../../server/services/backup.js';
@@ -106,6 +107,105 @@ test('вход по хэшу пароля; смена пароля и «заве
   }
 });
 
+test('вход: одновременные попытки не обходят ограничение числа попыток', async () => {
+  const s = await startServer({ env: { APP_PASSWORD_HASH: await hashPassword('верный-пароль-789') } });
+  try {
+    const burst = await Promise.all(Array.from({ length: 20 }, () => s.post('/api/auth/login', { password: 'неверный-пароль' })));
+    const wrong = burst.filter((r) => r.status === 401).length;
+    // Без предварительного учёта все 20 одновременных попыток проверили бы пароль.
+    assert.ok(wrong >= 1 && wrong <= 10, `проверено из 20 одновременных: ${wrong}`);
+    assert.equal(burst.filter((r) => r.status === 429).length, 20 - wrong);
+    let total = wrong;
+    for (let i = 0; i < 12; i++) if ((await s.post('/api/auth/login', { password: 'неверный-пароль' })).status === 401) total++;
+    assert.equal(total, 10, 'не больше 10 неудачных проверок пароля с одного адреса');
+    assert.equal((await s.post('/api/auth/login', { password: 'верный-пароль-789' })).status, 429);
+  } finally {
+    await s.close();
+  }
+});
+
+// Дешёвый хэш (N=1024) — чтобы тест на много попыток шёл быстро.
+function cheapHash(password) {
+  const salt = crypto.randomBytes(16);
+  const key = crypto.scryptSync(password, salt, 32, { N: 1024, r: 8, p: 1 });
+  return `scrypt:1024:8:1:${salt.toString('base64url')}:${key.toString('base64url')}`;
+}
+
+test('вход: атака подбором с разных адресов не блокирует уже знакомые устройства', async () => {
+  const s = await startServer({ env: { APP_PASSWORD_HASH: cheapHash('семейный-пароль-1'), TRUST_PROXY: 'loopback', ALLOWED_HOSTS: 'archive.example.ru' } });
+  const login = (ip, password, cookie = '') => fetch(`${s.url}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'family-archive', 'Content-Type': 'application/json', 'X-Forwarded-For': ip, ...(cookie ? { Cookie: cookie } : {}) },
+    body: JSON.stringify({ password }),
+  });
+  try {
+    const first = await login('203.0.113.10', 'семейный-пароль-1');
+    assert.equal(first.status, 200);
+    const device = first.headers.getSetCookie().find((c) => c.startsWith('fa_device=')).split(';')[0];
+    // 50 неудачных попыток с пяти адресов (по 10) — срабатывает общий предел.
+    const attempts = ['198.51.100.1', '198.51.100.2', '198.51.100.3', '198.51.100.4', '198.51.100.5'].flatMap((ip) => Array(10).fill(ip));
+    for (let i = 0; i < attempts.length; i += 4) {
+      const r = await Promise.all(attempts.slice(i, i + 4).map((ip) => login(ip, 'неверный-пароль')));
+      assert.ok(r.every((x) => x.status === 401));
+    }
+    assert.equal((await login('203.0.113.20', 'семейный-пароль-1')).status, 429, 'новое устройство ждёт');
+    assert.equal((await login('203.0.113.20', 'семейный-пароль-1', 'fa_device=1700000000000.' + 'A'.repeat(43))).status, 429, 'поддельная метка не помогает');
+    assert.equal((await login('203.0.113.20', 'семейный-пароль-1', device)).status, 200, 'знакомое устройство входит');
+    // IPv6: адреса одной сети /64 считаются одним клиентом.
+    assert.equal(clientKey('2001:db8:1:2::a'), clientKey('2001:db8:1:2:ffff::b'));
+    assert.notEqual(clientKey('2001:db8:1:2::a'), clientKey('2001:db8:1:3::a'));
+  } finally {
+    await s.close();
+  }
+});
+
+test('защита запросов: путь в любом регистре, прокси без пароля, TRUST_PROXY, копии без служебных данных', async () => {
+  const s = await startServer({ env: { APP_PASSWORD_HASH: cheapHash('семейный-пароль-2') } });
+  try {
+    assert.equal((await s.post('/api/auth/login', { password: 'семейный-пароль-2' })).status, 200);
+    const cookie = (await fetch(`${s.url}/api/auth/login`, { method: 'POST', headers: { 'X-Requested-With': 'family-archive', 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'семейный-пароль-2' }) })).headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+    for (const p of ['/API/backups', '/Api/auth/logout-all']) {
+      const r = await fetch(s.url + p, { method: 'POST', headers: { Cookie: cookie, Origin: 'https://evil.example' } });
+      assert.equal(r.status, 403, p);
+    }
+    const r = await fetch(`${s.url}/API/backups`, { method: 'POST', headers: { Cookie: cookie, 'X-Requested-With': 'family-archive', Origin: 'https://evil.example' } });
+    assert.equal(r.status, 403, 'чужой Origin');
+    // Резервная копия не содержит служебной таблицы meta (отпечаток пароля), а секрет — вне базы.
+    const b = await createBackup(s.db, loadConfig({ DATA_DIR: s.dir }));
+    const zip = unzipSync(new Uint8Array(fs.readFileSync(path.join(s.dir, 'backups', b.name))));
+    assert.equal(JSON.parse(strFromU8(zip['data.json'])).meta, undefined);
+    assert.ok(!Object.keys(zip).some((n) => n.includes('auth.key')));
+    assert.equal((fs.statSync(path.join(s.dir, 'auth.key')).mode & 0o777).toString(8), '600');
+  } finally {
+    await s.close();
+  }
+  const open = await startServer();
+  try {
+    assert.equal((await rawGet(open.url, '/api/health')).status, 200);
+    assert.equal((await rawGet(open.url, '/api/health', { 'X-Forwarded-For': '203.0.113.5' })).status, 403, 'без пароля через прокси нельзя');
+    assert.equal((await rawGet(open.url, '/', { Via: '1.1 tunnel' })).status, 403);
+  } finally {
+    await open.close();
+  }
+  assert.equal(loadConfig({ DATA_DIR: os.tmpdir(), TRUST_PROXY: '1' }).trustProxy, 1);
+  assert.equal(loadConfig({ DATA_DIR: os.tmpdir(), TRUST_PROXY: 'loopback' }).trustProxy, 'loopback');
+  assert.equal(loadConfig({ DATA_DIR: os.tmpdir(), TRUST_PROXY: 'false' }).trustProxy, '');
+});
+
+test('источники: ссылка только http(s)', async () => {
+  const s = await startServer();
+  try {
+    const { persons } = await seed(s);
+    const add = (url) => s.post(`/api/persons/${persons[0].id}/sources`, { title: 'Письмо', kind: 'document', url });
+    assert.equal((await add('javascript:alert(1)')).status, 400);
+    assert.equal((await add('data:text/html,<script>1</script>')).status, 400);
+    assert.equal((await add('https://example.org/letter')).status, 201);
+    assert.equal((await add('')).status, 201);
+  } finally {
+    await s.close();
+  }
+});
+
 test('фото: метаданные (EXIF, GPS, комментарии) удаляются; неуменьшенное фото отклоняется', async () => {
   const jpg = fakeJpeg();
   const stripped = stripImageMetadata(jpg, 'image/jpeg');
@@ -175,6 +275,55 @@ test('восстановление: подложные имена файлов �
   }
 });
 
+test('восстановление: выбранная копия не удаляется очисткой, лишние файлы не распаковываются, подложные данные не роняют сервер', async () => {
+  const s = await startServer({ env: { SAFETY_BACKUP_KEEP: '1' } });
+  try {
+    await seed(s);
+    const config = loadConfig({ DATA_DIR: s.dir, SAFETY_BACKUP_KEEP: '1' });
+    const old = await createBackup(s.db, config, { label: 'before-rollback' });
+    // Устаревший предпросмотр: отказ без создания страховочной копии.
+    const before = fs.readdirSync(path.join(s.dir, 'backups')).length;
+    assert.equal((await s.post('/api/backups/restore', { token: 'нет-такого' })).status, 409);
+    assert.equal(fs.readdirSync(path.join(s.dir, 'backups')).length, before);
+    // Самая старая страховочная копия (хранится одна) восстанавливается, хотя новая страховочная её вытеснила бы.
+    const pv = await s.post('/api/backups/restore-preview', { name: old.name });
+    assert.equal(pv.status, 200, JSON.stringify(pv.data));
+    const r = await s.post('/api/backups/restore', { token: pv.data.token });
+    assert.equal(r.status, 200, JSON.stringify(r.data));
+    // Файлы, на которые не ссылаются данные, не распаковываются.
+    const manifest = { format: 'family-archive-backup', formatVersion: 1, createdAt: new Date().toISOString() };
+    const stray = '22222222-2222-4222-8222-222222222222';
+    const real = unzipSync(new Uint8Array(fs.readFileSync(path.join(s.dir, 'backups', (await createBackup(s.db, config)).name))));
+    for (let i = 0; i < 50; i++) real[`photos/${stray}/thumb-${1000000000 + i}.jpg`] = new Uint8Array(0);
+    const zip = zipSync(real);
+    const fd = new FormData();
+    fd.append('file', new Blob([zip], { type: 'application/zip' }), 'copy.zip');
+    const pv2 = await s.form('/api/backups/restore-preview', fd);
+    assert.equal(pv2.status, 200, JSON.stringify(pv2.data));
+    assert.equal((await s.post('/api/backups/restore', { token: pv2.data.token })).status, 200);
+    assert.ok(!fs.existsSync(path.join(s.dir, 'photos', stray)), 'посторонние файлы не распакованы');
+    assert.deepEqual(fs.readdirSync(s.dir).filter((f) => /^(restore|trash)-/.test(f)), []);
+    // data.json из миллионов пустых объектов: отказ, сервер продолжает работать.
+    const bomb = `{"persons":[${'{},'.repeat(3000000)}{}],"parent_child":[],"partnerships":[],"photos":[],"hypotheses":[]}`;
+    const zb = zipSync({ 'manifest.json': strToU8(JSON.stringify(manifest)), 'data.json': strToU8(bomb) });
+    const fd3 = new FormData();
+    fd3.append('file', new Blob([zb], { type: 'application/zip' }), 'bomb.zip');
+    const r3 = await s.form('/api/backups/restore-preview', fd3);
+    assert.equal(r3.status, 422);
+    assert.equal((await s.get('/api/health')).status, 200);
+    // Загрузка без указания размера не принимается (место нельзя проверить заранее).
+    const chunked = await fetch(`${s.url}/api/backups/restore-preview`, {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'family-archive', 'Content-Type': 'application/octet-stream' },
+      body: new ReadableStream({ start(c) { c.enqueue(new Uint8Array(10)); c.close(); } }),
+      duplex: 'half',
+    });
+    assert.equal(chunked.status, 411);
+  } finally {
+    await s.close();
+  }
+});
+
 test('импорт: «zip-бомба» в xlsx отклоняется, не распаковываясь целиком', async () => {
   const s = await startServer();
   try {
@@ -184,6 +333,41 @@ test('импорт: «zip-бомба» в xlsx отклоняется, не ра
     const r = await s.form('/api/imports/preview', xlsxForm(xlsx));
     assert.equal(r.status, 422);
     assert.match(r.data.error, /слишком большие/);
+  } finally {
+    await s.close();
+  }
+});
+
+// Подменяет XML первого листа в готовой книге.
+function patchSheet(xlsx, patch) {
+  const files = unzipSync(new Uint8Array(xlsx));
+  files['xl/worksheets/sheet1.xml'] = strToU8(patch(strFromU8(files['xl/worksheets/sheet1.xml'])));
+  return Buffer.from(zipSync(files));
+}
+
+test('импорт: гигантские диапазоны в крошечном файле не роняют сервер', async () => {
+  const s = await startServer();
+  try {
+    const base = buildXlsx([{ name: 'Лист1', cells: { A1: { v: 'Кахе' }, B2: { v: 'Зураб' } } }]);
+    const started = Date.now();
+    // 500 описаний столбцов на весь лист — хранятся диапазонами, импорт проходит.
+    const cols = patchSheet(base, (x) => x.replace(/<cols>.*<\/cols>/, `<cols>${'<col min="1" max="16384" width="9"/>'.repeat(500)}</cols>`));
+    const ok = await s.form('/api/imports/preview', xlsxForm(cols));
+    assert.equal(ok.status, 200);
+    assert.equal(ok.data.records.length, 2);
+    const cases = [
+      [(x) => x.replace('</sheetData>', '</sheetData><mergeCells count="1"><mergeCell ref="A3:ZZZ1048576"/></mergeCells>'), /недопустимый объединённый диапазон/],
+      [(x) => x.replace('</sheetData>', '</sheetData><mergeCells count="1"><mergeCell ref="C3:XFD1048576"/></mergeCells>'), /Объединённые диапазоны .* слишком большие/],
+      [(x) => x.replace('</sheetData>', '<row r="1048576"><c r="A1048576" t="inlineStr"><is><t>Зоя</t></is></c></row></sheetData>'), /слишком большой для схемы/],
+      [(x) => x.replace('<row r="1">', '<row r="0">'), /недопустимый адрес/],
+    ];
+    for (const [patch, error] of cases) {
+      const r = await s.form('/api/imports/preview', xlsxForm(patchSheet(base, patch)));
+      assert.equal(r.status, 422, String(error));
+      assert.match(r.data.error, error);
+    }
+    assert.ok(Date.now() - started < 10000, 'разбор быстрый');
+    assert.equal((await s.get('/api/health')).status, 200, 'сервер жив');
   } finally {
     await s.close();
   }
@@ -228,12 +412,23 @@ test('резервные копии: хранение последних N, пр
   }
 });
 
-test('CSV: значения, похожие на формулы, экранируются', async () => {
+test('CSV, слияние, журнал: значения, похожие на формулы, экранируются; лишние данные не сохраняются', async () => {
   const s = await startServer();
   try {
     await s.post('/api/persons', { person: { display_name: '=HYPERLINK("http://example.com","x")' } });
+    await s.post('/api/persons', { person: { display_name: 'Петров', birth_place: 'a,=1+1,b' } });
     const csv = await s.get('/api/export/persons.csv');
     assert.match(csv.data, /"'=HYPERLINK/);
+    assert.match(csv.data, /"a,=1\+1,b"/, 'значение с запятой целиком в кавычках');
+    // Выбор при слиянии сохраняется только из известных полей; предел журнала не бывает отрицательным.
+    const a = (await s.post('/api/persons', { person: { display_name: 'Зоя' }, force: true })).data.person.id;
+    const b = (await s.post('/api/persons', { person: { display_name: 'Зоя' }, force: true })).data.person.id;
+    assert.equal((await s.post(`/api/persons/${a}/merge`, { otherId: b, choices: { display_name: 'secondary', junk: 'x'.repeat(10000) } })).status, 200);
+    const merge = s.db.get("SELECT details FROM change_log WHERE action LIKE '%merge%' ORDER BY id DESC LIMIT 1");
+    assert.ok(merge && !merge.details.includes('junk'));
+    const total = s.db.get('SELECT COUNT(*) AS n FROM change_log').n;
+    assert.equal((await s.get('/api/changes?limit=-1')).data.changes.length, Math.min(total, 100));
+    assert.throws(() => s.db.update('persons', a, { 'display_name = 1, notes': 'x' }), /Недопустимое имя/);
   } finally {
     await s.close();
   }

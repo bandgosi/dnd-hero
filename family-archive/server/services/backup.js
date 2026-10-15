@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { Worker } from 'node:worker_threads';
 import { Zip, ZipDeflate, ZipPassThrough, Unzip, UnzipInflate } from 'fflate';
 import { nowIso, badRequest, notFound, unprocessable, conflict } from '../lib/util.js';
 import { logChange } from './history.js';
@@ -15,7 +16,7 @@ export const BACKUP_FORMAT_VERSION = 1;
 // Порядок важен для вставки при восстановлении.
 export const BACKUP_TABLES = [
   'persons', 'imports', 'source_records', 'parent_child', 'partnerships', 'photos', 'sources',
-  'questions', 'question_persons', 'hypotheses', 'name_reviews', 'change_log', 'change_log_persons', 'meta',
+  'questions', 'question_persons', 'hypotheses', 'name_reviews', 'change_log', 'change_log_persons',
 ];
 
 const stamp = () => new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '').replace('T', '-');
@@ -100,6 +101,7 @@ export async function createBackup(db, config, { label = null, appVersion = '1.0
     out.on('finish', resolve);
     out.on('error', reject);
   });
+  done.catch(() => {}); // ошибка записи обрабатывается ниже через await done
   let zipError = null;
   const zip = new Zip((err, chunk, final) => {
     if (err) {
@@ -115,10 +117,32 @@ export async function createBackup(db, config, { label = null, appVersion = '1.0
     zip.add(f);
     f.push(new TextEncoder().encode(text), true);
   };
-  const addFile = (n, filePath) => {
+  const waitDrain = () =>
+    out.writableNeedDrain
+      ? new Promise((resolve, reject) => {
+          const onError = (e) => {
+            out.off('drain', onDrain);
+            reject(e);
+          };
+          const onDrain = () => {
+            out.off('error', onError);
+            resolve();
+          };
+          out.once('drain', onDrain);
+          out.once('error', onError);
+        })
+      : null;
+  // Файлы читаются кусками и ждут, пока предыдущие запишутся на диск:
+  // память не растёт с размером архива (важно для сервера с 1 ГБ ОЗУ).
+  const addFile = async (n, filePath) => {
     const f = new ZipPassThrough(n);
     zip.add(f);
-    f.push(new Uint8Array(fs.readFileSync(filePath)), true);
+    for await (const chunk of fs.createReadStream(filePath, { highWaterMark: 1024 * 1024 })) {
+      f.push(new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.length), false);
+      if (zipError) throw zipError;
+      await waitDrain();
+    }
+    f.push(new Uint8Array(0), true);
   };
   const json = JSON.stringify(data);
   const { files, missing } = backupFiles(config, data);
@@ -127,7 +151,7 @@ export async function createBackup(db, config, { label = null, appVersion = '1.0
   try {
     addText('manifest.json', JSON.stringify(manifest, null, 2));
     addText('data.json', json);
-    for (const f of files) addFile(f.name, f.path);
+    for (const f of files) await addFile(f.name, f.path);
     zip.end();
     await done;
     if (zipError) throw zipError;
@@ -160,8 +184,10 @@ export function pruneBackups(config) {
     [list.filter((b) => b.kind === 'auto'), config.autoBackupKeep],
     [list.filter((b) => b.kind === 'safety'), config.safetyBackupKeep],
   ];
+  const inUse = filesInRestore();
   for (const [items, keep] of groups) {
     for (const b of items.slice(keep)) {
+      if (inUse.has(path.resolve(config.backupsDir, b.name))) continue;
       fs.rmSync(path.join(config.backupsDir, b.name), { force: true });
       removed.push(b.name);
     }
@@ -206,14 +232,27 @@ function allowedEntry(name) {
 
 // Потоковое чтение архива с ограничениями: только допустимые имена, ограничение объёма
 // распакованных данных (защита от «zip-бомб»), тексты — не больше maxText байт.
-function readZip(file, { wantText = () => false, extractTo = null, accept = () => false, maxText = 32 * 1024 * 1024, maxTotal = Infinity, maxFile = Infinity }) {
+const ZIP_SLICE = 16 * 1024;
+
+function readZip(file, { wantText = () => false, extractTo = null, accept = () => false, maxText = 32 * 1024 * 1024, maxTotal = Infinity, maxFile = Infinity, maxSkipped = Infinity, maxEntries = Infinity }) {
   return new Promise((resolve, reject) => {
     const texts = {};
     const entries = [];
     let failed = null;
     let total = 0;
+    let skipped = 0;
     const fail = (e) => {
       if (!failed) failed = e;
+    };
+    // Ненужные элементы прокачиваются вхолостую: иначе fflate копит их содержимое в памяти
+    // (на случай позднего start()), и восстановление большой копии исчерпало бы ОЗУ.
+    const skip = (stream) => {
+      stream.ondata = (err, chunk) => {
+        if (err) return fail(err);
+        skipped += chunk.length;
+        if (skipped > maxSkipped) fail(unprocessable('Архив слишком большой'));
+      };
+      stream.start();
     };
     const uz = new Unzip((stream) => {
       const name = stream.name;
@@ -221,8 +260,11 @@ function readZip(file, { wantText = () => false, extractTo = null, accept = () =
         fail(unprocessable('Архив содержит недопустимые пути'));
         return;
       }
-      if (name.endsWith('/')) return;
-      if (!allowedEntry(name)) return; // посторонние файлы игнорируются
+      if (failed || name.endsWith('/') || !allowedEntry(name)) return skip(stream); // посторонние файлы игнорируются
+      if (entries.length >= maxEntries) {
+        fail(unprocessable('В архиве слишком много файлов'));
+        return skip(stream);
+      }
       entries.push(name);
       if (wantText(name)) {
         const chunks = [];
@@ -265,7 +307,7 @@ function readZip(file, { wantText = () => false, extractTo = null, accept = () =
           }
         };
         stream.start();
-      }
+      } else skip(stream);
     });
     uz.register(UnzipInflate);
     const rs = fs.createReadStream(file, { highWaterMark: 1 << 20 });
@@ -275,7 +317,9 @@ function readZip(file, { wantText = () => false, extractTo = null, accept = () =
         return;
       }
       try {
-        uz.push(new Uint8Array(chunk));
+        // Небольшими порциями: распакованный кусок одной порции не превышает ~16 МБ даже для «zip-бомбы».
+        const data = new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.length);
+        for (let i = 0; i < data.length && !failed; i += ZIP_SLICE) uz.push(data.subarray(i, i + ZIP_SLICE));
       } catch (e) {
         fail(e);
         rs.destroy();
@@ -318,9 +362,11 @@ function validateBackupData(data) {
 
 const restoreTokens = new Map();
 const TOKEN_TTL_MS = 60 * 60 * 1000;
+const MAX_BACKUP_ROWS = 1000000;
+const MAX_ZIP_ENTRIES = 200000;
 
 // Старые предпросмотры восстановления забываются, загруженные для них файлы удаляются.
-function cleanupRestoreTokens(config, keepLatest = 2) {
+function cleanupRestoreTokens(config, keepLatest = 1) {
   const now = Date.now();
   const list = [...restoreTokens.entries()].sort((a, b) => b[1].createdAt - a[1].createdAt);
   list.forEach(([token, t], i) => {
@@ -331,24 +377,69 @@ function cleanupRestoreTokens(config, keepLatest = 2) {
   });
 }
 
-export async function restorePreview(db, config, zipFile, { uploaded = false } = {}) {
-  cleanupRestoreTokens(config);
-  const { texts, entries } = await readZip(zipFile, { wantText: (n) => n === 'manifest.json' || n === 'data.json' });
+export const hasRestoreToken = (token) => restoreTokens.has(token);
+
+// Файлы, выбранные для восстановления, не удаляются при очистке старых копий.
+const filesInRestore = () => new Set([...restoreTokens.values()].map((t) => path.resolve(t.zipFile)));
+
+// data.json разбирается в отдельном потоке с пределом памяти (см. backup-data-worker.js).
+function parseBackupData(db, text) {
+  const columns = {};
+  for (const table of BACKUP_TABLES) columns[table] = db.all(`PRAGMA table_info(${table})`).map((c) => c.name);
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('../lib/backup-data-worker.js', import.meta.url), {
+      workerData: { text, columns, maxRows: MAX_BACKUP_ROWS },
+      resourceLimits: { maxOldGenerationSizeMb: 192, maxYoungGenerationSizeMb: 16 },
+    });
+    let settled = false;
+    const finish = (fn, v) => {
+      if (settled) return;
+      settled = true;
+      fn(v);
+      worker.terminate();
+    };
+    worker.once('message', (m) => (m.error ? finish(reject, unprocessable(m.error)) : finish(resolve, m.data)));
+    worker.once('error', (e) => finish(reject, unprocessable(e?.code === 'ERR_WORKER_OUT_OF_MEMORY' ? 'Файл данных в копии слишком большой' : 'Файлы резервной копии повреждены')));
+    worker.once('exit', () => finish(reject, unprocessable('Файлы резервной копии повреждены')));
+  });
+}
+
+// Чтение и проверка manifest.json и data.json из архива.
+async function readBackupTexts(db, config, zipFile) {
+  if (!fs.existsSync(zipFile)) throw conflict('Файл резервной копии больше не существует. Выберите копию ещё раз.');
+  const { texts, entries } = await readZip(zipFile, { wantText: (n) => n === 'manifest.json' || n === 'data.json', maxSkipped: config.maxBackupBytes * 4, maxEntries: MAX_ZIP_ENTRIES });
   if (texts['manifest.json'] && texts['manifest.json'].length > 1024 * 1024) throw unprocessable('Неверный manifest.json');
   if (!texts['manifest.json'] || !texts['data.json']) throw unprocessable('Это не резервная копия «Истории нашего рода»: нет manifest.json или data.json');
   let manifest;
-  let data;
   try {
     manifest = JSON.parse(texts['manifest.json']);
-    data = JSON.parse(texts['data.json']);
   } catch {
     throw unprocessable('Файлы резервной копии повреждены (не удалось прочитать JSON)');
   }
-  if (manifest.format !== BACKUP_FORMAT) throw unprocessable('Неизвестный формат резервной копии');
+  if (!manifest || manifest.format !== BACKUP_FORMAT) throw unprocessable('Неизвестный формат резервной копии');
   if (!Number.isInteger(manifest.formatVersion) || manifest.formatVersion > BACKUP_FORMAT_VERSION) {
     throw unprocessable(`Версия формата копии (${manifest.formatVersion}) новее, чем поддерживает приложение (${BACKUP_FORMAT_VERSION}). Обновите приложение.`);
   }
+  const data = await parseBackupData(db, texts['data.json']);
+  delete texts['data.json'];
   validateBackupData(data);
+  const ids = new Set(data.persons.map((p) => p.id));
+  const broken = [...data.parent_child.filter((r) => !ids.has(r.parent_id) || !ids.has(r.child_id)), ...data.partnerships.filter((r) => !ids.has(r.person1_id) || !ids.has(r.person2_id))].length;
+  if (broken) throw unprocessable(`Копия повреждена: ${broken} связей ссылаются на отсутствующих людей`);
+  return { manifest, data, entries };
+}
+
+// Файлы архива, на которые ссылаются данные: только они распаковываются при восстановлении.
+function referencedFiles(data) {
+  const set = new Set();
+  for (const ph of data.photos) for (const k of ['original_file', 'display_file', 'thumb_file']) set.add(`photos/${ph.id}/${ph[k]}`);
+  for (const imp of data.imports || []) if (imp.stored_file) set.add(`imports/${imp.stored_file}`);
+  return set;
+}
+
+export async function restorePreview(db, config, zipFile, { uploaded = false } = {}) {
+  cleanupRestoreTokens(config);
+  const { manifest, data, entries } = await readBackupTexts(db, config, zipFile);
   const entrySet = new Set(entries);
   const missingPhotos = [];
   for (const ph of data.photos) {
@@ -356,15 +447,14 @@ export async function restorePreview(db, config, zipFile, { uploaded = false } =
       if (!entrySet.has(`photos/${ph.id}/${ph[k]}`)) missingPhotos.push(`${ph.id}/${ph[k]}`);
     }
   }
-  const ids = new Set(data.persons.map((p) => p.id));
-  const broken = [...data.parent_child.filter((r) => !ids.has(r.parent_id) || !ids.has(r.child_id)), ...data.partnerships.filter((r) => !ids.has(r.person1_id) || !ids.has(r.person2_id))].length;
-  if (broken) throw unprocessable(`Копия повреждена: ${broken} связей ссылаются на отсутствующих людей`);
+  // Разобранные данные не держим в памяти: при восстановлении архив читается заново.
   const token = crypto.randomUUID();
-  restoreTokens.set(token, { zipFile, data, manifest, uploaded, createdAt: Date.now() });
+  const counts = countsOf(data);
+  restoreTokens.set(token, { zipFile, manifest, counts, uploaded, createdAt: Date.now() });
   return {
     token,
     manifest,
-    counts: countsOf(data),
+    counts,
     missingPhotos,
     current: countsOf({
       persons: db.all('SELECT id FROM persons'),
@@ -383,6 +473,8 @@ export async function restorePreview(db, config, zipFile, { uploaded = false } =
 export async function restoreBackup(db, config, token) {
   const t = restoreTokens.get(token);
   if (!t) throw conflict('Предпросмотр восстановления устарел. Загрузите копию ещё раз.');
+  const { manifest, data } = await readBackupTexts(db, config, t.zipFile);
+  const wanted = referencedFiles(data);
   const work = path.join(config.dataDir, `restore-${Date.now()}`);
   fs.mkdirSync(work, { recursive: true });
   try {
@@ -390,24 +482,21 @@ export async function restoreBackup(db, config, token) {
     const room = Math.max(0, diskSpace(config.dataDir).free - config.diskReserveBytes);
     await readZip(t.zipFile, {
       extractTo: work,
-      accept: (n) => n.startsWith('photos/') || n.startsWith('imports/'),
+      accept: (n) => wanted.has(n),
       maxTotal: Math.min(room, config.maxBackupBytes * 2),
       maxFile: Math.max(config.maxPhotoBytes, config.maxImportBytes) * 2,
+      maxSkipped: 64 * 1024 * 1024,
+      maxEntries: MAX_ZIP_ENTRIES,
     });
-    const columns = {};
-    for (const table of BACKUP_TABLES) columns[table] = new Set(db.all(`PRAGMA table_info(${table})`).map((c) => c.name));
     db.tx(() => {
       db.exec('PRAGMA defer_foreign_keys = ON');
       for (const table of [...BACKUP_TABLES].reverse()) db.exec(`DELETE FROM ${table}`);
       db.exec("DELETE FROM sqlite_sequence WHERE name = 'change_log'");
-      for (const table of BACKUP_TABLES) {
-        for (const row of t.data[table] || []) {
-          const r = {};
-          for (const [k, v] of Object.entries(row)) if (columns[table].has(k)) r[k] = v;
-          if (Object.keys(r).length) db.insert(table, r);
-        }
-      }
-      logChange(db, { actor: 'system', action: 'backup.restore', summary: `Данные восстановлены из резервной копии от ${t.manifest.createdAt}`, details: { counts: countsOf(t.data), manifest: t.manifest } });
+      // Счётчик журнала начинается заново — отметка последней копии больше не действует.
+      db.run("DELETE FROM meta WHERE key = 'last_backup_log_id'");
+      // Столбцы уже отобраны при разборе (только существующие в базе).
+      for (const table of BACKUP_TABLES) for (const row of data[table] || []) db.insert(table, row);
+      logChange(db, { actor: 'system', action: 'backup.restore', summary: `Данные восстановлены из резервной копии от ${manifest.createdAt}`, details: { counts: countsOf(data), manifest } });
     });
     // Подмена каталогов файлов после успешной записи базы.
     const trash = path.join(config.dataDir, `trash-${Date.now()}`);
@@ -421,7 +510,7 @@ export async function restoreBackup(db, config, token) {
     fs.rmSync(trash, { recursive: true, force: true });
     restoreTokens.delete(token);
     if (t.uploaded) fs.rmSync(t.zipFile, { force: true });
-    return { counts: countsOf(t.data), manifest: t.manifest };
+    return { counts: countsOf(data), manifest };
   } finally {
     fs.rmSync(work, { recursive: true, force: true });
   }

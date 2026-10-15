@@ -6,13 +6,18 @@
 //   без пробелов по краям; написание не исправляется;
 // * никакие связи не создаются: формируются только гипотезы с объяснением
 //   основания и вопросы для пользователя.
-import { hasBorder, cellRef, indexToCol } from '../xlsx/reader.js';
+import { hasBorder, cellRef, indexToCol, XlsxError } from '../xlsx/reader.js';
 import {
   parseFullName, patronymicMatchesName, surnameStem, searchKey, familyLabel,
   doubleLetterSuggestion, patronymicGenderForm, surnameGenderForm,
 } from '../../shared/names.js';
 
 const quote = (s) => `«${s}»`;
+// Пределы разбора: поиск гипотез перебирает пары записей, схема рисуется таблицей ячеек.
+const MAX_RECORDS = 3000;
+const GEO_MAX_ROWS = 2000;
+const GEO_MAX_COLS = 300;
+const GEO_MAX_CELLS = 100000;
 const lowerNoYo = (s) => String(s || '').toLowerCase().replace(/ё/g, 'е');
 
 export function analyzeWorkbook(wb, { includeHidden = false } = {}) {
@@ -69,6 +74,7 @@ export function analyzeWorkbook(wb, { includeHidden = false } = {}) {
     }
     sheetRecords.sort((a, b) => a.row - b.row || a.col - b.col);
     records.push(...sheetRecords);
+    if (records.length > MAX_RECORDS) throw new XlsxError(`В книге больше ${MAX_RECORDS} записей — это слишком много для одного импорта. Разделите файл на несколько.`);
 
     if (included) geometry[sheet.name] = buildGeometry(sheet, sheetRecords, mergeAt);
     sheets.push({
@@ -100,13 +106,34 @@ export function analyzeWorkbook(wb, { includeHidden = false } = {}) {
 
 function buildGeometry(sheet, recs, mergeAt) {
   const cellMap = new Map(sheet.cells.map((c) => [c.ref, c]));
-  const bordered = sheet.cells.filter((c) => hasBorder(c.border));
-  const all = [...recs.map((r) => r.span), ...bordered.map((c) => ({ top: c.row, left: c.col, bottom: c.row, right: c.col }))];
-  const minCol = all.length ? Math.min(...all.map((s) => s.left)) : 1;
-  const maxCol = all.length ? Math.max(...all.map((s) => s.right)) : 1;
+  let bordered = sheet.cells.filter((c) => hasBorder(c.border));
+  const box = (spans) => {
+    let minCol = Infinity, maxCol = -Infinity, maxRow = -Infinity;
+    for (const s of spans) {
+      if (s.left < minCol) minCol = s.left;
+      if (s.right > maxCol) maxCol = s.right;
+      if (s.bottom > maxRow) maxRow = s.bottom;
+    }
+    return spans.length ? { minCol, maxCol, maxRow } : { minCol: 1, maxCol: 1, maxRow: 1 };
+  };
+  const tooBig = (b) => b.maxRow > GEO_MAX_ROWS || b.maxCol - b.minCol + 1 > GEO_MAX_COLS || b.maxRow * (b.maxCol - b.minCol + 1) > GEO_MAX_CELLS;
+  const recSpans = recs.map((r) => r.span);
+  let b = box([...recSpans, ...bordered.map((c) => ({ top: c.row, left: c.col, bottom: c.row, right: c.col }))]);
+  if (tooBig(b)) {
+    // Оформление далеко от записей не показываем: схема ограничивается областью записей (с полями).
+    const rb = box(recSpans);
+    bordered = bordered.filter((c) => c.row <= rb.maxRow + 3 && c.col >= rb.minCol - 3 && c.col <= rb.maxCol + 3);
+    b = box([...recSpans, ...bordered.map((c) => ({ top: c.row, left: c.col, bottom: c.row, right: c.col }))]);
+    if (tooBig(b)) throw new XlsxError(`Лист ${quote(sheet.name)} слишком большой для схемы (${b.maxRow} строк × ${b.maxCol - b.minCol + 1} столбцов). Допустимо до ${GEO_MAX_ROWS} строк и ${GEO_MAX_COLS} столбцов.`);
+  }
+  const { minCol, maxCol, maxRow } = b;
   const minRow = 1;
-  const maxRow = all.length ? Math.max(...all.map((s) => s.bottom)) : 1;
-  const colWidth = new Map(sheet.columns.map((c) => [c.index, c]));
+  // Ширины столбцов заданы диапазонами min…max; при пересечении действует первый.
+  const colWidth = new Map();
+  for (let c = minCol; c <= maxCol; c++) {
+    const def = sheet.columns.find((d) => d.min <= c && c <= d.max);
+    if (def) colWidth.set(c, def);
+  }
   const rowHeight = new Map(sheet.rows.map((r) => [r.index, r]));
   const columns = [];
   for (let c = minCol; c <= maxCol; c++) {
@@ -140,6 +167,12 @@ function buildGeometry(sheet, recs, mergeAt) {
     };
   });
   const frames = detectFrames(recs, sheet.merges, edge, { minCol, maxCol, maxRow });
+  let firstRecordRow = Infinity;
+  let lastRecordRow = -Infinity;
+  for (const r of recordRows) {
+    if (r < firstRecordRow) firstRecordRow = r;
+    if (r > lastRecordRow) lastRecordRow = r;
+  }
   return {
     declaredDimension: sheet.declaredDimension,
     minCol, maxCol, minRow, maxRow,
@@ -147,7 +180,7 @@ function buildGeometry(sheet, recs, mergeAt) {
     merges: sheet.merges,
     borderedCells,
     frames,
-    emptyRows: rows.filter((r) => !r.hasRecords && r.index >= Math.min(...[...recordRows], Infinity) && r.index <= Math.max(...[...recordRows], -Infinity)).map((r) => r.index),
+    emptyRows: rows.filter((r) => !r.hasRecords && r.index >= firstRecordRow && r.index <= lastRecordRow).map((r) => r.index),
   };
 }
 
@@ -156,37 +189,65 @@ function buildGeometry(sheet, recs, mergeAt) {
 // служить пояснением к гипотезе, но не подтверждает родство.
 function detectFrames(recs, merges, edge, { minCol, maxCol, maxRow }) {
   const found = [];
-  const crossesMerge = (t, l, b, r) => merges.some((m) => {
-    const inter = !(m.right < l || m.left > r || m.bottom < t || m.top > b);
-    const inside = m.left >= l && m.right <= r && m.top >= t && m.bottom <= b;
-    return inter && !inside;
-  });
-  for (let t = 1; t <= maxRow; t++) {
-    for (let b = t; b <= Math.min(maxRow, t + 2); b++) {
-      for (let l = minCol; l <= maxCol; l++) {
-        for (let r = l; r <= Math.min(maxCol, l + 2); r++) {
-          if (crossesMerge(t, l, b, r)) continue;
-          const inside = recs.filter((x) => x.span.top >= t && x.span.bottom <= b && x.span.left >= l && x.span.right <= r);
-          if (!inside.length) continue;
-          let total = 0;
-          let got = 0;
-          for (let c = l; c <= r; c++) {
-            total += 2;
-            if (edge.top(t, c)) got++;
-            if (edge.bottom(b, c)) got++;
-          }
-          for (let rr = t; rr <= b; rr++) {
-            total += 2;
-            if (edge.left(rr, l)) got++;
-            if (edge.right(rr, r)) got++;
-          }
-          const coverage = got / total;
-          const complete = got === total;
-          if (complete || (coverage >= 0.75 && inside.length >= 2)) {
-            found.push({ ref: `${cellRef(t, l)}:${cellRef(b, r)}`, top: t, left: l, bottom: b, right: r, coverage, complete, records: inside.map((x) => x.key) });
-          }
+  // Объединения и записи по строкам — чтобы не перебирать все для каждого прямоугольника.
+  const mergesByRow = new Map();
+  for (const m of merges) {
+    for (let row = Math.max(1, m.top); row <= Math.min(maxRow, m.bottom); row++) {
+      if (!mergesByRow.has(row)) mergesByRow.set(row, []);
+      mergesByRow.get(row).push(m);
+    }
+  }
+  const recsByTop = new Map();
+  for (const x of recs) {
+    if (!recsByTop.has(x.span.top)) recsByTop.set(x.span.top, []);
+    recsByTop.get(x.span.top).push(x);
+  }
+  const crossesMerge = (t, l, b, r) => {
+    for (let row = t; row <= b; row++) {
+      for (const m of mergesByRow.get(row) || []) {
+        const inter = !(m.right < l || m.left > r || m.bottom < t || m.top > b);
+        const inside = m.left >= l && m.right <= r && m.top >= t && m.bottom <= b;
+        if (inter && !inside) return true;
+      }
+    }
+    return false;
+  };
+  // Кандидаты — прямоугольники до 3×3, содержащие хотя бы одну запись (остальные не нужны).
+  const candidates = new Map();
+  for (const x of recs) {
+    const s = x.span;
+    for (let t = Math.max(1, s.bottom - 2); t <= s.top; t++) {
+      for (let b = Math.max(t, s.bottom); b <= Math.min(maxRow, t + 2); b++) {
+        for (let l = Math.max(minCol, s.right - 2); l <= s.left; l++) {
+          for (let r = Math.max(l, s.right); r <= Math.min(maxCol, l + 2); r++) candidates.set(`${t}:${l}:${b}:${r}`, [t, l, b, r]);
         }
       }
+    }
+  }
+  const ordered = [...candidates.values()].sort((p, q) => p[0] - q[0] || p[2] - q[2] || p[1] - q[1] || p[3] - q[3]);
+  for (const [t, l, b, r] of ordered) {
+    if (crossesMerge(t, l, b, r)) continue;
+    const inside = [];
+    for (let row = t; row <= b; row++) {
+      for (const x of recsByTop.get(row) || []) if (x.span.bottom <= b && x.span.left >= l && x.span.right <= r) inside.push(x);
+    }
+    if (!inside.length) continue;
+    let total = 0;
+    let got = 0;
+    for (let c = l; c <= r; c++) {
+      total += 2;
+      if (edge.top(t, c)) got++;
+      if (edge.bottom(b, c)) got++;
+    }
+    for (let rr = t; rr <= b; rr++) {
+      total += 2;
+      if (edge.left(rr, l)) got++;
+      if (edge.right(rr, r)) got++;
+    }
+    const coverage = got / total;
+    const complete = got === total;
+    if (complete || (coverage >= 0.75 && inside.length >= 2)) {
+      found.push({ ref: `${cellRef(t, l)}:${cellRef(b, r)}`, top: t, left: l, bottom: b, right: r, coverage, complete, records: inside.map((x) => x.key) });
     }
   }
   const contains = (a, b) => a.top <= b.top && a.left <= b.left && a.bottom >= b.bottom && a.right >= b.right && a !== b;

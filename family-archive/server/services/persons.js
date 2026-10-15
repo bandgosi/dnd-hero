@@ -265,7 +265,18 @@ export function mergePreview(db, primaryId, secondaryId) {
   };
 }
 
-export function mergePersons(db, primaryId, secondaryId, choices = {}, { hypothesisId = null } = {}) {
+// Выбор при слиянии: только известные поля и значения «primary»/«secondary».
+function cleanChoices(input) {
+  const out = {};
+  if (!input || typeof input !== 'object') return out;
+  for (const k of [...MERGE_FIELDS, ...Object.keys(MERGE_GROUPS), 'life_status']) {
+    if (input[k] === 'primary' || input[k] === 'secondary') out[k] = input[k];
+  }
+  return out;
+}
+
+export function mergePersons(db, primaryId, secondaryId, rawChoices = {}, { hypothesisId = null } = {}) {
+  const choices = cleanChoices(rawChoices);
   const preview = mergePreview(db, primaryId, secondaryId);
   if (preview.blockers.length) throw unprocessable(preview.blockers[0], { blockers: preview.blockers });
   const a = db.get('SELECT * FROM persons WHERE id = ?', primaryId);

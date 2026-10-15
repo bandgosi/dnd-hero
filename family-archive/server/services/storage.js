@@ -68,6 +68,7 @@ export function storageUsage(config) {
     photos: dirSize(config.photosDir),
     backups: dirSize(config.backupsDir),
     imports: dirSize(config.importsDir),
+    tmp: dirSize(config.tmpDir),
     autoBackupKeep: config.autoBackupKeep,
     safetyBackupKeep: config.safetyBackupKeep,
   };

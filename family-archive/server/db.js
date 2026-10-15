@@ -95,8 +95,14 @@ export class Db {
     }
   }
 
+  // Имена таблиц и столбцов попадают в текст SQL — допускаются только простые идентификаторы.
+  checkKeys(table, keys) {
+    for (const k of [table, ...keys]) if (!/^[a-z_][a-z0-9_]*$/.test(k)) throw new Error(`Недопустимое имя в запросе: ${String(k).slice(0, 40)}`);
+  }
+
   insert(table, row) {
     const keys = Object.keys(row);
+    this.checkKeys(table, keys);
     const sql = `INSERT INTO ${table} (${keys.join(', ')}) VALUES (${keys.map((k) => ':' + k).join(', ')})`;
     return this.run(sql, row);
   }
@@ -104,6 +110,7 @@ export class Db {
   update(table, id, fields) {
     const keys = Object.keys(fields);
     if (!keys.length) return;
+    this.checkKeys(table, keys);
     const sql = `UPDATE ${table} SET ${keys.map((k) => `${k} = :${k}`).join(', ')} WHERE id = :__id`;
     return this.run(sql, { ...fields, __id: id });
   }

@@ -77,6 +77,7 @@ function StorageCard({ storage }) {
     ['Резервные копии', storage.backups],
     ['База данных', storage.db],
     ['Исходные файлы Excel', storage.imports],
+    ...(storage.tmp > 0 ? [['Временные загрузки', storage.tmp]] : []),
   ];
   return (
     <div className="storage">

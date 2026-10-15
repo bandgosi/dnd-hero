@@ -46,7 +46,8 @@ export function safeUnzipSync(buffer, { want = () => true, maxEntryBytes, maxTot
   });
   uz.register(UnzipInflate);
   const data = new Uint8Array(buffer);
-  const STEP = 256 * 1024;
+  // Небольшими порциями: распакованный кусок одной порции ограничен (~16 МБ даже при максимальном сжатии).
+  const STEP = 16 * 1024;
   for (let i = 0; i < data.length && !error; i += STEP) uz.push(data.subarray(i, i + STEP), i + STEP >= data.length);
   if (error) throw error;
   return { files: out, names };

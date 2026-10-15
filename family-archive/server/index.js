@@ -17,15 +17,15 @@ if (problems.length) {
 }
 
 fs.mkdirSync(config.dataDir, { recursive: true });
-// Временные загрузки старше суток (например, непрошедшее восстановление) удаляются.
-try {
-  for (const f of fs.readdirSync(config.tmpDir)) {
-    const p = path.join(config.tmpDir, f);
-    if (Date.now() - fs.statSync(p).mtimeMs > 86400000) fs.rmSync(p, { recursive: true, force: true });
-  }
-} catch {
-  /* папки ещё нет */
-}
+// Остатки прерванных операций (перезапуск, сбой): предпросмотры восстановления не переживают
+// перезапуск, поэтому загрузки, папки распаковки и незавершённые копии больше не нужны.
+const leftovers = [
+  ...fs.readdirSync(config.dataDir).filter((f) => /^(restore|trash)-\d+$/.test(f)).map((f) => path.join(config.dataDir, f)),
+  ...(fs.existsSync(config.tmpDir) ? fs.readdirSync(config.tmpDir).map((f) => path.join(config.tmpDir, f)) : []),
+  // .part может принадлежать копии, которую прямо сейчас делает команда backup, — только старые.
+  ...(fs.existsSync(config.backupsDir) ? fs.readdirSync(config.backupsDir).filter((f) => f.endsWith('.part')).map((f) => path.join(config.backupsDir, f)).filter((p) => Date.now() - fs.statSync(p).mtimeMs > 3600000) : []),
+];
+for (const p of leftovers) fs.rmSync(p, { recursive: true, force: true });
 const db = openDb(config.dbFile);
 const app = createApp({ db, config });
 

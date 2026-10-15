@@ -59,8 +59,12 @@ export function fmtSize(bytes) {
   if (bytes == null) return '';
   if (bytes < 1024) return `${bytes} Б`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} КБ`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} МБ`;
+  if (bytes < 1024 ** 3) return `${(bytes / 1024 / 1024).toFixed(1)} МБ`;
+  return `${(bytes / 1024 ** 3).toFixed(1)} ГБ`;
 }
+
+// Ссылку показываем кликабельной, только если это http(s).
+export const isWebUrl = (url) => /^https?:\/\/\S+$/i.test(String(url || ''));
 
 export function plural(n, one, few, many) {
   const m10 = n % 10;

@@ -55,8 +55,8 @@ export function csvCell(v) {
   let s = String(v);
   // Защита от формул при открытии в Excel: значение, начинающееся с = + - @, экранируется апострофом.
   if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
-  if (/[";\n\r]/.test(s) || /^\s|\s$/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
-  return s;
+  // Каждое значение в кавычках: границы полей не зависят от разделителя (« ; » или « , » в настройках системы).
+  return '"' + s.replace(/"/g, '""') + '"';
 }
 
 export function asyncHandler(fn) {

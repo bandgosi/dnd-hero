@@ -15,7 +15,7 @@ import { kinshipLabel, NOT_ENOUGH } from '../lib/kinship.js';
 import { siblings } from '../lib/graph.js';
 import {
   formatDate, birthOf, deathOf, SEX_LABELS, LIFE_LABELS, PARENT_KIND_LABELS, PARTNER_KIND_LABELS, PARTNER_STATUS_LABELS,
-  SOURCE_KIND_LABELS, fmtDateTime, showSpaces, recordLabel, countText, fmtSize,
+  SOURCE_KIND_LABELS, fmtDateTime, showSpaces, recordLabel, countText, fmtSize, isWebUrl,
 } from '../lib/format.js';
 
 const NS = 'Не указано';
@@ -398,7 +398,7 @@ function SourcesSection({ person }) {
             <div>
               <strong>{s.title}</strong> <span className="chip chip-muted">{SOURCE_KIND_LABELS[s.kind]}</span>
               {s.details && <p className="prose small">{s.details}</p>}
-              {s.url && <p className="small break"><a href={s.url} target="_blank" rel="noreferrer noopener">{s.url}</a></p>}
+              {s.url && <p className="small break">{isWebUrl(s.url) ? <a href={s.url} target="_blank" rel="noreferrer noopener">{s.url}</a> : s.url}</p>}
             </div>
             <div className="row-actions">
               <button type="button" className="icon-btn small" aria-label="Изменить источник" onClick={() => setForm({ ...s })}><Pencil size={14} /></button>
@@ -416,7 +416,7 @@ function SourcesSection({ person }) {
             </select>
           </Field>
           <Field label="Подробности" htmlFor="src-details"><textarea id="src-details" className="input" rows={3} value={form.details || ''} onChange={(e) => setForm({ ...form, details: e.target.value })} /></Field>
-          <Field label="Ссылка (необязательно)" htmlFor="src-url"><input id="src-url" className="input" value={form.url || ''} onChange={(e) => setForm({ ...form, url: e.target.value })} /></Field>
+          <Field label="Ссылка (необязательно)" htmlFor="src-url"><input id="src-url" className="input" type="url" inputMode="url" placeholder="https://…" value={form.url || ''} onChange={(e) => setForm({ ...form, url: e.target.value })} /></Field>
           <div className="btn-row">
             <button type="button" className="btn btn-ghost" onClick={() => setForm(null)}>Отмена</button>
             <button type="submit" className="btn btn-primary">Сохранить источник</button>

@@ -12,6 +12,7 @@ import { refreshQuestions } from './hypotheses.js';
 import { deletePerson } from './persons.js';
 
 const previews = new Map();
+const NAME_REVERT_FIELDS = ['display_name', 'surname', 'given_name', 'patronymic', 'name_fields_status'];
 const PREVIEW_TTL_MS = 60 * 60 * 1000;
 
 export function fileNameKey(name) {
@@ -23,9 +24,13 @@ export function fileNameKey(name) {
     .trim();
 }
 
+const PREVIEWS_KEEP = 3;
+
+// Предпросмотры держат файл в памяти: устаревшие удаляются, свежих хранится не больше нескольких.
 function cleanupPreviews() {
   const now = Date.now();
   for (const [id, p] of previews) if (now - p.createdAt > PREVIEW_TTL_MS) previews.delete(id);
+  while (previews.size >= PREVIEWS_KEEP) previews.delete(previews.keys().next().value);
 }
 
 function personBrief(db, id) {
@@ -108,7 +113,13 @@ export function createPreview(db, config, { buffer, fileName, includeHidden = fa
     if (e instanceof XlsxError) throw unprocessable(e.message);
     throw unprocessable('Не удалось прочитать файл Excel. Убедитесь, что это файл .xlsx.');
   }
-  const analysis = analyzeWorkbook(wb, { includeHidden });
+  let analysis;
+  try {
+    analysis = analyzeWorkbook(wb, { includeHidden });
+  } catch (e) {
+    if (e instanceof XlsxError) throw unprocessable(e.message);
+    throw e;
+  }
   const nameKey = fileNameKey(fileName);
   const duplicate = db.get("SELECT * FROM imports WHERE checksum = ? AND status = 'completed' ORDER BY created_at DESC LIMIT 1", checksum);
   let mode = 'new';
@@ -563,8 +574,11 @@ export function rollbackImport(db, config, importId, { deleteModified = false, b
       if (ch.type === 'person_update') {
         const p = db.get('SELECT * FROM persons WHERE id = ?', ch.personId);
         if (!p) continue;
-        if (Object.entries(ch.after).every(([k, v]) => p[k] === v)) {
-          db.update('persons', ch.personId, { ...ch.before, updated_at: now });
+        if (Object.entries(ch.after || {}).every(([k, v]) => p[k] === v)) {
+          // Возвращаются только поля имени (данные журнала могли прийти из восстановленной копии).
+          const before = {};
+          for (const k of NAME_REVERT_FIELDS) if (ch.before && Object.hasOwn(ch.before, k)) before[k] = ch.before[k] ?? null;
+          db.update('persons', ch.personId, { ...before, updated_at: now });
           logChange(db, { actor: 'import', action: 'person.import_revert', entityType: 'person', entityId: ch.personId, summary: `Откат импорта: имя возвращено к «${ch.before.display_name}»`, personIds: [ch.personId] });
         } else {
           conflicts.push(p.display_name);
