@@ -1,0 +1,341 @@
+// Чтение .xlsx (Office Open XML) без внешних сервисов.
+// Возвращает листы с их видимостью, значения ячеек с точным исходным текстом
+// (включая конечные пробелы), объединённые диапазоны, границы ячеек
+// (в том числе у пустых ячеек), ширины столбцов, высоты строк и сведения
+// о формулах, комментариях, таблицах и рисунках.
+import { unzipSync } from 'fflate';
+import { XMLParser } from 'fast-xml-parser';
+import path from 'node:path';
+
+const ARRAY_TAGS = new Set([
+  'sheet', 'si', 'r', 'row', 'c', 'mergeCell', 'col', 'xf', 'border', 'Relationship',
+  'Override', 'Default', 'cxnSp', 'sp', 'pic', 'twoCellAnchor', 'oneCellAnchor', 'absoluteAnchor', 'grpSp',
+  'comment', 'rPh',
+]);
+
+const parser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: '',
+  removeNSPrefix: true,
+  trimValues: false,
+  parseTagValue: false,
+  parseAttributeValue: false,
+  processEntities: false,
+  cdataPropName: '__cdata',
+  isArray: (name) => ARRAY_TAGS.has(name),
+});
+
+export class XlsxError extends Error {}
+
+// Декодирование XML-сущностей за один проход (без двойного декодирования).
+export function decodeXml(s) {
+  if (s == null) return s;
+  return String(s).replace(/&(#x[0-9a-fA-F]+|#\d+|lt|gt|amp|quot|apos);/g, (m, e) => {
+    switch (e) {
+      case 'lt': return '<';
+      case 'gt': return '>';
+      case 'amp': return '&';
+      case 'quot': return '"';
+      case 'apos': return "'";
+      default: {
+        const code = e[1] === 'x' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+        try {
+          return String.fromCodePoint(code);
+        } catch {
+          return m;
+        }
+      }
+    }
+  });
+}
+
+// Экранирование OOXML вида _x000D_ внутри строк.
+function decodeOoxmlEscapes(s) {
+  return s.replace(/_x([0-9A-Fa-f]{4})_/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+}
+
+const asArray = (v) => (v == null ? [] : Array.isArray(v) ? v : [v]);
+
+// Текст узла <t> с учётом CDATA и сущностей.
+function textOf(node) {
+  if (node == null) return '';
+  if (typeof node === 'string') return decodeOoxmlEscapes(decodeXml(node));
+  if (typeof node === 'object') {
+    let out = '';
+    if (node.__cdata != null) out += asArray(node.__cdata).join('');
+    if (node['#text'] != null) out += decodeOoxmlEscapes(decodeXml(node['#text']));
+    return out;
+  }
+  return String(node);
+}
+
+// Строка из <si>/<is>: простой <t> или набор фрагментов <r><t>…</t></r>.
+// Фонетические подсказки <rPh> не входят в значение.
+function richText(si) {
+  if (si == null) return '';
+  let out = '';
+  for (const t of asArray(si.t)) out += textOf(t);
+  for (const r of asArray(si.r)) for (const t of asArray(r.t)) out += textOf(t);
+  return out;
+}
+
+export function colToIndex(letters) {
+  let n = 0;
+  for (const ch of letters.toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n;
+}
+
+export function indexToCol(n) {
+  let s = '';
+  while (n > 0) {
+    const m = (n - 1) % 26;
+    s = String.fromCharCode(65 + m) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+}
+
+export function parseRef(ref) {
+  const m = /^\$?([A-Za-z]{1,3})\$?(\d+)$/.exec(ref);
+  if (!m) return null;
+  return { col: colToIndex(m[1]), row: Number(m[2]) };
+}
+
+export function parseRange(ref) {
+  const [a, b] = String(ref).split(':');
+  const p = parseRef(a);
+  const q = parseRef(b || a);
+  if (!p || !q) return null;
+  return {
+    ref: `${indexToCol(Math.min(p.col, q.col))}${Math.min(p.row, q.row)}:${indexToCol(Math.max(p.col, q.col))}${Math.max(p.row, q.row)}`,
+    top: Math.min(p.row, q.row),
+    left: Math.min(p.col, q.col),
+    bottom: Math.max(p.row, q.row),
+    right: Math.max(p.col, q.col),
+  };
+}
+
+export const cellRef = (row, col) => `${indexToCol(col)}${row}`;
+
+function resolveTarget(baseDir, target) {
+  if (!target) return null;
+  if (target.startsWith('/')) return target.slice(1);
+  return path.posix.normalize(path.posix.join(baseDir, target));
+}
+
+function readRels(files, relsPath) {
+  const xml = files[relsPath];
+  if (!xml) return [];
+  const doc = parser.parse(xml);
+  return asArray(doc?.Relationships?.Relationship).map((r) => ({
+    id: r.Id,
+    type: r.Type || '',
+    target: decodeXml(r.Target),
+    external: r.TargetMode === 'External',
+  }));
+}
+
+function parseBorders(stylesDoc) {
+  const borders = asArray(stylesDoc?.styleSheet?.borders?.border).map((b) => {
+    const side = (k) => {
+      const node = b?.[k];
+      if (node == null || node === '') return null;
+      const style = typeof node === 'object' ? node.style : null;
+      return style && style !== 'none' ? style : null;
+    };
+    return { left: side('left'), right: side('right'), top: side('top'), bottom: side('bottom') };
+  });
+  const xfs = asArray(stylesDoc?.styleSheet?.cellXfs?.xf).map((xf) => ({
+    borderId: xf.borderId != null ? Number(xf.borderId) : 0,
+    horizontal: xf.alignment && typeof xf.alignment === 'object' ? xf.alignment.horizontal || null : null,
+  }));
+  return { borders, xfs };
+}
+
+function analyseDrawing(files, drawingPath) {
+  const xml = files[drawingPath];
+  const res = { anchors: 0, connectors: 0, shapes: 0, pictures: 0 };
+  if (!xml) return res;
+  const doc = parser.parse(xml);
+  const root = doc?.wsDr || {};
+  const walk = (node) => {
+    if (!node || typeof node !== 'object') return;
+    res.connectors += asArray(node.cxnSp).length;
+    res.shapes += asArray(node.sp).length;
+    res.pictures += asArray(node.pic).length;
+    for (const g of asArray(node.grpSp)) walk(g);
+  };
+  for (const k of ['twoCellAnchor', 'oneCellAnchor', 'absoluteAnchor']) {
+    for (const a of asArray(root[k])) {
+      res.anchors += 1;
+      walk(a);
+    }
+  }
+  return res;
+}
+
+// Основная функция чтения книги.
+export function readWorkbook(buffer, { maxEntryBytes = 50 * 1024 * 1024 } = {}) {
+  let raw;
+  try {
+    raw = unzipSync(new Uint8Array(buffer), {
+      filter: (f) => {
+        if (f.originalSize > maxEntryBytes) throw new XlsxError('Файл содержит слишком большой внутренний элемент');
+        return true;
+      },
+    });
+  } catch (e) {
+    if (e instanceof XlsxError) throw e;
+    throw new XlsxError('Файл не похож на книгу Excel (.xlsx): не удалось распаковать архив');
+  }
+  const dec = new TextDecoder('utf-8');
+  const files = {};
+  for (const [name, data] of Object.entries(raw)) {
+    if (/\.(xml|rels)$/i.test(name)) files[name] = dec.decode(data);
+  }
+  const rootRels = readRels(files, '_rels/.rels');
+  const officeDoc = rootRels.find((r) => r.type.endsWith('/officeDocument'));
+  const workbookPath = officeDoc ? resolveTarget('', officeDoc.target) : 'xl/workbook.xml';
+  if (!files[workbookPath]) {
+    if (files['xl/workbook.bin'] || raw['xl/workbook.bin']) throw new XlsxError('Формат .xlsb не поддерживается — сохраните файл как .xlsx');
+    throw new XlsxError('В файле не найдена книга Excel (workbook.xml)');
+  }
+  const wbDir = path.posix.dirname(workbookPath);
+  const wbRels = readRels(files, `${wbDir}/_rels/${path.posix.basename(workbookPath)}.rels`);
+  const wbDoc = parser.parse(files[workbookPath]);
+
+  let sharedStrings = [];
+  const ssRel = wbRels.find((r) => r.type.endsWith('/sharedStrings'));
+  const ssPath = ssRel ? resolveTarget(wbDir, ssRel.target) : null;
+  if (ssPath && files[ssPath]) {
+    const ssDoc = parser.parse(files[ssPath]);
+    sharedStrings = asArray(ssDoc?.sst?.si).map(richText);
+  }
+
+  let styles = { borders: [], xfs: [] };
+  const stRel = wbRels.find((r) => r.type.endsWith('/styles'));
+  const stPath = stRel ? resolveTarget(wbDir, stRel.target) : null;
+  if (stPath && files[stPath]) styles = parseBorders(parser.parse(files[stPath]));
+
+  const sheetsMeta = asArray(wbDoc?.workbook?.sheets?.sheet);
+  const sheets = sheetsMeta.map((s, index) => {
+    const rel = wbRels.find((r) => r.id === s.id);
+    const sheetPath = rel ? resolveTarget(wbDir, rel.target) : null;
+    const name = decodeXml(s.name);
+    const state = s.state === 'hidden' || s.state === 'veryHidden' ? s.state : 'visible';
+    const base = {
+      name,
+      index,
+      state,
+      kind: rel?.type?.endsWith('/worksheet') ? 'worksheet' : rel?.type?.endsWith('/chartsheet') ? 'chartsheet' : 'other',
+      declaredDimension: null,
+      cells: [],
+      merges: [],
+      columns: [],
+      rows: [],
+      defaultColWidth: 8.43,
+      defaultRowHeight: 15,
+      formulas: 0,
+      comments: 0,
+      tables: 0,
+      drawing: { anchors: 0, connectors: 0, shapes: 0, pictures: 0 },
+    };
+    if (!sheetPath || !files[sheetPath] || base.kind !== 'worksheet') return base;
+    const doc = parser.parse(files[sheetPath]);
+    const ws = doc?.worksheet || {};
+    base.declaredDimension = ws.dimension?.ref || null;
+    const fmt = ws.sheetFormatPr || {};
+    if (fmt.defaultColWidth) base.defaultColWidth = Number(fmt.defaultColWidth);
+    else if (fmt.baseColWidth) base.defaultColWidth = Number(fmt.baseColWidth) + 0.83;
+    if (fmt.defaultRowHeight) base.defaultRowHeight = Number(fmt.defaultRowHeight);
+    for (const c of asArray(ws.cols?.col)) {
+      for (let i = Number(c.min); i <= Number(c.max) && i <= 16384; i++) {
+        base.columns.push({ index: i, width: c.width != null ? Number(c.width) : null, hidden: c.hidden === '1' || c.hidden === 'true', custom: c.customWidth === '1' });
+      }
+    }
+    let rowCursor = 0;
+    for (const row of asArray(ws.sheetData?.row)) {
+      const r = row.r != null ? Number(row.r) : rowCursor + 1;
+      rowCursor = r;
+      if (row.ht != null || row.hidden) base.rows.push({ index: r, height: row.ht != null ? Number(row.ht) : null, hidden: row.hidden === '1' || row.hidden === 'true' });
+      let colCursor = 0;
+      for (const c of asArray(row.c)) {
+        const pos = c.r ? parseRef(c.r) : { row: r, col: colCursor + 1 };
+        if (!pos) continue;
+        colCursor = pos.col;
+        const styleIndex = c.s != null ? Number(c.s) : 0;
+        const xf = styles.xfs[styleIndex] || { borderId: 0 };
+        const b = styles.borders[xf.borderId] || {};
+        const border = { top: b.top || null, right: b.right || null, bottom: b.bottom || null, left: b.left || null };
+        const hasFormula = c.f != null;
+        if (hasFormula) base.formulas += 1;
+        let type = c.t || 'n';
+        let value = null;
+        const v = c.v != null ? textOf(c.v) : null;
+        if (type === 's') {
+          const idx = v != null ? Number(v) : NaN;
+          value = Number.isInteger(idx) && sharedStrings[idx] != null ? sharedStrings[idx] : null;
+          type = 'string';
+        } else if (type === 'inlineStr') {
+          value = richText(c.is);
+          type = 'string';
+        } else if (type === 'str') {
+          value = v;
+          type = 'string';
+        } else if (type === 'b') {
+          value = v;
+          type = 'boolean';
+        } else if (type === 'e') {
+          value = v;
+          type = 'error';
+        } else if (type === 'd') {
+          value = v;
+          type = 'date';
+        } else {
+          value = v;
+          type = v == null ? 'empty' : 'number';
+        }
+        base.cells.push({
+          ref: cellRef(pos.row, pos.col),
+          row: pos.row,
+          col: pos.col,
+          type,
+          value,
+          formula: hasFormula,
+          styleIndex,
+          horizontal: xf.horizontal || null,
+          border,
+        });
+      }
+    }
+    for (const m of asArray(ws.mergeCells?.mergeCell)) {
+      const rg = parseRange(m.ref);
+      if (rg) base.merges.push(rg);
+    }
+    // Связанные части листа: рисунки, комментарии, таблицы.
+    const sheetRels = readRels(files, `${path.posix.dirname(sheetPath)}/_rels/${path.posix.basename(sheetPath)}.rels`);
+    for (const rr of sheetRels) {
+      const target = resolveTarget(path.posix.dirname(sheetPath), rr.target);
+      if (rr.type.endsWith('/drawing')) {
+        const d = analyseDrawing(files, target);
+        for (const k of Object.keys(d)) base.drawing[k] += d[k];
+      } else if (rr.type.endsWith('/comments')) {
+        const cdoc = files[target] ? parser.parse(files[target]) : null;
+        base.comments += asArray(cdoc?.comments?.commentList?.comment).length;
+      } else if (rr.type.endsWith('/threadedComment')) {
+        base.comments += 1;
+      } else if (rr.type.endsWith('/table')) {
+        base.tables += 1;
+      }
+    }
+    return base;
+  });
+
+  return {
+    sheets,
+    parts: Object.keys(raw).sort(),
+  };
+}
+
+// Наличие хотя бы одной границы.
+export const hasBorder = (b) => !!(b && (b.top || b.right || b.bottom || b.left));

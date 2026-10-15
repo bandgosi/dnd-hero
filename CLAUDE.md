@@ -104,3 +104,10 @@ Beyond the core fields, `state` also carries `resources` (class counters with sh
 - The roll receipt shows existing roll values and never rolls extra dice; it clears on character change and respects reduced motion.
 - Both files are precached — keep them in `sw.js` `ASSETS`. `tests/visual.cjs` writes review screenshots to `REVIEW_SCREENSHOTS` (or the OS temp dir).
 - Welcome screen (v46, styles at the end of `visual-v42.css` under "v45"): brand row (logo + title), `.welcome-scene` background, and a `.welcome-bottom` card with heading, feature chips, the «Начать приключение» button and a footer holding `.welcome-version`. On ≥720px the card sits to the right of the art. `startApp()` is still the only entry action.
+
+## family-archive/ (separate app)
+
+- `family-archive/` is an independent Node.js web app («История нашего рода», a family archive: tree, Excel import, photos, backups). It is not part of the D&D PWA, does not touch `index.html`/`sw.js`, and needs no `CACHE_NAME` bump. See `family-archive/README.md` (Russian) for running and architecture.
+- Stack: Express 5 + built-in `node:sqlite` (Node ≥ 22.13), own OOXML reader (`fflate` + `fast-xml-parser`), React + React Flow + dagre built with Vite into `client/dist` (git-ignored; `npm start` builds it when stale).
+- **This repository is public: never commit real family data.** `family-archive/data/`, `*.xlsx`, databases and photos are git-ignored; tests use the fictional fixture in `tests/helpers/fixture.js`; `scripts/check-file.mjs` checks a real file by coordinates and generic rules only.
+- Checks: `npm test` (unit + API), `npm run check:file -- file.xlsx --expect=N`, `npm install --no-save playwright && npm run build && npm run test:e2e`.

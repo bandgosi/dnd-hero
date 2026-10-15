@@ -1,0 +1,36 @@
+{
+  "name": "family-archive",
+  "version": "1.0.0",
+  "private": true,
+  "description": "История нашего рода — семейный архив: древо, импорт Excel, фотографии, резервные копии",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node scripts/ensure-build.mjs && node --disable-warning=ExperimentalWarning server/index.js",
+    "dev": "node scripts/dev.mjs",
+    "build": "vite build",
+    "import": "node --disable-warning=ExperimentalWarning scripts/import-cli.mjs",
+    "check:file": "node --disable-warning=ExperimentalWarning scripts/check-file.mjs",
+    "test": "node --disable-warning=ExperimentalWarning --test tests/unit/*.test.js tests/api/*.test.js",
+    "test:e2e": "node --disable-warning=ExperimentalWarning tests/e2e/e2e.mjs"
+  },
+  "dependencies": {
+    "express": "5.1.0",
+    "fast-xml-parser": "5.11.2",
+    "fflate": "0.8.3",
+    "multer": "2.4.0"
+  },
+  "devDependencies": {
+    "@dagrejs/dagre": "1.1.4",
+    "@fontsource-variable/literata": "5.2.5",
+    "@fontsource-variable/manrope": "5.2.5",
+    "@vitejs/plugin-react": "4.4.1",
+    "@xyflow/react": "12.8.6",
+    "lucide-react": "0.460.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "vite": "6.4.4"
+  }
+}
