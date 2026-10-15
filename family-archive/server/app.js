@@ -13,6 +13,8 @@ import * as imports from './services/imports.js';
 import * as backup from './services/backup.js';
 import { personsCsv, relationsCsv } from './services/exportCsv.js';
 import { personHistory, recentChanges, logChange } from './services/history.js';
+import { storageUsage, ensureSpace } from './services/storage.js';
+import { isPhotoFile, isImportFile, MIME_BY_EXT } from './lib/safety.js';
 
 // Имя загруженного файла: busboy может отдать UTF-8 как latin1.
 function uploadName(name, fallback) {
@@ -35,15 +37,20 @@ export function createApp({ db, config }) {
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
-    res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+    res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()');
+    if (config.cookieSecure) res.setHeader('Strict-Transport-Security', 'max-age=31536000');
     next();
   });
   app.use(auth.guard);
-  app.use('/api', express.json({ limit: '5mb' }));
   app.use('/api', (req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
     next();
   });
+  // До входа принимаются только маленькие запросы.
+  const smallJson = express.json({ limit: '16kb' });
+  const json = express.json({ limit: '5mb' });
 
   const photoUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.maxPhotoBytes, files: 3, fields: 10 } });
   const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.maxImportBytes, files: 1, fields: 5 } });
@@ -51,12 +58,14 @@ export function createApp({ db, config }) {
 
   // ---------- Вход ----------
   app.get('/api/auth/status', auth.status);
-  app.post('/api/auth/login', auth.login);
-  app.post('/api/auth/logout', auth.logout);
-  app.get('/api/health', (req, res) => res.json({ ok: true, version: config.appVersion }));
+  app.post('/api/auth/login', smallJson, auth.login);
+  app.post('/api/auth/logout', smallJson, auth.logout);
+  app.get('/api/health', (req, res) => res.json({ ok: true }));
 
   app.use('/api', auth.requireAuth);
   app.use('/media', auth.requireAuth);
+  app.use('/api', json);
+  app.post('/api/auth/logout-all', auth.logoutAll);
 
   // ---------- Все данные для интерфейса ----------
   app.get('/api/data', (req, res) => {
@@ -85,6 +94,8 @@ export function createApp({ db, config }) {
         schemaVersion: db.schemaVersion(),
         backupFormatVersion: backup.BACKUP_FORMAT_VERSION,
         authEnabled: auth.enabled,
+        photo: { maxSide: config.photoMaxSide, quality: config.photoQuality, maxUploadBytes: config.maxPhotoBytes },
+        backups: { autoKeep: config.autoBackupKeep, safetyKeep: config.safetyBackupKeep, autoDays: config.autoBackupDays },
         storage: { dataDir: config.dataDir, dbFile: config.dbFile, photosDir: config.photosDir, backupsDir: config.backupsDir, importsDir: config.importsDir },
         lastBackup,
         serverTime: nowIso(),
@@ -281,10 +292,14 @@ export function createApp({ db, config }) {
     res.json({ ok: true });
   });
   app.get('/media/photos/:id/:file', (req, res) => {
+    const file = req.params.file;
+    if (!isPhotoFile(file)) throw notFound('Фотография не найдена');
     const ph = db.get('SELECT * FROM photos WHERE id = ?', req.params.id);
-    if (!ph || ![ph.original_file, ph.display_file, ph.thumb_file].includes(req.params.file)) throw notFound('Фотография не найдена');
+    if (!ph || ![ph.original_file, ph.display_file, ph.thumb_file].includes(file)) throw notFound('Фотография не найдена');
     res.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
-    res.sendFile(path.join(photos.photoDir(config, ph.id), req.params.file));
+    res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+    res.setHeader('Content-Disposition', 'inline');
+    res.sendFile(file, { root: photos.photoDir(config, ph.id), dotfiles: 'deny', headers: { 'Content-Type': MIME_BY_EXT[file.split('.').pop()] } });
   });
 
   // ---------- Импорт ----------
@@ -294,6 +309,7 @@ export function createApp({ db, config }) {
     res.json(imports.createPreview(db, config, { buffer: req.file.buffer, fileName, includeHidden: req.body?.includeHidden === '1' }));
   });
   app.post('/api/imports/commit', (req, res) => {
+    ensureSpace(config, config.maxImportBytes, 'для импорта');
     res.json(imports.commitImport(db, config, req.body || {}));
   });
   app.post('/api/imports/discard', (req, res) => {
@@ -304,9 +320,8 @@ export function createApp({ db, config }) {
   app.get('/api/imports/:id', (req, res) => res.json(imports.getImport(db, req.params.id)));
   app.get('/api/imports/:id/file', (req, res) => {
     const imp = imports.getImport(db, req.params.id);
-    const p = imp.stored_file ? path.join(config.importsDir, imp.stored_file) : null;
-    if (!p || !fs.existsSync(p)) throw notFound('Исходный файл не сохранён');
-    res.download(p, imp.file_name);
+    if (!isImportFile(imp.stored_file) || !fs.existsSync(path.join(config.importsDir, imp.stored_file))) throw notFound('Исходный файл не сохранён');
+    res.download(imp.stored_file, imp.file_name, { root: config.importsDir, dotfiles: 'deny' });
   });
   app.get('/api/imports/:id/rollback-preview', (req, res) => res.json(imports.rollbackPreview(db, req.params.id)));
   app.post('/api/imports/:id/rollback', asyncHandler(async (req, res) => {
@@ -319,6 +334,11 @@ export function createApp({ db, config }) {
 
   // ---------- Резервные копии и экспорт ----------
   app.get('/api/backups', (req, res) => res.json({ backups: backup.listBackups(config) }));
+  app.get('/api/storage', (req, res) => res.json(storageUsage(config)));
+  app.delete('/api/backups/:name', (req, res) => {
+    backup.deleteBackup(db, config, req.params.name);
+    res.json({ ok: true });
+  });
   app.post('/api/backups', asyncHandler(async (req, res) => {
     const bk = await backup.createBackup(db, config, { label: null, appVersion: config.appVersion });
     res.status(201).json(bk);
@@ -326,7 +346,13 @@ export function createApp({ db, config }) {
   app.get('/api/backups/:name/download', (req, res) => {
     res.download(backup.backupPath(config, req.params.name), req.params.name);
   });
-  app.post('/api/backups/restore-preview', backupUpload.single('file'), asyncHandler(async (req, res) => {
+  // Перед приёмом большого файла проверяем, поместится ли он на диск.
+  const roomForUpload = (req, res, next) => {
+    const len = Number(req.headers['content-length'] || 0);
+    if (len > 0) ensureSpace(config, len, 'для загрузки резервной копии');
+    next();
+  };
+  app.post('/api/backups/restore-preview', roomForUpload, backupUpload.single('file'), asyncHandler(async (req, res) => {
     let file;
     let uploaded = false;
     if (req.file) {
@@ -336,7 +362,7 @@ export function createApp({ db, config }) {
       file = backup.backupPath(config, req.body.name);
     } else throw badRequest('Выберите файл резервной копии');
     try {
-      res.json(await backup.restorePreview(db, config, file));
+      res.json(await backup.restorePreview(db, config, file, { uploaded }));
     } catch (e) {
       if (uploaded) fs.rmSync(file, { force: true });
       throw e;
@@ -366,6 +392,8 @@ export function createApp({ db, config }) {
 
   // ---------- Интерфейс ----------
   if (fs.existsSync(path.join(config.clientDist, 'index.html'))) {
+    // Файлы сборки с хэшем в имени можно кэшировать надолго.
+    app.use('/assets', express.static(path.join(config.clientDist, 'assets'), { index: false, maxAge: '365d', immutable: true, fallthrough: false }));
     app.use(express.static(config.clientDist, { index: false, maxAge: '1h' }));
     app.get(/^\/(?!api\/|media\/).*/, (req, res) => {
       res.setHeader('Cache-Control', 'no-cache');
@@ -384,6 +412,9 @@ export function createApp({ db, config }) {
       return res.status(400).json({ error: `Ошибка загрузки файла: ${err.message}` });
     }
     if (err?.type === 'entity.parse.failed') return res.status(400).json({ error: 'Неверный формат запроса' });
+    if (err?.code === 'EBADCSRFTOKEN') return res.status(403).json({ error: 'Запрос отклонён' });
+    const status = err?.status || err?.statusCode;
+    if (status && status >= 400 && status < 500 && err?.type !== 'entity.too.large') return res.status(status).json({ error: status === 404 ? 'Не найдено' : 'Неверный запрос' });
     if (err?.type === 'entity.too.large') return res.status(413).json({ error: 'Слишком большой запрос' });
     if (err?.code === 'ERR_SQLITE_ERROR' && /constraint/i.test(err.message)) {
       return res.status(422).json({ error: 'Данные нарушают ограничения базы (например, связь человека с самим собой)' });

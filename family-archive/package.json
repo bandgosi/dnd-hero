@@ -14,7 +14,9 @@
     "import": "node --disable-warning=ExperimentalWarning scripts/import-cli.mjs",
     "check:file": "node --disable-warning=ExperimentalWarning scripts/check-file.mjs",
     "test": "node --disable-warning=ExperimentalWarning --test tests/unit/*.test.js tests/api/*.test.js",
-    "test:e2e": "node --disable-warning=ExperimentalWarning tests/e2e/e2e.mjs"
+    "test:e2e": "node --disable-warning=ExperimentalWarning tests/e2e/e2e.mjs",
+    "hash-password": "node scripts/hash-password.mjs",
+    "backup": "node --disable-warning=ExperimentalWarning scripts/backup-cli.mjs"
   },
   "dependencies": {
     "express": "5.1.0",

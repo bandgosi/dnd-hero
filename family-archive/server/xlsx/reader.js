@@ -3,7 +3,7 @@
 // (включая конечные пробелы), объединённые диапазоны, границы ячеек
 // (в том числе у пустых ячеек), ширины столбцов, высоты строк и сведения
 // о формулах, комментариях, таблицах и рисунках.
-import { unzipSync } from 'fflate';
+import { safeUnzipSync, ZipLimitError } from '../lib/zip.js';
 import { XMLParser } from 'fast-xml-parser';
 import path from 'node:path';
 
@@ -175,19 +175,17 @@ function analyseDrawing(files, drawingPath) {
 }
 
 // Основная функция чтения книги.
-export function readWorkbook(buffer, { maxEntryBytes = 50 * 1024 * 1024 } = {}) {
+export function readWorkbook(buffer, { maxEntryBytes = 32 * 1024 * 1024, maxTotalBytes = 64 * 1024 * 1024, maxEntries = 5000 } = {}) {
   let raw;
+  let names;
   try {
-    raw = unzipSync(new Uint8Array(buffer), {
-      filter: (f) => {
-        if (f.originalSize > maxEntryBytes) throw new XlsxError('Файл содержит слишком большой внутренний элемент');
-        return true;
-      },
-    });
+    // Распаковываются только XML-части; картинки и прочее внутри книги не читаются.
+    ({ files: raw, names } = safeUnzipSync(buffer, { want: (n) => /\.(xml|rels)$/i.test(n), maxEntryBytes, maxTotalBytes, maxEntries }));
   } catch (e) {
-    if (e instanceof XlsxError) throw e;
+    if (e instanceof ZipLimitError) throw new XlsxError(e.message);
     throw new XlsxError('Файл не похож на книгу Excel (.xlsx): не удалось распаковать архив');
   }
+  if (!names.length) throw new XlsxError('Файл не похож на книгу Excel (.xlsx): не удалось распаковать архив');
   const dec = new TextDecoder('utf-8');
   const files = {};
   for (const [name, data] of Object.entries(raw)) {
@@ -197,7 +195,7 @@ export function readWorkbook(buffer, { maxEntryBytes = 50 * 1024 * 1024 } = {}) 
   const officeDoc = rootRels.find((r) => r.type.endsWith('/officeDocument'));
   const workbookPath = officeDoc ? resolveTarget('', officeDoc.target) : 'xl/workbook.xml';
   if (!files[workbookPath]) {
-    if (files['xl/workbook.bin'] || raw['xl/workbook.bin']) throw new XlsxError('Формат .xlsb не поддерживается — сохраните файл как .xlsx');
+    if (names.includes('xl/workbook.bin')) throw new XlsxError('Формат .xlsb не поддерживается — сохраните файл как .xlsx');
     throw new XlsxError('В файле не найдена книга Excel (workbook.xml)');
   }
   const wbDir = path.posix.dirname(workbookPath);
@@ -333,7 +331,7 @@ export function readWorkbook(buffer, { maxEntryBytes = 50 * 1024 * 1024 } = {}) 
 
   return {
     sheets,
-    parts: Object.keys(raw).sort(),
+    parts: names.sort(),
   };
 }
 

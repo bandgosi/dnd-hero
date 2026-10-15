@@ -8,7 +8,6 @@ backups/
 
 # Зависимости и сборка
 node_modules/
-client/dist/
 
 # Локальные настройки
 .env

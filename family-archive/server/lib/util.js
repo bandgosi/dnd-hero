@@ -52,7 +52,9 @@ export function oneOf(value, allowed, fallback, label) {
 // Экранирование для CSV (разделитель «;», значения в кавычках при необходимости).
 export function csvCell(v) {
   if (v == null) return '';
-  const s = String(v);
+  let s = String(v);
+  // Защита от формул при открытии в Excel: значение, начинающееся с = + - @, экранируется апострофом.
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   if (/[";\n\r]/.test(s) || /^\s|\s$/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
   return s;
 }

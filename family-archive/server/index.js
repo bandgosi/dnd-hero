@@ -1,16 +1,18 @@
 // Точка входа сервера.
 import fs from 'node:fs';
 import path from 'node:path';
-import { loadConfig } from './config.js';
+import { loadConfig, configProblems } from './config.js';
 import { openDb } from './db.js';
 import { createApp } from './app.js';
-import { createBackup, listBackups } from './services/backup.js';
+import { createBackup, listBackups, changedSinceLastBackup } from './services/backup.js';
 
 const config = loadConfig();
 
-if (!config.loopback && !config.password) {
-  console.error('\nОтказ запуска: сервер настроен на адрес %s, но не задан APP_PASSWORD.', config.host);
-  console.error('Для доступа из сети обязательно задайте пароль (см. .env.example) и используйте HTTPS.\n');
+const problems = configProblems(config);
+if (problems.length) {
+  console.error('\nОтказ запуска — небезопасные или неверные настройки:');
+  for (const p of problems) console.error(`  • ${p}`);
+  console.error('Подробнее — в README, раздел «Установка на сервер».\n');
   process.exit(1);
 }
 
@@ -27,21 +29,17 @@ try {
 const db = openDb(config.dbFile);
 const app = createApp({ db, config });
 
-// Автоматическая резервная копия: раз в AUTO_BACKUP_DAYS дней, если в базе есть данные.
-// Хранятся последние 10 автоматических копий.
+// Автоматическая резервная копия: раз в AUTO_BACKUP_DAYS дней, если в базе есть данные
+// и после прошлой копии что-то изменилось. Хранятся последние AUTO_BACKUP_KEEP копий.
 async function autoBackup() {
   if (!config.autoBackupDays) return;
   try {
     const hasData = db.get('SELECT COUNT(*) AS n FROM persons').n > 0;
-    if (!hasData) return;
-    const autos = listBackups(config).filter((b) => b.name.includes('-auto'));
-    const last = autos[0];
+    if (!hasData || !changedSinceLastBackup(db)) return;
+    const last = listBackups(config).find((b) => b.kind === 'auto');
     if (last && Date.now() - new Date(last.modifiedAt).getTime() < config.autoBackupDays * 86400000) return;
     const bk = await createBackup(db, config, { label: 'auto', appVersion: config.appVersion });
     console.log(`Автоматическая резервная копия: ${bk.name}`);
-    for (const old of listBackups(config).filter((b) => b.name.includes('-auto')).slice(10)) {
-      fs.rmSync(path.join(config.backupsDir, old.name), { force: true });
-    }
   } catch (e) {
     console.error('Не удалось создать автоматическую резервную копию:', e.message);
   }
@@ -54,7 +52,7 @@ const server = app.listen(config.port, config.host, () => {
   console.log(`  База данных:  ${config.dbFile}`);
   console.log(`  Фотографии:   ${config.photosDir}`);
   console.log(`  Копии:        ${config.backupsDir}`);
-  console.log(config.password ? '  Вход по паролю включён.' : '  Доступ только с этого компьютера (пароль не задан).');
+  console.log(config.password || config.passwordHash ? '  Вход по паролю включён.' : '  Доступ только с этого компьютера (пароль не задан).');
   console.log('  Остановить: Ctrl+C\n');
   autoBackup();
 });

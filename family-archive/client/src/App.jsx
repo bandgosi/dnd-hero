@@ -1,6 +1,6 @@
 // Оболочка приложения: верхняя панель, навигация, центральная область, карточка человека.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Search, Network, Users, HelpCircle, FileSpreadsheet, Archive, Menu as MenuIcon, X, Database, Lock, Loader2, RotateCcw } from 'lucide-react';
+import { Plus, Search, Network, Users, HelpCircle, FileSpreadsheet, Archive, Menu as MenuIcon, X, Database, Lock, Loader2, RotateCcw, LogOut } from 'lucide-react';
 import { DataProvider, useData } from './store.jsx';
 import { useRoute } from './router.js';
 import { api } from './api.js';
@@ -304,6 +304,11 @@ function Shell() {
           <button type="button" className="btn btn-primary btn-lg" onClick={() => setAdding(true)} aria-label="Добавить человека">
             <Plus size={20} /> <span className="hide-phone">Добавить человека</span>
           </button>
+          {data.meta.authEnabled && (
+            <button type="button" className="icon-btn" title="Выйти" aria-label="Выйти" onClick={async () => { try { await api.post('/api/auth/logout'); } finally { window.location.reload(); } }}>
+              <LogOut size={20} />
+            </button>
+          )}
         </div>
       </header>
       <div className={`shell ${isDesktop && !dockPanel ? 'no-panel' : ''}`}>

@@ -600,6 +600,11 @@ textarea.input { resize: vertical; min-height: 72px; }
 .backup-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; }
 .backup-list li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); padding: var(--s2) 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 
+.storage-bar { height: 10px; border-radius: 5px; background: #ECEEE8; overflow: hidden; margin-bottom: var(--s2); }
+.storage-bar span { display: block; height: 100%; background: var(--green); border-radius: 5px; }
+.storage-bar span.is-low { background: var(--danger); }
+.compress-note { background: var(--green-tint); border: 1px solid #CFE0D5; border-radius: 8px; padding: 6px 10px; color: var(--green); max-width: 300px; }
+
 /* ---------- Вход ---------- */
 .login { min-height: 100dvh; display: grid; place-items: center; padding: var(--s4); }
 .login-card { width: min(400px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: var(--s6); display: flex; flex-direction: column; gap: var(--s3); box-shadow: var(--shadow-md); }

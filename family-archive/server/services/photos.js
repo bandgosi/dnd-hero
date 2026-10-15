@@ -3,6 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { newId, nowIso, sha256, badRequest, notFound, unprocessable, cleanText } from '../lib/util.js';
 import { logChange } from './history.js';
+import { isUuid, isPhotoFile } from '../lib/safety.js';
+import { stripImageMetadata, ImageMetaError } from '../lib/imagemeta.js';
+import { ensureSpace } from './storage.js';
 
 // Определение формата по сигнатуре и чтение размеров из заголовка — без внешних библиотек.
 export function sniffImage(buf) {
@@ -68,8 +71,18 @@ function writeAtomic(file, buf) {
 }
 
 export function photoDir(config, id) {
-  if (!/^[0-9a-f-]{36}$/.test(id)) throw badRequest('Неверный идентификатор фото');
+  if (!isUuid(id)) throw badRequest('Неверный идентификатор фото');
   return path.join(config.photosDir, id);
+}
+
+// Удаление метаданных (EXIF, GPS, XMP, комментарии); испорченный файл отклоняется.
+function clean(buf, info, label) {
+  try {
+    return stripImageMetadata(buf, info.mime);
+  } catch (e) {
+    if (e instanceof ImageMetaError) throw unprocessable(`${label}: файл повреждён (${e.message})`);
+    throw e;
+  }
 }
 
 export function removePhotoDirs(config, ids) {
@@ -99,12 +112,17 @@ function parseCrop(v) {
 }
 
 // files: { original, display, thumb } — Buffer'ы; display/thumb подготовлены в браузере (кадрирование).
-export function addPhoto(db, config, personId, { files, originalName, crop, caption, replacePhotoId = null }) {
+export function addPhoto(db, config, personId, { files: incoming, originalName, crop, caption, replacePhotoId = null }) {
+  let files = incoming;
   const person = db.get('SELECT * FROM persons WHERE id = ?', personId);
   if (!person) throw notFound('Человек не найден');
-  const orig = checkImage(files.original, { label: 'Исходное фото', maxBytes: config.maxPhotoBytes, allowed: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] });
-  const disp = checkImage(files.display, { label: 'Кадрированное фото', maxBytes: 10 * 1024 * 1024, allowed: ['image/jpeg', 'image/webp', 'image/png'], maxSide: 4096 });
-  const thumb = checkImage(files.thumb, { label: 'Миниатюра', maxBytes: 2 * 1024 * 1024, allowed: ['image/jpeg', 'image/webp', 'image/png'], maxSide: 1024 });
+  // Если включено сжатие, сервер принимает только уменьшенные фото — даже от сторонних программ.
+  const maxSide = config.photoMaxSide > 0 ? config.photoMaxSide + 2 : 20000;
+  const orig = checkImage(files.original, { label: 'Фото', maxBytes: config.maxPhotoBytes, allowed: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], maxSide });
+  const disp = checkImage(files.display, { label: 'Кадрированное фото', maxBytes: 4 * 1024 * 1024, allowed: ['image/jpeg', 'image/webp', 'image/png'], maxSide: 1600 });
+  const thumb = checkImage(files.thumb, { label: 'Миниатюра', maxBytes: 512 * 1024, allowed: ['image/jpeg', 'image/webp', 'image/png'], maxSide: 512 });
+  files = { original: clean(files.original, orig, 'Фото'), display: clean(files.display, disp, 'Кадрированное фото'), thumb: clean(files.thumb, thumb, 'Миниатюра') };
+  ensureSpace(config, files.original.length + files.display.length + files.thumb.length, 'для фотографии');
   const id = newId();
   const dir = photoDir(config, id);
   fs.mkdirSync(dir, { recursive: true });
@@ -177,12 +195,15 @@ export function updatePhoto(db, config, photoId, { files = {}, crop, caption }) 
   const fields = { updated_at: nowIso() };
   if (files.display || files.thumb) {
     if (!files.display || !files.thumb) throw badRequest('Нужны и кадрированное фото, и миниатюра');
-    const disp = checkImage(files.display, { label: 'Кадрированное фото', maxBytes: 10 * 1024 * 1024, allowed: ['image/jpeg', 'image/webp', 'image/png'], maxSide: 4096 });
-    const thumb = checkImage(files.thumb, { label: 'Миниатюра', maxBytes: 2 * 1024 * 1024, allowed: ['image/jpeg', 'image/webp', 'image/png'], maxSide: 1024 });
+    const disp = checkImage(files.display, { label: 'Кадрированное фото', maxBytes: 4 * 1024 * 1024, allowed: ['image/jpeg', 'image/webp', 'image/png'], maxSide: 1600 });
+    const thumb = checkImage(files.thumb, { label: 'Миниатюра', maxBytes: 512 * 1024, allowed: ['image/jpeg', 'image/webp', 'image/png'], maxSide: 512 });
+    const dBuf = clean(files.display, disp, 'Кадрированное фото');
+    const tBuf = clean(files.thumb, thumb, 'Миниатюра');
+    ensureSpace(config, dBuf.length + tBuf.length, 'для фотографии');
     const dn = `display-${Date.now()}.${disp.ext}`;
     const tn = `thumb-${Date.now()}.${thumb.ext}`;
-    writeAtomic(path.join(dir, dn), files.display);
-    writeAtomic(path.join(dir, tn), files.thumb);
+    writeAtomic(path.join(dir, dn), dBuf);
+    writeAtomic(path.join(dir, tn), tBuf);
     fields.display_file = dn;
     fields.display_width = disp.width;
     fields.display_height = disp.height;
@@ -197,7 +218,7 @@ export function updatePhoto(db, config, photoId, { files = {}, crop, caption }) 
     logChange(db, { action: 'photo.update', entityType: 'photo', entityId: photoId, summary: fields.display_file ? 'Фотография перекадрирована' : 'Изменена подпись к фотографии', personIds: [ph.person_id] });
   });
   for (const old of [fields.display_file && ph.display_file, fields.thumb_file && ph.thumb_file].filter(Boolean)) {
-    fs.rmSync(path.join(dir, old), { force: true });
+    if (isPhotoFile(old)) fs.rmSync(path.join(dir, old), { force: true });
   }
   return db.get('SELECT * FROM photos WHERE id = ?', photoId);
 }

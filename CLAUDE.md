@@ -108,6 +108,8 @@ Beyond the core fields, `state` also carries `resources` (class counters with sh
 ## family-archive/ (separate app)
 
 - `family-archive/` is an independent Node.js web app («История нашего рода», a family archive: tree, Excel import, photos, backups). It is not part of the D&D PWA, does not touch `index.html`/`sw.js`, and needs no `CACHE_NAME` bump. See `family-archive/README.md` (Russian) for running and architecture.
-- Stack: Express 5 + built-in `node:sqlite` (Node ≥ 22.13), own OOXML reader (`fflate` + `fast-xml-parser`), React + React Flow + dagre built with Vite into `client/dist` (git-ignored; `npm start` builds it when stale).
+- Stack: Express 5 + built-in `node:sqlite` (Node ≥ 22.13), own OOXML reader (`fflate` + `fast-xml-parser`), React + React Flow + dagre built with Vite into `client/dist`.
+- **`client/dist` is committed** (small servers can't afford the ~375 MB build) together with `build-info.json`, a hash of the UI sources. After changing `client/`, `shared/`, `vite.config.js` or UI dev dependencies, run `npm run build` and commit `client/dist`; `tests/unit/dist.test.js` fails otherwise.
+- Server deployment: `deploy/install.sh` (Node from nodejs.org with checksum, sandboxed systemd unit as a system user, Caddy HTTPS, ufw) and `deploy/family-archive-ctl.sh` (installed as `family-archive`). Test it with `FA_PREFIX=/tmp/x FA_PASSWORD=… bash deploy/install.sh --skip-system --local-only`.
 - **This repository is public: never commit real family data.** `family-archive/data/`, `*.xlsx`, databases and photos are git-ignored; tests use the fictional fixture in `tests/helpers/fixture.js`; `scripts/check-file.mjs` checks a real file by coordinates and generic rules only.
 - Checks: `npm test` (unit + API), `npm run check:file -- file.xlsx --expect=N`, `npm install --no-save playwright && npm run build && npm run test:e2e`.

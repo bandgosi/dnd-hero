@@ -102,14 +102,16 @@ try {
   check('Изменения сведений сохраняются после перезагрузки', panelText.includes('1961') && panelText.includes('Проверка сохранения биографии.'));
 
   // Фотография: загрузка с кадрированием.
-  await page.locator('input[type=file][accept*="image"]').setInputFiles({ name: 'портрет.png', mimeType: 'image/png', buffer: makePng(320, 240, [180, 160, 120]) });
+  await page.locator('input[type=file][accept*="image"]').setInputFiles({ name: 'портрет.png', mimeType: 'image/png', buffer: makePng(3000, 2000, [180, 160, 120]) });
   await page.waitForSelector('.cropper canvas');
+  const note = await page.locator('.compress-note').innerText().catch(() => '');
   await page.waitForTimeout(300);
   await shot('05-photo-cropper');
   await page.getByRole('button', { name: 'Сохранить фото' }).click();
   await page.waitForSelector('.photo-main img');
   const photos = (await s.get('/api/data')).data.photos;
   check('Фотография загружается, кадрируется и сохраняется файлом', photos.length === 1 && fs.existsSync(path.join(s.dir, 'photos', photos[0].id, photos[0].original_file)));
+  check('Фото уменьшается и сжимается при загрузке', photos[0].original_width === 2048 && photos[0].original_file.endsWith('.jpg') && /уменьшено/.test(note), `${photos[0].original_width}×${photos[0].original_height}; ${note.slice(0, 80)}`);
   await shot('06-person-card-photo');
 
   // Добавить ребёнка из существующих людей.

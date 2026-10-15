@@ -9,12 +9,13 @@ import { useData, useUi, reportError } from '../store.jsx';
 import { Avatar, Menu, Field, Notice, Spinner, Modal } from './ui.jsx';
 import { DateField, dateFieldError, PersonPicker } from './fields.jsx';
 import { PhotoCropper, checkImageFile, ACCEPT } from './PhotoCropper.jsx';
+import { compressImage } from '../lib/image.js';
 import { RelationDialog, RelationEditDialog, ConfirmHypothesisDialog, MergeDialog, DeletePersonDialog, describeHyp } from './dialogs.jsx';
 import { kinshipLabel, NOT_ENOUGH } from '../lib/kinship.js';
 import { siblings } from '../lib/graph.js';
 import {
   formatDate, birthOf, deathOf, SEX_LABELS, LIFE_LABELS, PARENT_KIND_LABELS, PARTNER_KIND_LABELS, PARTNER_STATUS_LABELS,
-  SOURCE_KIND_LABELS, fmtDateTime, showSpaces, recordLabel, countText,
+  SOURCE_KIND_LABELS, fmtDateTime, showSpaces, recordLabel, countText, fmtSize,
 } from '../lib/format.js';
 
 const NS = 'Не указано';
@@ -222,7 +223,8 @@ function InfoTab({ person, records, openQuestions, onQuestions }) {
 }
 
 function PhotoSection({ person }) {
-  const { index, save } = useData();
+  const { data, index, save } = useData();
+  const [preparing, setPreparing] = useState(false);
   const ui = useUi();
   const photos = index.photosByPerson.get(person.id) || [];
   const primary = photos.find((p) => p.id === person.primary_photo_id) || photos[0];
@@ -236,12 +238,25 @@ function PhotoSection({ person }) {
     fileRef.current.value = '';
     fileRef.current.click();
   };
-  const onFile = (e) => {
+  const onFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const err = checkImageFile(file);
     if (err) return ui.toast(err, 'error');
-    setCrop({ file, mode: intent });
+    // Сжатие в браузере: на сервер уходит уменьшенная копия без метаданных.
+    setPreparing(true);
+    try {
+      const policy = data.meta.photo || { maxSide: 2048, quality: 0.85 };
+      const r = await compressImage(file, { maxSide: policy.maxSide, quality: policy.quality });
+      if (r.size > (policy.maxUploadBytes || Infinity)) throw new Error(`Фото после сжатия больше ${fmtSize(policy.maxUploadBytes)}`);
+      const base = (file.name || 'фото').replace(/\.[^.]+$/, '');
+      const note = r.compressed ? `Фото уменьшено для экономии места: ${fmtSize(r.originalSize)} → ${fmtSize(r.size)} (${r.width}×${r.height}). Данные о месте съёмки удалены.` : null;
+      setCrop({ file: r.blob, name: r.compressed ? `${base}.jpg` : file.name, mode: intent, note });
+    } catch (ex) {
+      ui.toast(ex.message || 'Не удалось подготовить фотографию', 'error');
+    } finally {
+      setPreparing(false);
+    }
   };
   const upload = async ({ display, thumb, crop: rect }) => {
     setSaving(true);
@@ -254,7 +269,7 @@ function PhotoSection({ person }) {
         await save(() => api.form(`/api/photos/${crop.photo.id}`, fd, 'PUT'), { success: 'Кадр обновлён' });
       } else {
         const fd = new FormData();
-        fd.append('original', crop.file, crop.file.name);
+        fd.append('original', crop.file, crop.name || 'photo.jpg');
         fd.append('display', display, 'display.jpg');
         fd.append('thumb', thumb, 'thumb.jpg');
         fd.append('crop', JSON.stringify(rect));
@@ -299,8 +314,8 @@ function PhotoSection({ person }) {
         <h3 className="section-title">Фотография</h3>
         <input ref={fileRef} type="file" accept={ACCEPT} className="visually-hidden" onChange={onFile} aria-label="Выбрать файл фотографии" tabIndex={-1} />
         {!primary ? (
-          <button type="button" className="upload-tile" onClick={() => pick('add')}>
-            <ImageIcon size={22} /> <span>Загрузить фото</span>
+          <button type="button" className="upload-tile" onClick={() => pick('add')} disabled={preparing}>
+            {preparing ? <Loader2 size={22} className="spin" /> : <ImageIcon size={22} />} <span>{preparing ? 'Подготовка…' : 'Загрузить фото'}</span>
           </button>
         ) : (
           <div className="photo-main">
@@ -339,6 +354,7 @@ function PhotoSection({ person }) {
           originalUrl={crop.photo ? photoUrl(crop.photo, 'original') : null}
           initialCrop={initialCrop}
           title={crop.photo ? 'Изменить кадр' : crop.mode === 'replace' ? 'Новая фотография вместо прежней' : 'Новая фотография'}
+          note={crop.note}
           saving={saving}
           onCancel={() => setCrop(null)}
           onDone={upload}

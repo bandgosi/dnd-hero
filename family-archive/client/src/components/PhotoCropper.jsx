@@ -5,7 +5,7 @@ import { ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
 import { Modal } from './ui.jsx';
 
 const VIEW = 300;
-const MAX_MB = 25;
+const MAX_MB = 60; // до сжатия в браузере
 export const ACCEPT = 'image/jpeg,image/png,image/webp,image/gif';
 
 async function decode(source) {
@@ -40,7 +40,7 @@ export function checkImageFile(file) {
 }
 
 // file — новый файл; либо originalUrl — исходник уже сохранённой фотографии.
-export function PhotoCropper({ file, originalUrl, initialCrop, title = 'Кадрирование фотографии', onCancel, onDone, saving }) {
+export function PhotoCropper({ file, originalUrl, initialCrop, title = 'Кадрирование фотографии', note, onCancel, onDone, saving }) {
   const canvasRef = useRef(null);
   const [img, setImg] = useState(null);
   const [error, setError] = useState(null);
@@ -151,9 +151,9 @@ export function PhotoCropper({ file, originalUrl, initialCrop, title = 'Кадр
       ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, 0, 0, size, size);
       return toBlob(c, 'image/jpeg', quality);
     };
-    const displaySize = Math.max(160, Math.min(900, crop.w));
-    const display = await render(displaySize, 0.9);
-    const thumb = await render(Math.min(240, displaySize), 0.85);
+    const displaySize = Math.max(160, Math.min(800, crop.w));
+    const display = await render(displaySize, 0.85);
+    const thumb = await render(Math.min(240, displaySize), 0.8);
     onDone({ display, thumb, crop });
   };
 
@@ -178,7 +178,8 @@ export function PhotoCropper({ file, originalUrl, initialCrop, title = 'Кадр
         <p className="field-error" role="alert">{error}</p>
       ) : (
         <div className="cropper">
-          <p className="muted small">Перетащите изображение и измените масштаб. Исходный файл сохранится без изменений.</p>
+          <p className="muted small">Перетащите изображение и измените масштаб.</p>
+          {note && <p className="compress-note small">{note}</p>}
           <div
             className="cropper-view"
             tabIndex={0}
