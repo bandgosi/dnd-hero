@@ -72,7 +72,7 @@ export function plural(n, one, few, many) {
 
 export const countText = (n, one, few, many) => `${n} ${plural(n, one, few, many)}`;
 
-// Видимые пробелы в исходной строке: «Татьяна␣».
+// Видимые пробелы в исходной строке: «Зоя␣».
 export function showSpaces(raw) {
   if (raw == null) return '';
   return raw.replace(/ +$/g, (m) => '␣'.repeat(m.length)).replace(/^ +/g, (m) => '␣'.repeat(m.length));

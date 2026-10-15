@@ -89,7 +89,7 @@ test('имена: черновой разбор, отчества, поиск п
   assert.ok(patronymicMatchesName('Зурабовна', 'Зураб'));
   assert.ok(!patronymicMatchesName('Зурабович', 'Леван'));
   assert.equal(searchKey('Геннадий'), searchKey('Генадий'));
-  assert.equal(searchKey('Алёна'), searchKey('Алена'));
+  assert.equal(searchKey('Пётр'), searchKey('Петр'));
   assert.equal(doubleLetterSuggestion('Генадий'), 'Геннадий');
   assert.equal(doubleLetterSuggestion('Ирина'), null);
   assert.equal(surnameStem('Петрова'), surnameStem('Петров'));
