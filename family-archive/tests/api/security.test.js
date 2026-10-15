@@ -507,15 +507,39 @@ test('импорт: гигантские диапазоны в крошечно�
     const cases = [
       [(x) => x.replace('</sheetData>', '</sheetData><mergeCells count="1"><mergeCell ref="A3:ZZZ1048576"/></mergeCells>'), /недопустимый объединённый диапазон/],
       [(x) => x.replace('</sheetData>', '</sheetData><mergeCells count="1"><mergeCell ref="C3:XFD1048576"/></mergeCells>'), /Объединённые диапазоны .* слишком большие/],
-      [(x) => x.replace('</sheetData>', '<row r="1048576"><c r="A1048576" t="inlineStr"><is><t>Зоя</t></is></c></row></sheetData>'), /слишком большой для схемы/],
       [(x) => x.replace('<row r="1">', '<row r="0">'), /недопустимый адрес/],
+      // Узлы, которые не являются элементами, тоже считаются: инструкции, CDATA, атрибуты.
+      [(x) => x.replace('<sheetData>', `${'<?a?>'.repeat(200000)}<sheetData>`), /слишком большой или сложный/],
+      [(x) => x.replace('<sheetData>', `<x>${'<![CDATA[]]>'.repeat(200000)}</x><sheetData>`), /слишком большой или сложный/],
+      [(x) => x.replace('<sheetData>', `<x ${Array.from({ length: 250000 }, (_, i) => `a${i}="1"`).join(' ')}/><sheetData>`), /слишком большой или сложный/],
     ];
     for (const [patch, error] of cases) {
       const r = await s.form('/api/imports/preview', xlsxForm(patchSheet(base, patch)));
       assert.equal(r.status, 422, String(error));
       assert.match(r.data.error, error);
     }
-    assert.ok(Date.now() - started < 10000, 'разбор быстрый');
+    // Запись в самом низу листа: схема показывается сжато, импорт проходит.
+    const far = await s.form('/api/imports/preview', xlsxForm(patchSheet(base, (x) => x.replace('</sheetData>', '<row r="1048576"><c r="A1048576" t="inlineStr"><is><t>Зоя</t></is></c></row></sheetData>'))));
+    assert.equal(far.status, 200);
+    assert.equal(far.data.geometry['Лист1'].compact, true);
+    assert.equal(far.data.records.length, 3);
+    // Длинный список и широкая строка имён — допустимы.
+    const list = {};
+    for (let i = 1; i <= 2100; i++) list[`A${i}`] = { v: `Петров ${i}` };
+    assert.equal((await s.form('/api/imports/preview', xlsxForm(buildXlsx([{ name: 'Лист1', cells: list }])))).status, 200);
+    // Сотни одинаковых имён: предположения ограничены, разбор быстрый.
+    const same = {};
+    for (let i = 1; i <= 400; i++) same[`A${i}`] = { v: 'Петров Пётр' };
+    const t0 = Date.now();
+    const sp = await s.form('/api/imports/preview', xlsxForm(buildXlsx([{ name: 'Лист1', cells: same }])));
+    assert.equal(sp.status, 200);
+    assert.ok(Date.now() - t0 < 8000, `одинаковые имена: ${Date.now() - t0} мс`);
+    assert.ok(sp.data.checks.some((c) => c.code === 'same_cut'));
+    // Очень длинная ячейка не импортируется, но называется в отдельном предупреждении.
+    const longText = await s.form('/api/imports/preview', xlsxForm(buildXlsx([{ name: 'Лист1', cells: { A1: { v: 'Кахе' }, A2: { v: `Зураб ${'пометка '.repeat(800)}` } } }])));
+    assert.equal(longText.data.records.length, 1);
+    assert.match(longText.data.checks.find((c) => c.code === 'long_text').text, /Лист1!A2/);
+    assert.ok(Date.now() - started < 30000, 'разбор быстрый');
     assert.equal((await s.get('/api/health')).status, 200, 'сервер жив');
   } finally {
     await s.close();

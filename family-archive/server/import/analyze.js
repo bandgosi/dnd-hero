@@ -15,20 +15,25 @@ import {
 const quote = (s) => `«${s}»`;
 // Пределы разбора: поиск гипотез перебирает пары записей, схема рисуется таблицей ячеек.
 const MAX_RECORDS = 3000;
-// Имя в ячейке короче; длинный текст — не запись о человеке (и не раздувает ответ).
-const MAX_RECORD_CHARS = 500;
+const MAX_SAME_PAIRS = 300;
+// Имя с пометками обычно короче; ячейка с длинным текстом не импортируется (с отдельным предупреждением).
+const MAX_RECORD_CHARS = 5000;
 // Список пропущенных ячеек в ответе ограничен, полное число — в skippedTotal.
 const MAX_SKIPPED_LISTED = 200;
 const clip = (v, n = 200) => (typeof v === 'string' && v.length > n ? `${v.slice(0, n)}… (${v.length} симв.)` : v);
-const GEO_MAX_ROWS = 2000;
-const GEO_MAX_COLS = 300;
+// Схема листа — таблица строк × столбцов; если она слишком велика, показываются только строки
+// и столбцы с записями (импорт из-за размера схемы не отклоняется).
 const GEO_MAX_CELLS = 100000;
+// Общий объём текста записей (ответ предпросмотра и база не раздуваются от одной огромной строки,
+// на которую ссылаются тысячи ячеек).
+const MAX_TOTAL_TEXT = 2000000;
 const lowerNoYo = (s) => String(s || '').toLowerCase().replace(/ё/g, 'е');
 
 export function analyzeWorkbook(wb, { includeHidden = false } = {}) {
   const sheets = [];
   const records = [];
   const skipped = [];
+  let totalText = 0;
   const geometry = {};
 
   for (const sheet of wb.sheets) {
@@ -57,8 +62,8 @@ export function analyzeWorkbook(wb, { includeHidden = false } = {}) {
         skipped.push({ sheet: sheet.name, cell: c.ref, raw: clip(c.value), reason: 'Ячейка содержит только пробелы' });
         continue;
       }
-      if (c.value.length > MAX_RECORD_CHARS) {
-        skipped.push({ sheet: sheet.name, cell: c.ref, raw: clip(c.value), reason: `Слишком длинный текст (${c.value.length} символов) — для имени это необычно; ячейка не импортирована` });
+      if (c.value.trim().length > MAX_RECORD_CHARS) {
+        skipped.push({ sheet: sheet.name, cell: c.ref, raw: clip(c.value), long: true, reason: `Слишком длинный текст (${c.value.trim().length} символов) — для имени это необычно; ячейка не импортирована` });
         continue;
       }
       if (!included) continue;
@@ -83,6 +88,8 @@ export function analyzeWorkbook(wb, { includeHidden = false } = {}) {
     }
     sheetRecords.sort((a, b) => a.row - b.row || a.col - b.col);
     records.push(...sheetRecords);
+    for (const r of sheetRecords) totalText += r.raw.length;
+    if (totalText > MAX_TOTAL_TEXT) throw new XlsxError('В ячейках книги слишком много текста для импорта имён. Проверьте, нет ли на листах длинных заметок или повторяющихся огромных значений.');
     if (records.length > MAX_RECORDS) throw new XlsxError(`В книге больше ${MAX_RECORDS} записей — это слишком много для одного импорта. Разделите файл на несколько.`);
 
     if (included) geometry[sheet.name] = buildGeometry(sheet, sheetRecords, mergeAt);
@@ -106,8 +113,10 @@ export function analyzeWorkbook(wb, { includeHidden = false } = {}) {
 
   const suggestions = buildSuggestions(records, geometry);
   const nameReviews = buildNameReviews(records, suggestions.parentCandidates);
+  const { samePairsCut } = suggestions;
   delete suggestions.parentCandidates;
-  const checks = buildChecks(sheets, records, skipped, geometry);
+  delete suggestions.samePairsCut;
+  const checks = buildChecks(sheets, records, skipped, geometry, { samePairsCut });
   return { sheets, records, skipped: skipped.slice(0, MAX_SKIPPED_LISTED), skippedTotal: skipped.length, geometry, suggestions, nameReviews, checks };
 }
 
@@ -125,7 +134,7 @@ function buildGeometry(sheet, recs, mergeAt) {
     }
     return spans.length ? { minCol, maxCol, maxRow } : { minCol: 1, maxCol: 1, maxRow: 1 };
   };
-  const tooBig = (b) => b.maxRow > GEO_MAX_ROWS || b.maxCol - b.minCol + 1 > GEO_MAX_COLS || b.maxRow * (b.maxCol - b.minCol + 1) > GEO_MAX_CELLS;
+  const tooBig = (b) => b.maxRow * (b.maxCol - b.minCol + 1) > GEO_MAX_CELLS;
   const recSpans = recs.map((r) => r.span);
   let b = box([...recSpans, ...bordered.map((c) => ({ top: c.row, left: c.col, bottom: c.row, right: c.col }))]);
   if (tooBig(b)) {
@@ -133,26 +142,38 @@ function buildGeometry(sheet, recs, mergeAt) {
     const rb = box(recSpans);
     bordered = bordered.filter((c) => c.row <= rb.maxRow + 3 && c.col >= rb.minCol - 3 && c.col <= rb.maxCol + 3);
     b = box([...recSpans, ...bordered.map((c) => ({ top: c.row, left: c.col, bottom: c.row, right: c.col }))]);
-    if (tooBig(b)) throw new XlsxError(`Лист ${quote(sheet.name)} слишком большой для схемы (${b.maxRow} строк × ${b.maxCol - b.minCol + 1} столбцов). Допустимо до ${GEO_MAX_ROWS} строк и ${GEO_MAX_COLS} столбцов.`);
+  }
+  // Всё ещё слишком велика — сжатая схема: только строки и столбцы, где есть записи.
+  const compact = tooBig(b);
+  const keepRows = new Set();
+  const keepCols = new Set();
+  if (compact) {
+    for (const sp of recSpans) {
+      for (let r = sp.top; r <= sp.bottom; r++) keepRows.add(r);
+      for (let c = sp.left; c <= sp.right; c++) keepCols.add(c);
+    }
+    bordered = bordered.filter((c) => keepRows.has(c.row) && keepCols.has(c.col));
   }
   const { minCol, maxCol, maxRow } = b;
   const minRow = 1;
+  const colRange = compact ? [...keepCols].sort((x, y) => x - y) : Array.from({ length: maxCol - minCol + 1 }, (_, i) => minCol + i);
+  const rowRange = compact ? [...keepRows].sort((x, y) => x - y) : Array.from({ length: maxRow - minRow + 1 }, (_, i) => minRow + i);
   // Ширины столбцов заданы диапазонами min…max; при пересечении действует первый.
   const colWidth = new Map();
-  for (let c = minCol; c <= maxCol; c++) {
+  for (const c of colRange) {
     const def = sheet.columns.find((d) => d.min <= c && c <= d.max);
     if (def) colWidth.set(c, def);
   }
   const rowHeight = new Map(sheet.rows.map((r) => [r.index, r]));
   const columns = [];
-  for (let c = minCol; c <= maxCol; c++) {
+  for (const c of colRange) {
     const def = colWidth.get(c);
     columns.push({ index: c, letter: indexToCol(c), width: def?.width ?? sheet.defaultColWidth, hidden: !!def?.hidden });
   }
   const rows = [];
   const recordRows = new Set();
   for (const r of recs) for (let i = r.span.top; i <= r.span.bottom; i++) recordRows.add(i);
-  for (let r = minRow; r <= maxRow; r++) {
+  for (const r of rowRange) {
     const def = rowHeight.get(r);
     rows.push({ index: r, height: def?.height ?? sheet.defaultRowHeight, hidden: !!def?.hidden, hasRecords: recordRows.has(r) });
   }
@@ -185,11 +206,12 @@ function buildGeometry(sheet, recs, mergeAt) {
   return {
     declaredDimension: sheet.declaredDimension,
     minCol, maxCol, minRow, maxRow,
+    compact,
     columns, rows,
     merges: sheet.merges,
     borderedCells,
     frames,
-    emptyRows: rows.filter((r) => !r.hasRecords && r.index >= firstRecordRow && r.index <= lastRecordRow).map((r) => r.index),
+    emptyRows: compact ? [] : rows.filter((r) => !r.hasRecords && r.index >= firstRecordRow && r.index <= lastRecordRow).map((r) => r.index),
   };
 }
 
@@ -290,6 +312,8 @@ function buildSuggestions(records, geometry) {
   let seq = 0;
   const hid = () => `h${++seq}`;
   const parentCandidates = new Map();
+  let samePairsTotal = 0;
+  let samePairsCut = false;
 
   const surnameFreq = new Map();
   for (const r of records) {
@@ -353,10 +377,15 @@ function buildSuggestions(records, geometry) {
       parentCandidates.set(x.key, ix.pcAll.map((p) => p.key));
     }
 
-    // 2. Возможно, один и тот же человек: совпадают фамилия и имя.
+    // 2. Возможно, один и тот же человек: совпадают фамилия и имя. Число таких предположений
+    // ограничено: при сотнях одинаковых имён пар становятся сотни тысяч (о пропуске — в проверках).
     const samePairs = [];
     for (let i = 0; i < recs.length; i++) {
       for (let j = i + 1; j < recs.length; j++) {
+        if (samePairsTotal >= MAX_SAME_PAIRS) {
+          samePairsCut = true;
+          break;
+        }
         const a = recs[i], b = recs[j];
         const ia = I(a), ib = I(b);
         if (!ia.sStem || ia.sStem !== ib.sStem) continue;
@@ -365,6 +394,7 @@ function buildSuggestions(records, geometry) {
         if (pa && pb && searchKey(pa) !== searchKey(pb)) continue;
         const [first, second] = a.span.top <= b.span.top ? [a, b] : [b, a];
         samePairs.push([first, second]);
+        samePairsTotal++;
       }
     }
 
@@ -532,9 +562,18 @@ function buildSuggestions(records, geometry) {
     }
   }
 
-  // Подпись семьи и порядок вопросов.
+  // Подпись семьи и порядок вопросов. Представитель фамилии и её левый столбец считаются один раз.
   const recByKey = new Map(records.map((r) => [r.key, r]));
   const famOrder = new Map();
+  const stemRep = new Map();
+  const stemMinCol = new Map();
+  for (const r of records) {
+    const st = surnameStem(r.parse.surname);
+    if (!st) continue;
+    const cur = stemRep.get(st);
+    if (!cur || (/(а|я)$/i.test(cur.parse.surname) && !/(а|я)$/i.test(r.parse.surname))) stemRep.set(st, r);
+    stemMinCol.set(st, Math.min(stemMinCol.get(st) ?? 9999, r.col));
+  }
   for (const q of questions) {
     const subj = q.subjects.map((k) => recByKey.get(k));
     const counts = new Map();
@@ -546,9 +585,9 @@ function buildSuggestions(records, geometry) {
     for (const [st, n] of counts) {
       if (!best || n > best.n || (n === best.n && (surnameFreq.get(st) || 0) > (surnameFreq.get(best.st) || 0))) best = { st, n };
     }
-    const rep = best ? records.find((r) => surnameStem(r.parse.surname) === best.st && !/(а|я)$/i.test(r.parse.surname)) || records.find((r) => surnameStem(r.parse.surname) === best.st) : null;
+    const rep = best ? stemRep.get(best.st) : null;
     q.family = rep ? familyLabel(rep.parse.surname) : 'Без фамилии';
-    const minCol = Math.min(...records.filter((r) => best && surnameStem(r.parse.surname) === best.st).map((r) => r.col), 9999);
+    const minCol = best ? stemMinCol.get(best.st) ?? 9999 : 9999;
     if (!famOrder.has(q.family)) famOrder.set(q.family, minCol);
   }
   const kindOrder = { same_person: 0, pair: 1, parents: 2 };
@@ -557,11 +596,12 @@ function buildSuggestions(records, geometry) {
     q.id = `q${i + 1}`;
     q.order = i + 1;
   });
+  const hypById = new Map(hypotheses.map((h) => [h.id, h]));
   for (const q of questions) for (const id of q.hypothesisIds) {
-    const h = hypotheses.find((x) => x.id === id);
+    const h = hypById.get(id);
     if (h && !h.questionId) h.questionId = q.id;
   }
-  return { hypotheses, questions, parentCandidates };
+  return { hypotheses, questions, parentCandidates, samePairsCut };
 }
 
 // ---------- Необязательная проверка написания ----------
@@ -627,7 +667,10 @@ function buildNameReviews(records, parentCandidates) {
 
 // ---------- Сводка проверок для предпросмотра ----------
 
-function buildChecks(sheets, records, skipped, geometry) {
+// Длинные перечни в проверках сокращаются: первые N и «ещё столько-то».
+const listCap = (items, n = 50) => (items.length > n ? `${items.slice(0, n).join(', ')} и ещё ${items.length - n}` : items.join(', '));
+
+function buildChecks(sheets, records, skipped, geometry, { samePairsCut = false } = {}) {
   const checks = [];
   const visible = sheets.filter((s) => s.state === 'visible');
   const hidden = sheets.filter((s) => s.state !== 'visible');
@@ -642,12 +685,13 @@ function buildChecks(sheets, records, skipped, geometry) {
     const g = geometry[s.name];
     if (!g) continue;
     if (s.declaredDimension) checks.push({ code: 'dimension', level: 'info', text: `${quote(s.name)}: заявленная область листа ${s.declaredDimension}; записи занимают ${g.columns.length ? `${g.columns[0].letter}${g.minRow}:${g.columns[g.columns.length - 1].letter}${g.maxRow}` : '—'}.` });
-    if (g.merges.length) checks.push({ code: 'merges', level: 'ok', text: `Объединённые диапазоны (${g.merges.length}): ${g.merges.map((m) => m.ref).join(', ')} — каждый прочитан один раз по основной ячейке.` });
+    if (g.compact) checks.push({ code: 'compact', level: 'info', text: `${quote(s.name)}: лист большой, поэтому схема показана сжато — только строки и столбцы с записями.` });
+    if (g.merges.length) checks.push({ code: 'merges', level: 'ok', text: `Объединённые диапазоны (${g.merges.length}): ${listCap(g.merges.map((m) => m.ref))} — каждый прочитан один раз по основной ячейке.` });
     const emptyB = g.borderedCells.filter((c) => c.empty);
     const emptyOutside = emptyB.filter((c) => !c.inMerge);
-    if (emptyB.length) checks.push({ code: 'borders', level: 'info', text: `Пустых ячеек с границами: ${emptyB.length} (вне объединений: ${emptyOutside.map((c) => c.ref).join(', ') || 'нет'}). Они учтены в схеме и не создают записей.` });
-    if (g.frames.length) checks.push({ code: 'frames', level: 'info', text: `Рамки из границ: ${g.frames.map((f) => `${f.ref}${f.complete ? '' : ' (неполная)'}`).join(', ')}. Рамка — оформление, а не подтверждение родства.` });
-    if (g.emptyRows.length) checks.push({ code: 'empty_rows', level: 'info', text: `Пустые строки между записями: ${g.emptyRows.join(', ')}.` });
+    if (emptyB.length) checks.push({ code: 'borders', level: 'info', text: `Пустых ячеек с границами: ${emptyB.length} (вне объединений: ${listCap(emptyOutside.map((c) => c.ref)) || 'нет'}). Они учтены в схеме и не создают записей.` });
+    if (g.frames.length) checks.push({ code: 'frames', level: 'info', text: `Рамки из границ: ${listCap(g.frames.map((f) => `${f.ref}${f.complete ? '' : ' (неполная)'}`))}. Рамка — оформление, а не подтверждение родства.` });
+    if (g.emptyRows.length) checks.push({ code: 'empty_rows', level: 'info', text: `Пустые строки между записями: ${listCap(g.emptyRows)}.` });
     if (s.formulas || s.comments || s.tables || s.drawing.anchors) {
       checks.push({ code: 'objects', level: 'warn', text: `Дополнительные объекты: формул ${s.formulas}, комментариев ${s.comments}, таблиц ${s.tables}, рисунков ${s.drawing.anchors} (соединителей ${s.drawing.connectors}). Они не используются как подтверждение связей.` });
     } else {
@@ -655,9 +699,13 @@ function buildChecks(sheets, records, skipped, geometry) {
     }
   }
   const trailing = records.filter((r) => r.trailingSpaces > 0);
-  if (trailing.length) checks.push({ code: 'spaces', level: 'info', text: `Значения с пробелами в конце: ${trailing.length}${trailing.some((r) => r.trailingSpaces > 1) ? ` (в том числе с несколькими пробелами: ${trailing.filter((r) => r.trailingSpaces > 1).map((r) => r.cell).join(', ')})` : ''}. Исходные строки сохраняются полностью, в отображаемом имени пробелы по краям убраны.` });
+  if (trailing.length) checks.push({ code: 'spaces', level: 'info', text: `Значения с пробелами в конце: ${trailing.length}${trailing.some((r) => r.trailingSpaces > 1) ? ` (в том числе с несколькими пробелами: ${listCap(trailing.filter((r) => r.trailingSpaces > 1).map((r) => r.cell))})` : ''}. Исходные строки сохраняются полностью, в отображаемом имени пробелы по краям убраны.` });
   checks.push({ code: 'no_header', level: 'info', text: 'Строка заголовков не определяется: каждая непустая ячейка считается отдельной записью, строки и столбцы — не поколениями и не семьями.' });
+  // Длинные ячейки — отдельно и поимённо: в них может быть человек с пометкой.
+  const long = skipped.filter((x) => x.long);
+  if (long.length) checks.push({ code: 'long_text', level: 'warn', text: `Не импортированы ячейки с очень длинным текстом (больше ${MAX_RECORD_CHARS} символов): ${listCap(long.map((x) => `${x.sheet}!${x.cell} «${String(x.raw).slice(0, 60)}…»`), 20)}. Если там человек, сократите текст в Excel (пометки можно перенести в биографию) и импортируйте заново.` });
   if (skipped.length) checks.push({ code: 'skipped', level: 'warn', text: `Пропущено ячеек: ${skipped.length} — ${skipped.slice(0, 5).map((s) => `${s.cell}: ${s.reason}`).join('; ')}${skipped.length > 5 ? '…' : ''}.` });
+  if (samePairsCut) checks.push({ code: 'same_cut', level: 'warn', text: `Очень много записей с одинаковыми фамилией и именем: предложены только первые ${MAX_SAME_PAIRS} предположений «один ли это человек». Остальные записи импортируются как обычно.` });
   const keys = new Set(records.map((r) => r.key));
   if (keys.size !== records.length) checks.push({ code: 'dup_keys', level: 'error', text: 'Обнаружены повторяющиеся координаты записей.' });
   return checks;

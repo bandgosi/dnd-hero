@@ -5,22 +5,38 @@
 const PATRONYMIC_RE = /(ович|евич|ьевич|ич|овна|евна|ьевна|ична|инична)$/i;
 const PATRONYMIC_TOKENS = new Set(['оглы', 'кызы', 'улы', 'гызы']);
 
+// Кэш для повторяющихся строк: при разборе книги функции сравнения вызываются для каждой пары
+// записей (тысячи × тысячи раз), а различных имён и отчеств немного.
+function memo(fn, max = 20000) {
+  const cache = new Map();
+  return (s) => {
+    const k = String(s ?? '');
+    let v = cache.get(k);
+    if (v === undefined) {
+      v = fn(k);
+      if (cache.size >= max) cache.clear();
+      cache.set(k, v);
+    }
+    return v;
+  };
+}
+
 export function normalizeSpaces(s) {
   return String(s ?? '').normalize('NFC').replace(/\s+/g, ' ').trim();
 }
 
 // Ключ для сравнения: нижний регистр, ё→е, без повторяющихся букв
 // (так «Геннадий» и «Генадий» находятся одним поиском), без знаков.
-export function searchKey(s) {
-  return String(s ?? '')
+export const searchKey = memo((s) =>
+  String(s ?? '')
     .normalize('NFC')
     .toLowerCase()
     .replace(/ё/g, 'е')
     .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .replace(/(\p{L})\1+/gu, '$1')
     .replace(/\s+/g, ' ')
-    .trim();
-}
+    .trim(),
+);
 
 export function looksLikePatronymic(token) {
   if (!token) return false;
@@ -82,13 +98,13 @@ export function surnameStem(surname) {
 }
 
 // Основа отчества: «Сергеевич» → «серге», «Михайлович» → «михайл».
-export function patronymicStem(patronymic) {
+export const patronymicStem = memo((patronymic) => {
   if (!patronymic) return null;
   const s = searchKey(patronymic).split(' ')[0];
   const m = /(ьевич|ьевна|евич|евна|ович|овна|инична|ична|ич)$/.exec(s);
   if (!m) return null;
   return s.slice(0, s.length - m[1].length);
-}
+});
 
 // Несколько известных нерегулярных форм отчеств.
 const IRREGULAR = {
@@ -107,7 +123,8 @@ const IRREGULAR = {
 };
 
 // Ключи имени, с которыми сравнивается основа отчества.
-export function givenNameKeys(given) {
+// Возвращаемый массив общий для кэша — не изменять.
+export const givenNameKeys = memo((given) => {
   if (!given) return [];
   const g = searchKey(given).split(' ')[0];
   if (!g) return [];
@@ -118,7 +135,7 @@ export function givenNameKeys(given) {
   // «Михаил» → «михайл»: и → й перед последней согласной в -аил/-уил.
   if (/[ау]ил$/.test(g)) keys.add(g.replace(/ил$/, 'йл'));
   return [...keys];
-}
+});
 
 // Образовано ли отчество от данного имени (по основам, без учёта удвоенных букв).
 export function patronymicMatchesName(patronymic, given) {

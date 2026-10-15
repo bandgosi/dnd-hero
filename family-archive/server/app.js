@@ -95,7 +95,7 @@ export function createApp({ db, config }) {
   const FREEING = new Set(['/backups/restore-discard', '/imports/discard']);
   app.use('/api', (req, res, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
-    if (req.method !== 'DELETE' && !FREEING.has(req.path.toLowerCase())) ensureSpace(config, 1024 * 1024 + (Number(req.headers['content-length']) || 0), 'для сохранения изменений');
+    if (req.method !== 'DELETE' && !FREEING.has(req.path.toLowerCase().replace(/\/+$/, ''))) ensureSpace(config, 1024 * 1024 + (Number(req.headers['content-length']) || 0), 'для сохранения изменений');
     writeSlots(req, res, next);
   });
   app.use('/api', json);

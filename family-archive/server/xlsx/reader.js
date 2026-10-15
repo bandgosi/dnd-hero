@@ -22,6 +22,7 @@ const parser = new XMLParser({
   parseAttributeValue: false,
   processEntities: false,
   cdataPropName: '__cdata',
+  ignorePiTags: true,
   isArray: (name) => ARRAY_TAGS.has(name),
 });
 
@@ -102,8 +103,9 @@ export const MAX_ROW = 1048576;
 const MAX_SHEETS = 200;
 // Разбор XML строит объект на каждый элемент: ~1,6 КБ памяти на ячейку, поэтому пределы скромные
 // (семейной таблице с запасом хватает и тысячи ячеек).
-const MAX_CELLS = 50000;
-const MAX_XML_ELEMENTS = 300000;
+const MAX_CELLS = 30000;
+const MAX_XML_NODES = 150000;
+const MAX_XML_ATTRIBUTES = 200000;
 const MAX_MERGES = 50000;
 const MAX_MERGED_AREA = 200000;
 
@@ -201,14 +203,15 @@ export function readWorkbook(buffer, { maxEntryBytes = 8 * 1024 * 1024, maxTotal
     throw new XlsxError('Файл не похож на книгу Excel (.xlsx): не удалось распаковать архив');
   }
   if (!names.length) throw new XlsxError('Файл не похож на книгу Excel (.xlsx): не удалось распаковать архив');
-  // Быстрый подсчёт элементов XML до разбора: объекты строятся только для книги разумного размера.
-  let elements = 0;
+  // Быстрый подсчёт до разбора: каждый узел XML (элемент, инструкция, CDATA, комментарий) и каждый
+  // атрибут становятся объектами в памяти, поэтому строятся они только для книги разумного размера.
+  let nodes = 0;
+  let attributes = 0;
+  const tooComplex = () => new XlsxError('Файл слишком большой или сложный для импорта. Удалите лишнее оформление или разбейте книгу.');
   for (const data of Object.values(raw)) {
-    for (let i = data.indexOf(60); i !== -1; i = data.indexOf(60, i + 1)) {
-      const next = data[i + 1];
-      if (next !== 47 && next !== 63 && next !== 33) elements++; // не </, <?, <!
-    }
-    if (elements > MAX_XML_ELEMENTS) throw new XlsxError('Файл слишком большой или сложный для импорта. Удалите лишнее оформление или разбейте книгу.');
+    for (let i = data.indexOf(60); i !== -1; i = data.indexOf(60, i + 1)) if (data[i + 1] !== 47) nodes++; // всё, кроме </
+    for (let i = data.indexOf(61); i !== -1; i = data.indexOf(61, i + 1)) if (data[i + 1] === 34 || data[i + 1] === 39) attributes++; // =" или ='
+    if (nodes > MAX_XML_NODES || attributes > MAX_XML_ATTRIBUTES) throw tooComplex();
   }
   const dec = new TextDecoder('utf-8');
   const files = {};

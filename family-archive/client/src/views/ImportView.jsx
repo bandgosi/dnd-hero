@@ -32,6 +32,15 @@ const ACTION_LABELS = {
 };
 
 function SheetGrid({ geometry, records }) {
+  // Таблица из сотен тысяч ячеек подвесила бы браузер — тогда только пояснение.
+  const cellsCount = geometry.columns.length * geometry.rows.length;
+  if (cellsCount > 60000) {
+    return <p className="muted">Схема листа слишком большая для показа таблицей ({geometry.rows.length} строк × {geometry.columns.length} столбцов). Записи — во вкладке «Записи».</p>;
+  }
+  return <SheetTable geometry={geometry} records={records} />;
+}
+
+function SheetTable({ geometry, records }) {
   const recByCell = new Map(records.map((r) => [r.cell, r]));
   const mergeAt = new Map();
   for (const m of geometry.merges) {
@@ -40,6 +49,8 @@ function SheetGrid({ geometry, records }) {
   const borderAt = new Map(geometry.borderedCells.map((b) => [`${b.row}:${b.col}`, b.border]));
   const line = '1.5px solid var(--sheet-line)';
   return (
+    <>
+    {geometry.compact && <p className="muted small">Лист большой: показаны только строки и столбцы с записями.</p>}
     <div className="sheet-wrap" role="region" aria-label="Схема листа" tabIndex={0}>
       <table className="sheet">
         <thead>
@@ -81,6 +92,7 @@ function SheetGrid({ geometry, records }) {
       </table>
       <p className="muted small mt-8">Символ ␣ показывает пробелы в конце исходной строки. Толстые линии — границы ячеек из файла.</p>
     </div>
+    </>
   );
 }
 
