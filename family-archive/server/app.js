@@ -74,9 +74,12 @@ export function createApp({ db, config }) {
       next();
     };
   };
-  const photoSlots = limitConcurrent(3);
-  const importSlots = limitConcurrent(2);
-  const restoreSlots = limitConcurrent(1);
+  // Разбор Excel и работа с копиями запускают отдельный процесс (до ~250 МБ): такие операции идут
+  // по одной, чтобы вместе с сервером укладываться в лимит памяти службы.
+  const photoSlots = limitConcurrent(2);
+  const heavySlots = limitConcurrent(1);
+  const importSlots = heavySlots;
+  const restoreSlots = heavySlots;
 
   // ---------- Вход ----------
   app.get('/api/auth/status', auth.status);

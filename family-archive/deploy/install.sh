@@ -472,6 +472,8 @@ SystemCallFilter=~@privileged @mount @swap @reboot @raw-io @module @debug @cpu-e
 SystemCallErrorNumber=EPERM
 UMask=0077
 MemoryMax=450M
+# Если ядро завершит по памяти вспомогательный процесс (разбор файла), служба продолжает работать.
+OOMPolicy=continue
 TasksMax=64
 
 [Install]
