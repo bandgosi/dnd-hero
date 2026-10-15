@@ -52,7 +52,11 @@ case "${1:-help}" in
       [[ -d $DATA_DIR/$d ]] && du -sh "$DATA_DIR/$d" | awk -v n="$d" '{print "  " n ": " $1}'
     done
     du -ch "$DATA_DIR"/family.db* 2>/dev/null | awk 'END{print "  база: " $1}' || true
-    if [[ -n ${DOMAIN:-} ]]; then echo "Адрес: https://$DOMAIN"; fi
+    if [[ -n ${DOMAIN:-} ]]; then
+      port=""
+      [[ ${HTTPS_PORT:-443} == 443 ]] || port=":$HTTPS_PORT"
+      echo "Адрес: https://$DOMAIN$port"
+    fi
     ;;
   logs)
     n="${2:-100}"

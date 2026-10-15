@@ -36,6 +36,9 @@ OLD_DOMAIN=""
 DOMAIN=""
 DOMAIN_SET=0
 DOMAIN_CHANGED=0
+HTTPS_PORT=443
+HTTPS_PORT_SET=0
+OLD_HTTPS_PORT=443
 FIREWALL_DONE=0
 WEB_PORTS_DONE=0
 EMAIL=""
@@ -77,6 +80,8 @@ usage() {
   --domain ИМЯ          доменное имя сайта (его DNS-запись A должна указывать на этот сервер)
   --email АДРЕС         почта для уведомлений Let's Encrypt о сертификате (необязательно)
   --local-only          без домена и HTTPS: доступ только через SSH-туннель
+  --https-port N        порт HTTPS, если 443 занят другой программой (например, VPN): адрес будет
+                        https://ИМЯ:N, сертификат выпускается через порт 80 (по умолчанию 443)
   --port N              внутренний порт приложения (по умолчанию 3000)
   --generate-password   не спрашивать пароль, а создать случайный (будет показан один раз)
   --skip-firewall       не настраивать брандмауэр ufw
@@ -91,6 +96,7 @@ while (($#)); do
     --email) EMAIL="${2:-}"; shift 2 ;;
     --local-only) LOCAL_ONLY=1; shift ;;
     --port) PORT="${2:-}"; PORT_SET=1; shift 2 ;;
+    --https-port) HTTPS_PORT="${2:-}"; HTTPS_PORT_SET=1; shift 2 ;;
     --generate-password) GEN_PASSWORD=1; shift ;;
     --skip-firewall) SKIP_FIREWALL=1; shift ;;
     --update) UPDATE=1; shift ;;
@@ -115,6 +121,8 @@ case "$(uname -m)" in
   *) die "неподдерживаемая архитектура процессора: $(uname -m)" ;;
 esac
 if [[ ! $PORT =~ ^[0-9]{4,5}$ ]] || ((PORT < 1024 || PORT > 65535)); then die "порт должен быть числом от 1024 до 65535."; fi
+valid_https_port() { [[ $1 =~ ^[1-9][0-9]{0,4}$ ]] && (($1 <= 65535 && $1 != 80)); }
+if ((HTTPS_PORT_SET)) && ! valid_https_port "$HTTPS_PORT"; then die "порт HTTPS должен быть числом от 1 до 65535 (кроме 80), например: --https-port 8443"; fi
 
 if [[ -f $ENV_FILE ]]; then
   UPDATE=1
@@ -122,8 +130,10 @@ fi
 conf_value() {
   # Значение из прежнего install.conf (файл пишет только установщик, root, 0600).
   [[ -f $INSTALL_CONF ]] || return 0
+  # Переменная сбрасывается: ключа может не быть в файле прежней версии, и тогда нельзя вернуть
+  # одноимённое значение из текущих параметров установщика.
   # shellcheck source=/dev/null
-  (. "$INSTALL_CONF" && printf '%s' "${!1:-}")
+  (unset "$1" && . "$INSTALL_CONF" && printf '%s' "${!1:-}")
 }
 valid_domain() { [[ $1 =~ ^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{1,62}$ ]]; }
 if [[ -n $EMAIL && ! $EMAIL =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]]; then die "неверный адрес почты: $EMAIL"; fi
@@ -147,7 +157,11 @@ if ((UPDATE)); then
   [[ "$(conf_value SKIP_FIREWALL || true)" == 1 ]] && SKIP_FIREWALL=1
   [[ "$(conf_value FIREWALL_DONE || true)" == 1 ]] && FIREWALL_DONE=1
   [[ "$(conf_value WEB_PORTS_DONE || true)" == 1 ]] && WEB_PORTS_DONE=1
-  ((DOMAIN_CHANGED)) && WEB_PORTS_DONE=0
+  OLD_HTTPS_PORT="$(conf_value HTTPS_PORT || true)"
+  valid_https_port "$OLD_HTTPS_PORT" || OLD_HTTPS_PORT=443
+  ((HTTPS_PORT_SET)) || HTTPS_PORT="$OLD_HTTPS_PORT"
+  # Новый домен или порт HTTPS: в брандмауэре нужно открыть его порты.
+  if ((DOMAIN_CHANGED)) || [[ $HTTPS_PORT != "$OLD_HTTPS_PORT" ]]; then WEB_PORTS_DONE=0; fi
   # Установки прежних версий не записывали эту отметку: брандмауэр у них уже настраивался при установке.
   if [[ -f $INSTALL_CONF ]] && ! grep -q '^FIREWALL_DONE=' "$INSTALL_CONF"; then FIREWALL_DONE=1; fi
   OLD_PORT="$(awk -F= '$1=="PORT"{print $2}' "$ENV_FILE" | tail -n1)"
@@ -167,6 +181,14 @@ else
     LOCAL_ONLY=0
   fi
 fi
+if ((HTTPS_PORT_SET)) && [[ -z $DOMAIN ]]; then
+  warn "--https-port действует только вместе с доменом (--domain) — параметр не используется."
+  HTTPS_PORT="$OLD_HTTPS_PORT"
+fi
+[[ $HTTPS_PORT != "$PORT" ]] || die "порт HTTPS ($HTTPS_PORT) совпадает с внутренним портом приложения — выберите другой."
+# Адрес архива (порт указывается, только если он не стандартный 443).
+SITE_URL="https://$DOMAIN"
+[[ $HTTPS_PORT == 443 ]] || SITE_URL="https://$DOMAIN:$HTTPS_PORT"
 
 avail_mb() { df -Pm "$1" | awk 'NR==2{print $4}'; }
 mkdir -p "$PREFIX/opt" "$PREFIX/var/lib"
@@ -389,6 +411,7 @@ write_install_conf() {
     echo "ENV_FILE=$(printf '%q' "$ENV_FILE")"
     echo "DOMAIN=$(printf '%q' "$DOMAIN")"
     echo "EMAIL=$(printf '%q' "$EMAIL")"
+    echo "HTTPS_PORT=$HTTPS_PORT"
     echo "SKIP_FIREWALL=$SKIP_FIREWALL"
     echo "FIREWALL_DONE=$FIREWALL_DONE"
     echo "WEB_PORTS_DONE=$WEB_PORTS_DONE"
@@ -530,10 +553,11 @@ rollback() {
     if [[ -f $ENV_FILE.prev ]]; then
       mv -f "$ENV_FILE.prev" "$ENV_FILE"
       PORT="$OLD_PORT"
-      # Домен в install.conf должен соответствовать восстановленным настройкам.
       DOMAIN="$OLD_DOMAIN"
-      write_install_conf
     fi
+    # install.conf должен соответствовать восстановленным настройкам (Caddy до отката не менялся).
+    HTTPS_PORT="$OLD_HTTPS_PORT"
+    write_install_conf
     if ((!SKIP_SYSTEM)); then
       # Прежняя версия без отдельного сокета: новый сокет убирается, иначе он занял бы её порт.
       if ((!SOCKET_EXISTED)); then
@@ -607,14 +631,24 @@ find "$PREFIX/opt" -maxdepth 1 -type d -name 'node-v22.*' ! -path "$(readlink "$
 # ---------- HTTPS через Caddy ----------
 setup_caddy() {
   say "HTTPS для $DOMAIN (Caddy)"
-  local busy
-  busy="$(ss -Hltnp '( sport = :80 or sport = :443 )' 2>/dev/null | grep -v '"caddy"' || true)"
-  if [[ -n $busy ]]; then
-    warn "порты 80/443 уже заняты другой программой — Caddy не настраивается автоматически:"
+  local busy p
+  for p in 80 "$HTTPS_PORT"; do
+    busy="$(ss -Hltnp "sport = :$p" 2>/dev/null | grep -v '"caddy"' || true)"
+    [[ -z $busy ]] && continue
+    warn "порт $p уже занят другой программой — Caddy не настраивается автоматически:"
     printf '%s\n' "$busy" >&2
-    info "Настройте свой веб-сервер как обратный прокси на http://127.0.0.1:$PORT (с заголовками Host и X-Forwarded-For)."
+    if [[ $p == 443 ]]; then
+      info "Если это VPN или другая служба, которую нужно оставить, выберите для архива другой порт HTTPS:"
+      info "  sudo bash deploy/install.sh --domain $DOMAIN --https-port 8443"
+      info "Адрес тогда будет https://$DOMAIN:8443"
+    elif [[ $p != 80 ]]; then
+      info "Выберите другой порт HTTPS, например: --https-port 8444"
+    else
+      info "Порт 80 нужен для выпуска сертификата Let's Encrypt."
+    fi
+    info "Или настройте свой веб-сервер как обратный прокси на http://127.0.0.1:$PORT (с заголовками Host и X-Forwarded-For)."
     return
-  fi
+  done
   if ! command -v caddy >/dev/null; then
     apt_install gnupg
     if curl -fsSL --proto '=https' https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor --yes -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg &&
@@ -635,20 +669,25 @@ setup_caddy() {
   max_mb="$(awk -F= '$1=="MAX_BACKUP_MB"{print $2}' "$ENV_FILE" | tail -n1)"
   [[ $max_mb =~ ^[0-9]+$ ]] || max_mb=1024
   mkdir -p /etc/caddy/conf.d
-  cat >/etc/caddy/conf.d/family-archive.caddy <<EOF
-# Создано установщиком family-archive
-$DOMAIN {
-	encode zstd gzip
-	request_body {
-		max_size $((max_mb + 100))MB
-	}
-	header {
-		-Server
-		Strict-Transport-Security "max-age=31536000"
-	}
-	reverse_proxy 127.0.0.1:$PORT
-}
-EOF
+  local site="$DOMAIN" redirect="" tls="" hsts='Strict-Transport-Security "max-age=31536000"'
+  if [[ $HTTPS_PORT != 443 ]]; then
+    # Порт 443 занят: сайт на своём порту, сертификат — через порт 80 (проверка TLS-ALPN шла бы на 443).
+    # HSTS не отправляется: иначе браузер стал бы открывать адрес без порта на 443, где другая программа.
+    site="$DOMAIN:$HTTPS_PORT"
+    hsts=""
+    redirect="$(printf 'http://%s {\n\tredir %s{uri} permanent\n}\n\n' "$DOMAIN" "$SITE_URL")"
+    tls="$(printf '\ttls {\n\t\tissuer acme {\n\t\t\tdisable_tlsalpn_challenge\n\t\t}\n\t}\n')"
+  fi
+  {
+    echo "# Создано установщиком family-archive"
+    [[ -n $redirect ]] && printf '%s\n\n' "$redirect"
+    echo "$site {"
+    [[ -n $tls ]] && printf '%s\n' "$tls"
+    printf '\tencode zstd gzip\n\trequest_body {\n\t\tmax_size %sMB\n\t}\n' "$((max_mb + 100))"
+    printf '\theader {\n\t\t-Server\n'
+    [[ -n $hsts ]] && printf '\t\t%s\n' "$hsts"
+    printf '\t}\n\treverse_proxy 127.0.0.1:%s\n}\n' "$PORT"
+  } >/etc/caddy/conf.d/family-archive.caddy
   local cf=/etc/caddy/Caddyfile
   if [[ ! -f $cf ]] || grep -q "The Caddyfile is an easy way to configure" "$cf" || grep -q "^# Управляется установщиком family-archive" "$cf"; then
     {
@@ -704,19 +743,19 @@ setup_firewall() {
   for p in $ports; do ufw limit "$p/tcp" >/dev/null; done
   if [[ -n $DOMAIN ]]; then
     ufw allow 80/tcp >/dev/null
-    ufw allow 443/tcp >/dev/null
+    ufw allow "$HTTPS_PORT/tcp" >/dev/null
   fi
   ufw --force enable >/dev/null
-  info "открыты: SSH ($ports, с защитой от перебора)${DOMAIN:+, 80 и 443}; порт приложения $PORT снаружи закрыт."
+  info "открыты: SSH ($ports, с защитой от перебора)${DOMAIN:+, 80 и $HTTPS_PORT}; порт приложения $PORT снаружи закрыт."
 }
 
 if ((!SKIP_SYSTEM)); then
   if [[ -n $DOMAIN ]]; then
-    # Домен добавлен позже, а брандмауэр (настроенный установщиком) уже включён: нужны порты 80 и 443.
-    # Отметка сохраняется, поэтому и после прерванного запуска порты будут открыты при следующем.
+    # Домен (или порт HTTPS) задан позже, а брандмауэр (настроенный установщиком) уже включён: нужны
+    # порты 80 и HTTPS. Отметка сохраняется, поэтому и после прерванного запуска порты будут открыты при следующем.
     if ((FIREWALL_DONE && !SKIP_FIREWALL && !WEB_PORTS_DONE)) && command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q '^Status: active'; then
       ufw allow 80/tcp >/dev/null
-      ufw allow 443/tcp >/dev/null
+      ufw allow "$HTTPS_PORT/tcp" >/dev/null
       WEB_PORTS_DONE=1
       write_install_conf
     fi
@@ -739,7 +778,8 @@ fi
 # ---------- Итог ----------
 say "Готово"
 if [[ -n $DOMAIN ]]; then
-  info "Адрес архива:  https://$DOMAIN"
+  info "Адрес архива:  $SITE_URL"
+  [[ $HTTPS_PORT == 443 ]] || info "(порт :$HTTPS_PORT в адресе обязателен; если у хостинга есть свой брандмауэр, откройте в нём порты 80 и $HTTPS_PORT)"
 else
   info "Архив доступен только с сервера. Чтобы открыть его на своём компьютере, выполните там:"
   info "  ssh -L 3000:127.0.0.1:$PORT ПОЛЬЗОВАТЕЛЬ@АДРЕС_СЕРВЕРА"
