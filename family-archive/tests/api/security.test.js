@@ -131,7 +131,7 @@ function cheapHash(password) {
   return `scrypt:1024:8:1:${salt.toString('base64url')}:${key.toString('base64url')}`;
 }
 
-test('вход: атака подбором с разных адресов не блокирует уже знакомые устройства', async () => {
+test('вход: подбор с разных адресов включает строгий режим, но не запирает семью', async () => {
   const s = await startServer({ env: { APP_PASSWORD_HASH: cheapHash('семейный-пароль-1'), TRUST_PROXY: 'loopback', ALLOWED_HOSTS: 'archive.example.ru' } });
   const login = (ip, password, cookie = '') => fetch(`${s.url}/api/auth/login`, {
     method: 'POST',
@@ -148,9 +148,13 @@ test('вход: атака подбором с разных адресов не 
       const r = await Promise.all(attempts.slice(i, i + 4).map((ip) => login(ip, 'неверный-пароль')));
       assert.ok(r.every((x) => x.status === 401));
     }
-    assert.equal((await login('203.0.113.20', 'семейный-пароль-1')).status, 429, 'новое устройство ждёт');
-    assert.equal((await login('203.0.113.20', 'семейный-пароль-1', 'fa_device=1700000000000.' + 'A'.repeat(43))).status, 429, 'поддельная метка не помогает');
-    assert.equal((await login('203.0.113.20', 'семейный-пароль-1', device)).status, 200, 'знакомое устройство входит');
+    // Строгий режим: с нового адреса — только 3 попытки (поддельная метка устройства не помогает)…
+    for (let i = 0; i < 3; i++) assert.equal((await login('203.0.113.30', 'неверный-пароль')).status, 401);
+    assert.equal((await login('203.0.113.30', 'семейный-пароль-1')).status, 429);
+    assert.equal((await login('203.0.113.30', 'семейный-пароль-1', 'fa_device=1700000000000.' + 'A'.repeat(43))).status, 429, 'поддельная метка не помогает');
+    // …знакомое устройство с того же адреса входит, и семья с нового устройства тоже может войти.
+    assert.equal((await login('203.0.113.30', 'семейный-пароль-1', device)).status, 200, 'знакомое устройство входит');
+    assert.equal((await login('203.0.113.40', 'семейный-пароль-1')).status, 200, 'полной блокировки нет');
     // IPv6: адреса одной сети /64 считаются одним клиентом.
     assert.equal(clientKey('2001:db8:1:2::a'), clientKey('2001:db8:1:2:ffff::b'));
     assert.notEqual(clientKey('2001:db8:1:2::a'), clientKey('2001:db8:1:3::a'));
@@ -311,6 +315,17 @@ test('восстановление: выбранная копия не удал�
     const r3 = await s.form('/api/backups/restore-preview', fd3);
     assert.equal(r3.status, 422);
     assert.equal((await s.get('/api/health')).status, 200);
+    // Отмена предпросмотра удаляет загруженный файл.
+    const fd4 = new FormData();
+    fd4.append('file', new Blob([zip], { type: 'application/zip' }), 'copy.zip');
+    const pv4 = await s.form('/api/backups/restore-preview', fd4);
+    assert.equal(fs.readdirSync(path.join(s.dir, 'tmp')).length, 1);
+    await s.post('/api/backups/restore-discard', { token: pv4.data.token });
+    assert.deepEqual(fs.readdirSync(path.join(s.dir, 'tmp')), []);
+    // Одновременные копии создаются по очереди, без конфликтов.
+    const both = await Promise.all([s.post('/api/backups'), s.post('/api/backups', { label: 'x' })]);
+    assert.ok(both.every((x) => x.status === 201 || x.status === 200), JSON.stringify(both.map((x) => x.status)));
+    assert.notEqual(both[0].data.name, both[1].data.name);
     // Загрузка без указания размера не принимается (место нельзя проверить заранее).
     const chunked = await fetch(`${s.url}/api/backups/restore-preview`, {
       method: 'POST',
@@ -319,6 +334,55 @@ test('восстановление: выбранная копия не удал�
       duplex: 'half',
     });
     assert.equal(chunked.status, 411);
+  } finally {
+    await s.close();
+  }
+});
+
+test('копии: повторно импортированный файл, длинное имя; ориентация фото сохраняется без прочего EXIF', async () => {
+  // EXIF с ориентацией 6 (портрет с телефона), маркой телефона и GPS — остаётся только ориентация.
+  const tiff = Buffer.alloc(8 + 2 + 3 * 12 + 4 + 6);
+  tiff.write('II', 0, 'latin1');
+  tiff.writeUInt16LE(42, 2);
+  tiff.writeUInt32LE(8, 4);
+  tiff.writeUInt16LE(3, 8);
+  const entry = (k, tag, type, count, value) => {
+    const o = 10 + k * 12;
+    tiff.writeUInt16LE(tag, o);
+    tiff.writeUInt16LE(type, o + 2);
+    tiff.writeUInt32LE(count, o + 4);
+    tiff.writeUInt32LE(value, o + 8);
+  };
+  entry(0, 0x010f, 2, 6, 8 + 2 + 36 + 4); // Make → «Phone»
+  entry(1, 0x0112, 3, 1, 6); // Orientation
+  entry(2, 0x8825, 4, 1, 0); // GPS
+  tiff.write('Phone\0', 8 + 2 + 36 + 4, 'latin1');
+  const app1 = Buffer.concat([Buffer.from('Exif\0\0', 'latin1'), tiff]);
+  const len = Buffer.alloc(2);
+  len.writeUInt16BE(app1.length + 2);
+  const base = fakeJpeg();
+  const jpg = Buffer.concat([base.subarray(0, 2), Buffer.from([0xff, 0xe1]), len, app1, base.subarray(2)]);
+  const out = stripImageMetadata(jpg, 'image/jpeg');
+  assert.ok(!out.includes(Buffer.from('Phone')), 'марка телефона удалена');
+  const at = out.indexOf(Buffer.from('Exif\0\0', 'latin1'));
+  assert.ok(at > 0, 'EXIF с ориентацией есть');
+  assert.equal(out.readUInt16LE(at + 6 + 8 + 2 + 8), 6, 'ориентация 6');
+
+  const s = await startServer();
+  try {
+    const x = fixtureXlsx();
+    const first = await s.form('/api/imports/preview', xlsxForm(x));
+    const imp = await s.post('/api/imports/commit', { previewId: first.data.previewId });
+    assert.equal((await s.post(`/api/imports/${imp.data.importId}/rollback`, {})).status, 200);
+    const again = await s.form('/api/imports/preview', xlsxForm(x));
+    assert.equal((await s.post('/api/imports/commit', { previewId: again.data.previewId })).status, 200);
+    await s.post('/api/persons', { person: { display_name: 'Я'.repeat(400) }, force: true });
+    const bk = await s.post('/api/backups');
+    const pv = await s.post('/api/backups/restore-preview', { name: bk.data.name });
+    assert.equal(pv.status, 200, JSON.stringify(pv.data));
+    const r = await s.post('/api/backups/restore', { token: pv.data.token });
+    assert.equal(r.status, 200, JSON.stringify(r.data));
+    assert.ok((await s.get('/api/data')).data.persons.some((p) => p.display_name.length === 400));
   } finally {
     await s.close();
   }
@@ -401,12 +465,17 @@ test('резервные копии: хранение последних N, пр
   try {
     const imp = await tight.form('/api/imports/preview', xlsxForm(fixtureXlsx()));
     assert.equal((await tight.post('/api/imports/commit', { previewId: imp.data.previewId })).status, 507);
-    const person = (await tight.post('/api/persons', { person: { display_name: 'Проверка места' } })).data.person;
-    const ph = await tight.form(`/api/persons/${person.id}/photos`, photoForm());
+    // Любые изменения при почти заполненном диске отклоняются понятным сообщением…
+    const add = await tight.post('/api/persons', { person: { display_name: 'Проверка места' } });
+    assert.equal(add.status, 507);
+    assert.match(add.data.error, /Недостаточно места/);
+    const ph = await tight.form('/api/persons/00000000-0000-4000-8000-000000000000/photos', photoForm());
     assert.equal(ph.status, 507);
     const bk = await tight.post('/api/backups');
     assert.equal(bk.status, 507);
     assert.match(bk.data.error, /Недостаточно места/);
+    // …а удаление (освобождает место) разрешено.
+    assert.equal((await tight.raw('DELETE', '/api/backups/family-archive-20200101-000000.zip')).status === 507, false);
   } finally {
     await tight.close();
   }
@@ -419,7 +488,7 @@ test('CSV, слияние, журнал: значения, похожие на �
     await s.post('/api/persons', { person: { display_name: 'Петров', birth_place: 'a,=1+1,b' } });
     const csv = await s.get('/api/export/persons.csv');
     assert.match(csv.data, /"'=HYPERLINK/);
-    assert.match(csv.data, /"a,=1\+1,b"/, 'значение с запятой целиком в кавычках');
+    assert.match(csv.data, /"a,'=1\+1,b"/, 'формула после запятой тоже экранируется, значение в кавычках');
     // Выбор при слиянии сохраняется только из известных полей; предел журнала не бывает отрицательным.
     const a = (await s.post('/api/persons', { person: { display_name: 'Зоя' }, force: true })).data.person.id;
     const b = (await s.post('/api/persons', { person: { display_name: 'Зоя' }, force: true })).data.person.id;

@@ -45,7 +45,7 @@ EOF
 
 case "${1:-help}" in
   status)
-    systemctl --no-pager --lines=0 status "$SERVICE" || true
+    systemctl --no-pager --lines=0 status "$SERVICE.socket" "$SERVICE" || true
     echo
     df -Ph "$DATA_DIR" | awk 'NR==2{print "Диск: свободно " $4 " из " $2}'
     for d in photos backups imports; do
@@ -86,18 +86,24 @@ case "${1:-help}" in
       exit 1
     }
     tmp="$(mktemp /etc/family-archive/env.XXXXXX)"
-    awk -v h="$hash" '/^APP_PASSWORD_HASH=/{print "APP_PASSWORD_HASH=" h; done=1; next} /^APP_PASSWORD=/{next} {print} END{if(!done) print "APP_PASSWORD_HASH=" h}' "$ENV_FILE" >"$tmp"
+    # Хэш передаётся через окружение, а не аргументом: аргументы видны всем в списке процессов.
+    H="$hash" awk 'BEGIN{h=ENVIRON["H"]} /^APP_PASSWORD_HASH=/{print "APP_PASSWORD_HASH=" h; done=1; next} /^APP_PASSWORD=/{next} {print} END{if(!done) print "APP_PASSWORD_HASH=" h}' "$ENV_FILE" >"$tmp"
     chmod 0600 "$tmp"
     mv "$tmp" "$ENV_FILE"
     systemctl restart "$SERVICE"
     echo "Пароль изменён. Все устройства должны войти заново."
     ;;
   update)
-    [[ -d $SRC_DIR/.git ]] || {
-      echo "Не найдена папка с исходниками ($SRC_DIR). Скачайте проект заново и запустите deploy/install.sh --update." >&2
+    # git запускается от имени владельца папки с исходниками (не от root): так его настройки
+    # и права на файлы репозитория остаются прежними.
+    owner="$(stat -c %U "$SRC_DIR" 2>/dev/null || true)"
+    home="$(getent passwd "$owner" | cut -d: -f6)"
+    as_owner() { runuser -u "$owner" -- env HOME="${home:-/}" "$@"; }
+    if [[ -z $owner ]] || ! as_owner git -C "$SRC_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      echo "Не найдена папка с исходниками ($SRC_DIR) или это не копия git. Скачайте проект заново и запустите deploy/install.sh --update." >&2
       exit 1
-    }
-    git -C "$SRC_DIR" pull --ff-only
+    fi
+    as_owner git -C "$SRC_DIR" pull --ff-only
     bash "$SRC_DIR/deploy/install.sh" --update
     ;;
   help | -h | --help) usage ;;

@@ -15,6 +15,11 @@ import {
 const quote = (s) => `«${s}»`;
 // Пределы разбора: поиск гипотез перебирает пары записей, схема рисуется таблицей ячеек.
 const MAX_RECORDS = 3000;
+// Имя в ячейке короче; длинный текст — не запись о человеке (и не раздувает ответ).
+const MAX_RECORD_CHARS = 500;
+// Список пропущенных ячеек в ответе ограничен, полное число — в skippedTotal.
+const MAX_SKIPPED_LISTED = 200;
+const clip = (v, n = 200) => (typeof v === 'string' && v.length > n ? `${v.slice(0, n)}… (${v.length} симв.)` : v);
 const GEO_MAX_ROWS = 2000;
 const GEO_MAX_COLS = 300;
 const GEO_MAX_CELLS = 100000;
@@ -39,17 +44,21 @@ export function analyzeWorkbook(wb, { includeHidden = false } = {}) {
       const isMaster = !m || (m.top === c.row && m.left === c.col);
       const hasValue = c.value != null && c.value !== '';
       if (!isMaster) {
-        if (hasValue) skipped.push({ sheet: sheet.name, cell: c.ref, raw: c.value, reason: `Значение внутри объединённого диапазона ${m.ref}, но не в основной ячейке — не читается` });
+        if (hasValue) skipped.push({ sheet: sheet.name, cell: c.ref, raw: clip(c.value), reason: `Значение внутри объединённого диапазона ${m.ref}, но не в основной ячейке — не читается` });
         continue;
       }
       if (!hasValue) continue;
       if (c.type !== 'string') {
         nonText += 1;
-        skipped.push({ sheet: sheet.name, cell: c.ref, raw: c.value, reason: c.formula ? 'Формула с нетекстовым результатом' : 'Нетекстовое значение (число, дата или логическое)' });
+        skipped.push({ sheet: sheet.name, cell: c.ref, raw: clip(c.value), reason: c.formula ? 'Формула с нетекстовым результатом' : 'Нетекстовое значение (число, дата или логическое)' });
         continue;
       }
       if (!c.value.trim()) {
-        skipped.push({ sheet: sheet.name, cell: c.ref, raw: c.value, reason: 'Ячейка содержит только пробелы' });
+        skipped.push({ sheet: sheet.name, cell: c.ref, raw: clip(c.value), reason: 'Ячейка содержит только пробелы' });
+        continue;
+      }
+      if (c.value.length > MAX_RECORD_CHARS) {
+        skipped.push({ sheet: sheet.name, cell: c.ref, raw: clip(c.value), reason: `Слишком длинный текст (${c.value.length} символов) — для имени это необычно; ячейка не импортирована` });
         continue;
       }
       if (!included) continue;
@@ -99,7 +108,7 @@ export function analyzeWorkbook(wb, { includeHidden = false } = {}) {
   const nameReviews = buildNameReviews(records, suggestions.parentCandidates);
   delete suggestions.parentCandidates;
   const checks = buildChecks(sheets, records, skipped, geometry);
-  return { sheets, records, skipped, geometry, suggestions, nameReviews, checks };
+  return { sheets, records, skipped: skipped.slice(0, MAX_SKIPPED_LISTED), skippedTotal: skipped.length, geometry, suggestions, nameReviews, checks };
 }
 
 // ---------- Геометрия: ширины, высоты, границы, рамки ----------

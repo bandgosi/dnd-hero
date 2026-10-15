@@ -100,7 +100,10 @@ export const MAX_COL = 16384;
 export const MAX_ROW = 1048576;
 // Пределы книги: крошечный файл может объявить гигантские диапазоны, и разбор исчерпал бы память.
 const MAX_SHEETS = 200;
-const MAX_CELLS = 300000;
+// Разбор XML строит объект на каждый элемент: ~1,6 КБ памяти на ячейку, поэтому пределы скромные
+// (семейной таблице с запасом хватает и тысячи ячеек).
+const MAX_CELLS = 50000;
+const MAX_XML_ELEMENTS = 300000;
 const MAX_MERGES = 50000;
 const MAX_MERGED_AREA = 200000;
 
@@ -187,7 +190,7 @@ function analyseDrawing(files, drawingPath) {
 }
 
 // Основная функция чтения книги.
-export function readWorkbook(buffer, { maxEntryBytes = 32 * 1024 * 1024, maxTotalBytes = 64 * 1024 * 1024, maxEntries = 5000 } = {}) {
+export function readWorkbook(buffer, { maxEntryBytes = 8 * 1024 * 1024, maxTotalBytes = 24 * 1024 * 1024, maxEntries = 5000 } = {}) {
   let raw;
   let names;
   try {
@@ -198,6 +201,15 @@ export function readWorkbook(buffer, { maxEntryBytes = 32 * 1024 * 1024, maxTota
     throw new XlsxError('Файл не похож на книгу Excel (.xlsx): не удалось распаковать архив');
   }
   if (!names.length) throw new XlsxError('Файл не похож на книгу Excel (.xlsx): не удалось распаковать архив');
+  // Быстрый подсчёт элементов XML до разбора: объекты строятся только для книги разумного размера.
+  let elements = 0;
+  for (const data of Object.values(raw)) {
+    for (let i = data.indexOf(60); i !== -1; i = data.indexOf(60, i + 1)) {
+      const next = data[i + 1];
+      if (next !== 47 && next !== 63 && next !== 33) elements++; // не </, <?, <!
+    }
+    if (elements > MAX_XML_ELEMENTS) throw new XlsxError('Файл слишком большой или сложный для импорта. Удалите лишнее оформление или разбейте книгу.');
+  }
   const dec = new TextDecoder('utf-8');
   const files = {};
   for (const [name, data] of Object.entries(raw)) {

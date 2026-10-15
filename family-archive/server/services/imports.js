@@ -158,6 +158,7 @@ export function createPreview(db, config, { buffer, fileName, includeHidden = fa
     checks: analysis.checks,
     records: analysis.records,
     skipped: analysis.skipped,
+    skippedTotal: analysis.skippedTotal,
     geometry: analysis.geometry,
     hypotheses: analysis.suggestions.hypotheses,
     questions: analysis.suggestions.questions,

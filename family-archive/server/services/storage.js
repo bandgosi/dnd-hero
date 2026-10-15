@@ -44,6 +44,10 @@ export function dirSize(dir) {
 const mb = (n) => `${Math.max(0, n / 1024 / 1024).toFixed(n < 10 * 1024 * 1024 ? 1 : 0)} МБ`;
 
 // Бросает ошибку 507, если после записи needBytes останется меньше запаса.
+export function hasSpace(config, needBytes) {
+  return diskSpace(config.dataDir).free - needBytes >= config.diskReserveBytes;
+}
+
 export function ensureSpace(config, needBytes, what) {
   const { free } = diskSpace(config.dataDir);
   if (free - needBytes < config.diskReserveBytes) {

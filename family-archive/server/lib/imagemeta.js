@@ -4,6 +4,36 @@
 
 export class ImageMetaError extends Error {}
 
+// Ориентация снимка (тег EXIF 0x0112) из сегмента APP1 или 0, если её нет.
+function exifOrientation(seg) {
+  const t = 10; // после FF E1, длины (2) и «Exif\0\0» (6)
+  if (seg.length < t + 8 || seg.subarray(4, 10).toString('latin1') !== 'Exif\0\0') return 0;
+  const le = seg[t] === 0x49 && seg[t + 1] === 0x49;
+  if (!le && !(seg[t] === 0x4d && seg[t + 1] === 0x4d)) return 0;
+  const u16 = (o) => (o + 2 <= seg.length ? (le ? seg.readUInt16LE(o) : seg.readUInt16BE(o)) : -1);
+  const u32 = (o) => (o + 4 <= seg.length ? (le ? seg.readUInt32LE(o) : seg.readUInt32BE(o)) : -1);
+  const ifd = u32(t + 4);
+  if (ifd < 8) return 0;
+  const n = u16(t + ifd);
+  for (let k = 0; k < n && k < 512; k++) {
+    const e = t + ifd + 2 + k * 12;
+    if (u16(e) === 0x0112) {
+      const v = u16(e + 8);
+      return v >= 1 && v <= 8 ? v : 0;
+    }
+  }
+  return 0;
+}
+
+// Минимальный EXIF только с ориентацией: без неё снимок с телефона, сохранённый «как есть»
+// (PHOTO_MAX_SIDE=0), показывался бы повёрнутым.
+function orientationSegment(v) {
+  const body = Buffer.from([0x45, 0x78, 0x69, 0x66, 0, 0, 0x49, 0x49, 0x2a, 0, 8, 0, 0, 0, 1, 0, 0x12, 0x01, 3, 0, 1, 0, 0, 0, v, 0, 0, 0, 0, 0, 0, 0]);
+  const head = Buffer.from([0xff, 0xe1, 0, 0]);
+  head.writeUInt16BE(body.length + 2, 2);
+  return Buffer.concat([head, body]);
+}
+
 function stripJpeg(buf) {
   if (buf[0] !== 0xff || buf[1] !== 0xd8) throw new ImageMetaError('Неверный JPEG');
   const parts = [buf.subarray(0, 2)];
@@ -41,6 +71,11 @@ function stripJpeg(buf) {
       const id = seg.subarray(4, 18).toString('latin1');
       // Оставляем JFIF (APP0), цветовой профиль ICC (APP2) и Adobe (APP14, влияет на цвета).
       keep = marker === 0xe0 || (marker === 0xe2 && id.startsWith('ICC_PROFILE')) || (marker === 0xee && id.startsWith('Adobe'));
+      // Из EXIF (APP1) сохраняется только ориентация — без координат, модели телефона и прочего.
+      if (marker === 0xe1) {
+        const o = exifOrientation(seg);
+        if (o > 1) parts.push(orientationSegment(o));
+      }
     }
     if (keep) parts.push(seg);
     i += 2 + len;

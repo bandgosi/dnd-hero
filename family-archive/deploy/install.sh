@@ -10,6 +10,7 @@
 # /var/lib/family-archive (доступ только у службы), настройки — в /etc/family-archive/env
 # (только root). Служба работает в «песочнице» systemd и слушает только 127.0.0.1; снаружи
 # её открывает Caddy с бесплатным сертификатом HTTPS. Брандмауэр пропускает только SSH, 80 и 443.
+# Порт приложения держит systemd (family-archive.socket), поэтому его не перехватит другая программа.
 set -Eeuo pipefail
 umask 022
 
@@ -21,12 +22,16 @@ CONF_DIR="$PREFIX/etc/family-archive"
 ENV_FILE="$CONF_DIR/env"
 INSTALL_CONF="$CONF_DIR/install.conf"
 UNIT_FILE="$PREFIX/etc/systemd/system/family-archive.service"
+SOCKET_FILE="$PREFIX/etc/systemd/system/family-archive.socket"
+DROPIN_DIR="$PREFIX/etc/systemd/system/family-archive.service.d"
 CTL_BIN="$PREFIX/usr/local/sbin/family-archive"
 SERVICE=family-archive
 SERVICE_USER=family-archive
 SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 PORT=3000
+PORT_SET=0
+OLD_PORT=""
 DOMAIN=""
 EMAIL=""
 LOCAL_ONLY=0
@@ -46,6 +51,14 @@ die() {
   exit 1
 }
 trap 'die "команда на строке $LINENO завершилась неудачно. Установка остановлена."' ERR
+# Созданный пароль не должен потеряться, даже если установка прервётся позже.
+on_exit() {
+  local rc=$?
+  if ((rc != 0)) && [[ -n $SHOW_PW ]]; then
+    printf '\n\033[1;33mСозданный пароль для входа (сохраните его):\033[0m %s\n' "$SHOW_PW" >&2
+  fi
+}
+trap on_exit EXIT
 
 usage() {
   cat <<'EOF'
@@ -72,7 +85,7 @@ while (($#)); do
     --domain) DOMAIN="${2:-}"; shift 2 ;;
     --email) EMAIL="${2:-}"; shift 2 ;;
     --local-only) LOCAL_ONLY=1; shift ;;
-    --port) PORT="${2:-}"; shift 2 ;;
+    --port) PORT="${2:-}"; PORT_SET=1; shift 2 ;;
     --generate-password) GEN_PASSWORD=1; shift ;;
     --skip-firewall) SKIP_FIREWALL=1; shift ;;
     --update) UPDATE=1; shift ;;
@@ -101,15 +114,21 @@ if [[ ! $PORT =~ ^[0-9]{4,5}$ ]] || ((PORT < 1024 || PORT > 65535)); then die "�
 if [[ -f $ENV_FILE ]]; then
   UPDATE=1
 fi
+conf_value() {
+  # Значение из прежнего install.conf (файл пишет только установщик, root, 0600).
+  [[ -f $INSTALL_CONF ]] || return 0
+  # shellcheck source=/dev/null
+  (. "$INSTALL_CONF" && printf '%s' "${!1:-}")
+}
 if ((UPDATE)); then
   [[ -f $ENV_FILE ]] || die "приложение ещё не установлено — запустите установку без --update."
-  # Из прежних настроек берём только домен (путь к исходникам — текущий).
-  if [[ -f $INSTALL_CONF ]]; then
-    # shellcheck source=/dev/null
-    DOMAIN="$(. "$INSTALL_CONF" && printf '%s' "${DOMAIN:-}")"
-  fi
-  PORT="$(awk -F= '$1=="PORT"{print $2}' "$ENV_FILE" | tail -n1)"
-  PORT="${PORT:-3000}"
+  # Из прежних настроек берём домен, почту и выбор брандмауэра (путь к исходникам — текущий).
+  DOMAIN="$(conf_value DOMAIN || true)"
+  [[ -n $EMAIL ]] || EMAIL="$(conf_value EMAIL || true)"
+  [[ "$(conf_value SKIP_FIREWALL || true)" == 1 ]] && SKIP_FIREWALL=1
+  OLD_PORT="$(awk -F= '$1=="PORT"{print $2}' "$ENV_FILE" | tail -n1)"
+  OLD_PORT="${OLD_PORT:-3000}"
+  ((PORT_SET)) || PORT="$OLD_PORT"
 else
   DOMAIN="$(printf '%s' "$DOMAIN" | tr '[:upper:]' '[:lower:]')"
   if ((!LOCAL_ONLY)) && [[ -z $DOMAIN ]]; then
@@ -132,19 +151,36 @@ for d in "$PREFIX/opt" "$PREFIX/var/lib"; do
   (($(avail_mb "$d") >= 500)) || die "на диске ($d) свободно меньше 500 МБ — освободите место."
 done
 
+# Порт не должен быть занят чужой программой (свой сокет systemd — не помеха).
+check_port() {
+  local busy
+  command -v ss >/dev/null || return 0
+  busy="$(ss -Hltnp "sport = :$PORT" 2>/dev/null || true)"
+  [[ -z $busy ]] && return 0
+  if ((!SKIP_SYSTEM)) && systemctl is-active --quiet "$SERVICE.socket" 2>/dev/null &&
+    [[ "$(systemctl show -p Listen --value "$SERVICE.socket" 2>/dev/null)" == "127.0.0.1:$PORT "* ]]; then
+    return 0
+  fi
+  printf '%s\n' "$busy" >&2
+  die "порт $PORT уже занят другой программой. Укажите свободный порт, например: --port 3010"
+}
+check_port
+
 apt_install() { DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends "$@" >/dev/null; }
 
 # ---------- Системные пакеты ----------
 if ((!SKIP_SYSTEM)); then
   say "Системные пакеты"
   apt-get update -qq
-  apt_install ca-certificates curl xz-utils
+  apt_install ca-certificates curl xz-utils iproute2
   ((SKIP_FIREWALL)) || apt_install ufw
   apt_install unattended-upgrades
   # Автоматические обновления безопасности системы (если администратор не настроил иначе).
   if [[ ! -f /etc/apt/apt.conf.d/20auto-upgrades ]]; then
     printf 'APT::Periodic::Update-Package-Lists "1";\nAPT::Periodic::Unattended-Upgrade "1";\n' >/etc/apt/apt.conf.d/20auto-upgrades
   fi
+  # Caddy — единственная программа, принимающая соединения из интернета: обновляем при каждом запуске.
+  if command -v caddy >/dev/null; then apt_install --only-upgrade caddy || warn "не удалось обновить Caddy."; fi
 fi
 
 # ---------- Node.js ----------
@@ -184,10 +220,11 @@ install_node() {
   rm -rf "$dest/include" "$dest/share/doc" "$dest/share/man" "$dest/CHANGELOG.md" "$dest/README.md"
   chown -R root:root "$dest" 2>/dev/null || true
   ln -sfn "$dest" "$NODE_ROOT"
-  find "$PREFIX/opt" -maxdepth 1 -type d -name 'node-v22.*' ! -path "$dest" -exec rm -rf {} +
+  # Прежняя версия удаляется только после успешного запуска (см. конец установки) — для отката.
   rm -rf "$tmp"
   info "установлен Node.js ${ver#node-} ($(du -sh "$dest" | cut -f1))"
 }
+PREV_NODE="$(readlink "$NODE_ROOT" 2>/dev/null || true)"
 install_node
 NODE="$NODE_ROOT/bin/node"
 node_ok "$NODE" || die "Node.js не запускается."
@@ -245,6 +282,7 @@ chmod -R u=rwX,go=rX "$STAGE"
 info "размер приложения: $(du -sh "$STAGE" | cut -f1)"
 
 # ---------- Настройки (только при первой установке) ----------
+rm -f "$ENV_FILE.prev"
 if [[ ! -f $ENV_FILE ]]; then
   say "Пароль для входа в архив"
   if [[ -n ${FA_PASSWORD:-} ]]; then
@@ -288,7 +326,7 @@ if [[ ! -f $ENV_FILE ]]; then
     echo "MAX_PHOTO_MB=10"
     echo "# Резервные копии: сколько хранить автоматических и «перед изменениями»"
     echo "AUTO_BACKUP_DAYS=1"
-    echo "AUTO_BACKUP_KEEP=3"
+    echo "AUTO_BACKUP_KEEP=2"
     echo "SAFETY_BACKUP_KEEP=2"
     echo "MAX_BACKUP_MB=1024"
     echo "# Сколько места на диске всегда оставлять свободным (МБ)"
@@ -298,6 +336,14 @@ if [[ ! -f $ENV_FILE ]]; then
   mv "$ENV_TMP" "$ENV_FILE"
   ((GENERATED)) && SHOW_PW="$PW"
   unset PW PW2 HASH
+elif ((PORT_SET)) && [[ $PORT != "$OLD_PORT" ]]; then
+  # Смена порта при обновлении (--port); прежние настройки — для отката.
+  cp -p "$ENV_FILE" "$ENV_FILE.prev"
+  ENV_TMP="$(mktemp "$CONF_DIR/env.XXXXXX")"
+  awk -v p="$PORT" '/^PORT=/{print "PORT=" p; next} {print}' "$ENV_FILE" >"$ENV_TMP"
+  chmod 0600 "$ENV_TMP"
+  mv "$ENV_TMP" "$ENV_FILE"
+  info "порт приложения изменён: $OLD_PORT → $PORT"
 fi
 {
   echo "SRC_DIR=$(printf '%q' "$SRC_DIR")"
@@ -306,20 +352,43 @@ fi
   echo "DATA_DIR=$(printf '%q' "$DATA_DIR")"
   echo "ENV_FILE=$(printf '%q' "$ENV_FILE")"
   echo "DOMAIN=$(printf '%q' "$DOMAIN")"
+  echo "EMAIL=$(printf '%q' "$EMAIL")"
+  echo "SKIP_FIREWALL=$SKIP_FIREWALL"
   echo "SERVICE=$SERVICE"
   echo "SERVICE_USER=$SERVICE_USER"
 } >"$INSTALL_CONF"
 chmod 0600 "$INSTALL_CONF"
 
 # ---------- Служба systemd ----------
+# Прежние файлы служб сохраняются для отката.
+for f in "$UNIT_FILE" "$SOCKET_FILE"; do
+  if [[ -f $f ]]; then cp -p "$f" "$f.prev"; else rm -f "$f.prev"; fi
+done
 write_unit() {
   mkdir -p "$(dirname "$UNIT_FILE")"
+  # Запасной режим без фильтра системных вызовов не переносится между запусками:
+  # каждая установка сначала проверяет полную защиту.
+  rm -f "$DROPIN_DIR/10-compat.conf"
+  cat >"$SOCKET_FILE" <<EOF
+# Создано установщиком family-archive. Порт держит systemd — даже во время перезапуска
+# приложения его не может занять другая программа.
+[Unit]
+Description=История нашего рода — сокет
+
+[Socket]
+ListenStream=127.0.0.1:$PORT
+NoDelay=true
+
+[Install]
+WantedBy=sockets.target
+EOF
   cat >"$UNIT_FILE" <<EOF
 # Создано установщиком family-archive. Изменения затрутся при обновлении —
 # свои настройки кладите в /etc/systemd/system/$SERVICE.service.d/*.conf
 [Unit]
 Description=История нашего рода — семейный архив
-After=network.target
+Requires=$SERVICE.socket
+After=network.target $SERVICE.socket
 
 [Service]
 Type=simple
@@ -369,18 +438,30 @@ EOF
 }
 write_unit
 
+# Отвечает именно это приложение (а не другая программа на том же порту) и именно наша служба.
 health() {
-  local _
+  local _ body pid
   for _ in $(seq 1 40); do
-    if curl -fsS -o /dev/null --max-time 2 "http://127.0.0.1:$PORT/api/health" 2>/dev/null; then return 0; fi
+    body="$(curl -fsS --max-time 2 "http://127.0.0.1:$PORT/api/health" 2>/dev/null || true)"
+    if [[ $body == *'"app":"family-archive"'* ]]; then
+      ((SKIP_SYSTEM)) && return 0
+      pid="$(systemctl show -p MainPID --value "$SERVICE" 2>/dev/null || echo 0)"
+      if [[ $pid != 0 ]] && systemctl is-active --quiet "$SERVICE" && ss -Hltnp "sport = :$PORT" 2>/dev/null | grep -q "pid=$pid,"; then return 0; fi
+    fi
     sleep 0.5
   done
   return 1
 }
 
+
+BACKUP_NOTE=""
 if ((UPDATE)) && [[ -d $APP_DIR ]] && [[ -f $DATA_DIR/family.db ]]; then
   say "Резервная копия перед обновлением"
-  run_app_script scripts/backup-cli.mjs --label before-update || warn "копию создать не удалось — обновление продолжится."
+  if run_app_script scripts/backup-cli.mjs --label before-update; then
+    BACKUP_NOTE="$(find "$DATA_DIR/backups" -maxdepth 1 -name '*-before-update.zip' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -n1 | cut -d' ' -f2-)"
+  else
+    warn "копию создать не удалось — обновление продолжится."
+  fi
 fi
 
 # Подмена версии с возможностью отката.
@@ -392,15 +473,37 @@ mv "$STAGE" "$APP_DIR"
 
 rollback() {
   warn "$1"
+  ((SKIP_SYSTEM)) || systemctl stop "$SERVICE" 2>/dev/null || true
+  rm -f "$DROPIN_DIR/10-compat.conf"
+  if [[ -n $PREV_NODE && -d $PREV_NODE && "$(readlink "$NODE_ROOT")" != "$PREV_NODE" ]]; then ln -sfn "$PREV_NODE" "$NODE_ROOT"; fi
+  local note=""
+  [[ -n $BACKUP_NOTE ]] && note=" Резервная копия перед обновлением: $BACKUP_NOTE"
   if [[ -d $APP_DIR.old ]]; then
     rm -rf "$APP_DIR.failed"
     mv "$APP_DIR" "$APP_DIR.failed"
     mv "$APP_DIR.old" "$APP_DIR"
-    ((SKIP_SYSTEM)) || systemctl restart "$SERVICE" || true
-    die "новая версия не запустилась — возвращена прежняя. Подробности: sudo journalctl -u $SERVICE -n 50"
+    if [[ -f $ENV_FILE.prev ]]; then
+      mv -f "$ENV_FILE.prev" "$ENV_FILE"
+      PORT="$OLD_PORT"
+    fi
+    if ((!SKIP_SYSTEM)); then
+      for f in "$UNIT_FILE" "$SOCKET_FILE"; do [[ -f $f.prev ]] && mv -f "$f.prev" "$f"; done
+      systemctl daemon-reload
+      systemctl restart "$SERVICE.socket" 2>/dev/null || true
+      systemctl restart "$SERVICE" || true
+      if health; then
+        die "новая версия не запустилась — возвращена прежняя, она работает.$note Подробности: sudo journalctl -u $SERVICE -n 50"
+      fi
+      die "новая версия не запустилась, прежняя тоже не отвечает.$note Подробности: sudo journalctl -u $SERVICE -n 50"
+    fi
+    die "новая версия не запустилась — возвращена прежняя.$note"
   fi
   die "приложение не запустилось. Подробности: sudo journalctl -u $SERVICE -n 50"
 }
+
+# Команда управления ставится до запуска службы — она нужна и при неудачном запуске (например, смена пароля).
+mkdir -p "$(dirname "$CTL_BIN")"
+install -m 0755 "$APP_DIR/deploy/family-archive-ctl.sh" "$CTL_BIN"
 
 if ((SKIP_SYSTEM)); then
   say "Самопроверка запуска (без systemd)"
@@ -419,16 +522,23 @@ if ((SKIP_SYSTEM)); then
   wait "$APP_PID" 2>/dev/null || true
 else
   say "Служба $SERVICE"
-  systemctl daemon-reload
-  systemctl enable "$SERVICE" >/dev/null 2>&1
-  systemctl restart "$SERVICE"
-  if ! health; then
-    # Запасной вариант: на некоторых ядрах фильтр системных вызовов мешает запуску.
-    warn "служба не ответила — пробую без фильтра системных вызовов."
-    mkdir -p "/etc/systemd/system/$SERVICE.service.d"
-    printf '[Service]\nSystemCallFilter=\n' >"/etc/systemd/system/$SERVICE.service.d/10-compat.conf"
+  start_service() {
     systemctl daemon-reload
-    systemctl restart "$SERVICE"
+    systemctl stop "$SERVICE" 2>/dev/null || true
+    systemctl restart "$SERVICE.socket"
+    systemctl start "$SERVICE" || true
+  }
+  systemctl enable "$SERVICE.socket" "$SERVICE" >/dev/null 2>&1
+  start_service
+  if ! health; then
+    # Запасной вариант — только если в журнале видны отказы системных вызовов (на некоторых ядрах
+    # фильтр мешает запуску). Иначе причина другая, и защиту не ослабляем.
+    if journalctl -u "$SERVICE" -n 80 --no-pager 2>/dev/null | grep -qiE 'operation not permitted|EPERM|seccomp|SIGSYS|bad system call'; then
+      warn "служба не запустилась из-за фильтра системных вызовов — пробую без него."
+      mkdir -p "$DROPIN_DIR"
+      printf '[Service]\nSystemCallFilter=\n' >"$DROPIN_DIR/10-compat.conf"
+      start_service
+    fi
     health || {
       journalctl -u "$SERVICE" -n 30 --no-pager >&2 || true
       rollback "служба не запустилась."
@@ -436,11 +546,9 @@ else
   fi
   info "служба работает (только на 127.0.0.1:$PORT)"
 fi
-rm -rf "$APP_DIR.old" "$APP_DIR.failed"
-
-# ---------- Команда управления ----------
-mkdir -p "$(dirname "$CTL_BIN")"
-install -m 0755 "$APP_DIR/deploy/family-archive-ctl.sh" "$CTL_BIN"
+rm -rf "$APP_DIR.old" "$APP_DIR.failed" "$UNIT_FILE.prev" "$SOCKET_FILE.prev" "$ENV_FILE.prev"
+# Старые версии Node.js больше не нужны для отката.
+find "$PREFIX/opt" -maxdepth 1 -type d -name 'node-v22.*' ! -path "$(readlink "$NODE_ROOT")" -exec rm -rf {} +
 
 # ---------- HTTPS через Caddy ----------
 setup_caddy() {
@@ -465,13 +573,20 @@ setup_caddy() {
     fi
     apt_install caddy
   fi
+  # Обновления безопасности Caddy из официального репозитория ставятся автоматически.
+  if [[ -f /etc/apt/sources.list.d/caddy-stable.list ]]; then
+    printf '// Создано установщиком family-archive: автоматические обновления Caddy\nUnattended-Upgrade::Origins-Pattern {\n\t"site=dl.cloudsmith.io";\n};\n' >/etc/apt/apt.conf.d/51family-archive-caddy
+  fi
+  local max_mb
+  max_mb="$(awk -F= '$1=="MAX_BACKUP_MB"{print $2}' "$ENV_FILE" | tail -n1)"
+  [[ $max_mb =~ ^[0-9]+$ ]] || max_mb=1024
   mkdir -p /etc/caddy/conf.d
   cat >/etc/caddy/conf.d/family-archive.caddy <<EOF
 # Создано установщиком family-archive
 $DOMAIN {
 	encode zstd gzip
 	request_body {
-		max_size 1100MB
+		max_size $((max_mb + 100))MB
 	}
 	header {
 		-Server
@@ -504,16 +619,31 @@ EOF
   fi
 }
 
+# Все порты, на которых может работать SSH: настройки sshd (Port и ListenAddress),
+# сокет ssh.socket (Ubuntu 22.10+) и фактически слушающий sshd.
+ssh_ports() {
+  {
+    sshd -T 2>/dev/null | awk '$1=="port"{print $2} $1=="listenaddress"{n=split($2,a,":"); print a[n]}'
+    systemctl show -p Listen --value ssh.socket 2>/dev/null | tr ' ' '\n' | awk -F: '/:[0-9]+$/{print $NF}'
+    ss -Hltnp 2>/dev/null | awk '/"sshd"/{n=split($4,a,":"); print a[n]}'
+  } | grep -E '^[0-9]+$' | sort -un | tr '\n' ' ' | sed 's/ $//'
+}
+
 setup_firewall() {
   say "Брандмауэр (ufw)"
-  local ports p
-  ports="$(sshd -T 2>/dev/null | awk '$1=="port"{print $2}' | sort -u || true)"
-  if [[ -z $ports ]]; then
-    ports="$(ss -Hltnp 2>/dev/null | awk '/"sshd"/{n=split($4,a,":"); print a[n]}' | sort -u || true)"
-  fi
+  local ports p answer
+  ports="$(ssh_ports || true)"
   if [[ -z $ports ]]; then
     warn "не удалось определить порт SSH — брандмауэр не включён, чтобы не потерять доступ к серверу."
     return
+  fi
+  info "порты SSH: $ports"
+  if [[ -t 0 ]]; then
+    read -rp "    Разрешить SSH на этих портах и включить брандмауэр? [Y/n] " answer
+    if [[ $answer =~ ^[nNнН] ]]; then
+      warn "брандмауэр не включён (по вашему выбору) — его можно настроить вручную командой ufw."
+      return
+    fi
   fi
   ufw default deny incoming >/dev/null
   ufw default allow outgoing >/dev/null
@@ -528,7 +658,8 @@ setup_firewall() {
 
 if ((!SKIP_SYSTEM)); then
   [[ -n $DOMAIN ]] && setup_caddy
-  ((SKIP_FIREWALL)) || setup_firewall
+  # Брандмауэр настраивается только при первой установке: обновление не трогает правила администратора.
+  ((SKIP_FIREWALL || UPDATE)) || setup_firewall
 fi
 
 # ---------- Итог ----------

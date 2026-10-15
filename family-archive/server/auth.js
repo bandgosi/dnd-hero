@@ -180,9 +180,9 @@ export function createAuth(db, config) {
     return crypto.timingSafeEqual(key, stored.key);
   }
 
-  // Устройство, с которого уже входили: подписанная cookie. При атаке подбором общий предел
-  // попыток не мешает таким устройствам войти (ограничение для их адреса остаётся).
-  const deviceSig = (ts) => hmac(secret, `device:${fingerprint}:${ts}`);
+  // Устройство, с которого уже входили: cookie, подписанная секретом установки (не паролем —
+  // переживает смену пароля). Она не даёт доступа, а лишь освобождает от строгого режима при подборе.
+  const deviceSig = (ts) => hmac(secret, `device:${ts}`);
   const knownDevice = (req) => {
     const m = /^(\d{10,16})\.([A-Za-z0-9_-]{43})$/.exec(parseCookies(req.headers.cookie)[devName] || '');
     if (!m) return false;
@@ -197,7 +197,10 @@ export function createAuth(db, config) {
     const now = Date.now();
     const mine = (perIp.get(ip) || []).filter((t) => now - t < WINDOW);
     globalFails = globalFails.filter((t) => now - t < WINDOW);
-    if (mine.length >= 10 || (globalFails.length >= 50 && !knownDevice(req))) {
+    // Обычно — 10 попыток за 15 минут с адреса. Если идёт подбор с многих адресов (50 неудач на всех),
+    // новым устройствам остаётся по 3 попытки с адреса; полной блокировки, которая заперла бы и семью, нет.
+    const limit = globalFails.length >= 50 && !knownDevice(req) ? 3 : 10;
+    if (mine.length >= limit) {
       return res.status(429).json({ error: 'Слишком много неудачных попыток входа. Подождите 15 минут.' });
     }
     // Проверка пароля дорогая (scrypt): одновременно — не больше нескольких.

@@ -1,7 +1,9 @@
-// Разбор data.json резервной копии в отдельном потоке с ограниченной памятью:
-// испорченный или подложный файл может исчерпать память только этого потока, а не сервера.
-// Остаются только известные таблицы и столбцы, значения — строки, числа или пусто.
-import { parentPort, workerData } from 'node:worker_threads';
+// Разбор data.json резервной копии в отдельном процессе с ограниченной памятью
+// (запускается из backup.js с --max-old-space-size): испорченный или подложный файл может
+// исчерпать память только этого процесса, а не сервера. data.json читается из архива здесь же,
+// основной процесс его содержимого не касается. Остаются только известные таблицы и столбцы,
+// значения — строки, числа или пусто. Результат — очищенный JSON-текст.
+import { readZipFile } from './zip.js';
 
 class BadData extends Error {}
 
@@ -41,8 +43,16 @@ function clean({ text, columns, maxRows }) {
   return out;
 }
 
-try {
-  parentPort.postMessage({ data: clean(workerData) });
-} catch (e) {
-  parentPort.postMessage({ error: e instanceof BadData ? e.message : 'Файлы резервной копии повреждены' });
-}
+process.once('message', async ({ zipFile, columns, maxRows, maxText }) => {
+  let reply;
+  try {
+    const { texts } = await readZipFile(zipFile, { allowed: (n) => n === 'data.json', wantText: (n) => n === 'data.json', maxText, stopAfter: ['data.json'] });
+    if (!texts['data.json']) throw new BadData('Это не резервная копия «Истории нашего рода»: нет data.json');
+    const text = texts['data.json'].toString('utf8');
+    delete texts['data.json'];
+    reply = { data: JSON.stringify(clean({ text, columns, maxRows })) };
+  } catch (e) {
+    reply = { error: e instanceof BadData || e?.status ? e.message : 'Файлы резервной копии повреждены' };
+  }
+  process.send(reply, () => process.exit(0));
+});

@@ -40,23 +40,39 @@ async function autoBackup() {
     if (last && Date.now() - new Date(last.modifiedAt).getTime() < config.autoBackupDays * 86400000) return;
     const bk = await createBackup(db, config, { label: 'auto', appVersion: config.appVersion });
     console.log(`Автоматическая резервная копия: ${bk.name}`);
+    db.run("DELETE FROM meta WHERE key = 'auto_backup_error'");
   } catch (e) {
     console.error('Не удалось создать автоматическую резервную копию:', e.message);
+    // Ошибка видна в разделе «Архив», а не только в журнале службы.
+    try {
+      db.run("INSERT INTO meta (key, value) VALUES ('auto_backup_error', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", JSON.stringify({ at: new Date().toISOString(), message: String(e.message).slice(0, 500) }));
+    } catch {
+      /* база недоступна — остаётся запись в журнале */
+    }
   }
 }
 
-const server = app.listen(config.port, config.host, () => {
+// Под systemd порт заранее открывает family-archive.socket и передаёт его как дескриптор 3:
+// порт занят всегда, даже во время перезапуска, и его не может перехватить другая программа.
+const systemdSocket = process.env.LISTEN_FDS === '1' && Number(process.env.LISTEN_PID) === process.pid;
+const listenTarget = systemdSocket ? [{ fd: 3 }] : [config.port, config.host];
+const server = app.listen(...listenTarget, () => {
   const shown = config.host === '127.0.0.1' || config.host === '::1' ? 'localhost' : config.host;
   console.log('\n  История нашего рода — семейный архив');
-  console.log(`  Откройте в браузере: http://${shown}:${config.port}`);
+  console.log(systemdSocket ? '  Порт открыт службой systemd (family-archive.socket).' : `  Откройте в браузере: http://${shown}:${config.port}`);
   console.log(`  База данных:  ${config.dbFile}`);
   console.log(`  Фотографии:   ${config.photosDir}`);
   console.log(`  Копии:        ${config.backupsDir}`);
   console.log(config.password || config.passwordHash ? '  Вход по паролю включён.' : '  Доступ только с этого компьютера (пароль не задан).');
   console.log('  Остановить: Ctrl+C\n');
-  autoBackup();
+  // Первая проверка — через несколько минут после запуска, а не сразу (не нагружает старт).
+  setTimeout(autoBackup, 5 * 60 * 1000).unref();
 });
 setInterval(autoBackup, 60 * 60 * 1000).unref();
+// Большая резервная копия может загружаться дольше стандартных 5 минут: общий предел — 2 часа,
+// а соединение без движения данных закрывается через 10 минут.
+server.requestTimeout = 2 * 60 * 60 * 1000;
+server.timeout = 10 * 60 * 1000;
 
 server.on('error', (e) => {
   if (e.code === 'EADDRINUSE') console.error(`Порт ${config.port} занят. Укажите другой: PORT=3001 npm start`);

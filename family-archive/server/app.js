@@ -50,7 +50,8 @@ export function createApp({ db, config }) {
   });
   // До входа принимаются только маленькие запросы.
   const smallJson = express.json({ limit: '16kb' });
-  const json = express.json({ limit: '5mb' });
+  // Самый большой запрос интерфейса — карточка с длинной биографией (сотни КБ).
+  const json = express.json({ limit: '1mb' });
 
   const photoUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.maxPhotoBytes, files: 3, fields: 10 } });
   const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.maxImportBytes, files: 1, fields: 5 } });
@@ -81,10 +82,18 @@ export function createApp({ db, config }) {
   app.get('/api/auth/status', auth.status);
   app.post('/api/auth/login', smallJson, auth.login);
   app.post('/api/auth/logout', smallJson, auth.logout);
-  app.get('/api/health', (req, res) => res.json({ ok: true }));
+  app.get('/api/health', (req, res) => res.json({ ok: true, app: 'family-archive' }));
 
   app.use('/api', auth.requireAuth);
   app.use('/media', auth.requireAuth);
+  // Изменяющие запросы: при почти заполненном диске отклоняются (удаление разрешено — оно освобождает
+  // место), одновременно обрабатывается ограниченное число (их тела держатся в памяти).
+  const writeSlots = limitConcurrent(16);
+  app.use('/api', (req, res, next) => {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+    if (req.method !== 'DELETE') ensureSpace(config, 1024 * 1024 + (Number(req.headers['content-length']) || 0), 'для сохранения изменений');
+    writeSlots(req, res, next);
+  });
   app.use('/api', json);
   app.post('/api/auth/logout-all', auth.logoutAll);
 
@@ -362,7 +371,14 @@ export function createApp({ db, config }) {
 
   // ---------- Резервные копии и экспорт ----------
   app.get('/api/backups', (req, res) => res.json({ backups: backup.listBackups(config) }));
-  app.get('/api/storage', (req, res) => res.json(storageUsage(config)));
+  app.get('/api/storage', (req, res) => {
+    const err = db.get("SELECT value FROM meta WHERE key = 'auto_backup_error'")?.value;
+    res.json({ ...storageUsage(config), autoBackupError: parseJson(err, null) });
+  });
+  app.post('/api/backups/restore-discard', (req, res) => {
+    backup.discardRestore(req.body?.token);
+    res.json({ ok: true });
+  });
   app.delete('/api/backups/:name', (req, res) => {
     backup.deleteBackup(db, config, req.params.name);
     res.json({ ok: true });

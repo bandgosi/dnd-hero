@@ -83,6 +83,9 @@ function StorageCard({ storage }) {
     <div className="storage">
       <div className="storage-bar" role="img" aria-label={`Диск занят на ${pct}%`}><span style={{ width: `${pct}%` }} className={low ? 'is-low' : ''} /></div>
       <p className={low ? 'field-error' : 'muted'}>Свободно {fmtSize(storage.free)} из {fmtSize(storage.total)}{low ? ' — места мало, удалите ненужные копии' : ''}.</p>
+      {storage.autoBackupError && (
+        <p className="field-error" role="alert">Автоматическая копия не создана ({fmtDateTime(storage.autoBackupError.at)}): {storage.autoBackupError.message}</p>
+      )}
       <dl className="info-list compact mt-8">
         {rows.map(([k, v]) => <div key={k} className="info-row"><dt>{k}</dt><dd>{fmtSize(v)}</dd></div>)}
       </dl>
@@ -226,7 +229,17 @@ export function ArchiveView() {
           </ol>
         )}
       </section>
-      {restore && <RestoreDialog preview={restore} onClose={() => setRestore(null)} onRestored={loadBackups} />}
+      {restore && (
+        <RestoreDialog
+          preview={restore}
+          onClose={() => {
+            // Загруженная для предпросмотра копия на сервере больше не нужна.
+            api.post('/api/backups/restore-discard', { token: restore.token }).catch(() => {});
+            setRestore(null);
+          }}
+          onRestored={loadBackups}
+        />
+      )}
     </section>
   );
 }
