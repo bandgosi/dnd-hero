@@ -53,8 +53,18 @@ test('импорт: 21 запись, без связей, неизвестные
     assert.equal(pv2.data.mode, 'duplicate');
     const c2 = await s.post('/api/imports/commit', { previewId: pv2.data.previewId });
     assert.equal(c2.status, 409);
-    const after = await s.get('/api/data');
+    let after = await s.get('/api/data');
     assert.equal(after.data.persons.length, FIXTURE_RECORDS);
+    // Тот же набор записей, но пересохранённый файл (другая контрольная сумма): новых людей нет.
+    const pv3 = await importFixture(s, { mtime: '2021-06-01T10:00:00Z' });
+    assert.equal(pv3.mode, 'update');
+    assert.ok(pv3.diff.entries.every((e) => e.status === 'unchanged') && pv3.diff.removed.length === 0);
+    const c3 = await s.post('/api/imports/commit', { previewId: pv3.previewId });
+    assert.equal(c3.status, 200, JSON.stringify(c3.data));
+    assert.equal(c3.data.summary.persons, 0);
+    after = await s.get('/api/data');
+    assert.equal(after.data.persons.length, FIXTURE_RECORDS);
+    assert.equal(after.data.sourceRecords.filter((r) => r.status === 'active').length, FIXTURE_RECORDS);
   } finally {
     await s.close();
   }

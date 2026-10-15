@@ -26,7 +26,7 @@ function stylesXml() {
 }
 
 // sheets: [{ name, state, cells: { A1: { v, s, rich, inline, num } }, merges: ['B4:D4'] }]
-export function buildXlsx(sheets) {
+export function buildXlsx(sheets, { mtime = '2020-01-01T00:00:00Z' } = {}) {
   const shared = [];
   const sharedIndex = (key, xml) => {
     let i = shared.findIndex((x) => x.key === key);
@@ -80,7 +80,8 @@ export function buildXlsx(sheets) {
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/></Types>`;
   const u8 = {};
   for (const [k, v] of Object.entries(files)) u8[k] = strToU8(v);
-  return Buffer.from(zipSync(u8));
+  // Фиксированное время внутри архива — одинаковое содержимое даёт одинаковую контрольную сумму.
+  return Buffer.from(zipSync(u8, { mtime: new Date(mtime) }));
 }
 
 // Вымышленная семья, разложенная так же «пространственно», как исходный набросок.
@@ -125,5 +126,5 @@ export function fixtureSheets({ variant = 'base' } = {}) {
   ];
 }
 
-export const fixtureXlsx = (opts) => buildXlsx(fixtureSheets(opts));
+export const fixtureXlsx = (opts = {}) => buildXlsx(fixtureSheets(opts), opts);
 export const FIXTURE_RECORDS = 21;

@@ -431,6 +431,7 @@ export function ImportView({ onDone }) {
           {preview.mode === 'update' && (
             <Notice tone="warning" title="Похоже, это новая версия ранее импортированного файла">
               Предыдущая версия: «{preview.previous.file_name}», {fmtDateTime(preview.previous.created_at)}. Проверьте различия: существующие люди не дублируются, ваши правки не перезаписываются молча.
+              {preview.diff.entries.every((e) => e.status === 'unchanged') && preview.diff.removed.length === 0 && ' Записи в файле не изменились (файл, вероятно, просто пересохранён): новых людей не будет, обновятся только ссылки на исходный файл.'}
             </Notice>
           )}
           <ul className="check-list">
