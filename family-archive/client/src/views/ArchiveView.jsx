@@ -5,7 +5,10 @@ import { api } from '../api.js';
 import { useData, useUi, reportError } from '../store.jsx';
 import { Modal, Notice } from '../components/ui.jsx';
 import { ViewHeader } from './TreeView.jsx';
-import { fmtDateTime, fmtSize } from '../lib/format.js';
+import { fmtDateTime, fmtSize, plural } from '../lib/format.js';
+
+// «последние 3 автоматические копии», «последняя автоматическая копия»
+const lastCopies = (n, one, few, many) => (n === 1 ? `последняя ${one}` : `последние ${n} ${plural(n, one, few, many)}`);
 
 function RestoreDialog({ preview, onClose, onRestored }) {
   const { reload, setSaveState } = useData();
@@ -172,7 +175,14 @@ export function ArchiveView() {
         <section className="panel-card">
           <h2 className="h2"><DatabaseBackup size={20} /> Резервные копии</h2>
           <p className="muted">Копия — один .zip-файл: люди, связи, предположения, вопросы, источники, история, исходные файлы Excel и все фотографии. Формат версии {m.backupFormatVersion}. Скачивайте копии и храните их отдельно от сервера.</p>
-          {m.backups && <p className="muted small">Хранятся последние {m.backups.autoKeep} автоматических копий{m.backups.autoDays ? ` (раз в ${m.backups.autoDays === 1 ? 'сутки' : `${m.backups.autoDays} дн.`}, только если были изменения)` : ''} и {m.backups.safetyKeep} копий «перед откатом/восстановлением». Созданные вручную копии удаляйте сами, когда скачаете их.</p>}
+          {m.backups && (
+            <p className="muted small">
+              {m.backups.autoKeep === 1 ? 'Хранится ' : 'Хранятся '}
+              {lastCopies(m.backups.autoKeep, 'автоматическая копия', 'автоматические копии', 'автоматических копий')}
+              {m.backups.autoDays ? ` (раз в ${m.backups.autoDays === 1 ? 'сутки' : `${m.backups.autoDays} дн.`}, только если были изменения)` : ''} и{' '}
+              {lastCopies(m.backups.safetyKeep, 'копия', 'копии', 'копий')} «перед изменениями» (откат, восстановление, обновление). Созданные вручную копии удаляйте сами, когда скачаете их.
+            </p>
+          )}
           <div className="btn-row">
             <button type="button" className="btn btn-primary" onClick={create} disabled={creating}>{creating ? <Loader2 size={16} className="spin" /> : <DatabaseBackup size={16} />} Создать резервную копию</button>
             <input ref={fileRef} type="file" accept=".zip,application/zip" className="visually-hidden" onChange={(e) => { fromFile(e.target.files?.[0]); e.target.value = ''; }} aria-label="Файл резервной копии" tabIndex={-1} />
@@ -183,13 +193,15 @@ export function ArchiveView() {
             <ul className="backup-list">
               {backups.map((b) => (
                 <li key={b.name}>
-                  <div className="grow">
-                    <span className="break">{b.name}</span>
+                  <div className="backup-info">
+                    <span className="backup-name">{b.name}</span>
                     <span className="muted small block">{fmtDateTime(b.modifiedAt)} · {fmtSize(b.size)}{b.kind === 'auto' ? ' · автоматическая' : b.kind === 'safety' ? ' · перед изменением' : ' · вручную'}</span>
                   </div>
-                  <a className="btn btn-small btn-ghost" href={`/api/backups/${encodeURIComponent(b.name)}/download`} download><Download size={14} /> Скачать</a>
-                  <button type="button" className="btn btn-small btn-ghost" onClick={() => fromStored(b.name)}><RotateCcw size={14} /> Восстановить…</button>
-                  <button type="button" className="btn btn-small btn-ghost-danger" onClick={() => removeBackup(b)} aria-label={`Удалить копию ${b.name}`}><Trash2 size={14} /></button>
+                  <div className="backup-actions">
+                    <a className="btn btn-small btn-ghost" href={`/api/backups/${encodeURIComponent(b.name)}/download`} download><Download size={14} /> Скачать</a>
+                    <button type="button" className="btn btn-small btn-ghost" onClick={() => fromStored(b.name)}><RotateCcw size={14} /> Восстановить…</button>
+                    <button type="button" className="btn btn-small btn-ghost-danger" onClick={() => removeBackup(b)} aria-label={`Удалить копию ${b.name}`}><Trash2 size={14} /></button>
+                  </div>
                 </li>
               ))}
             </ul>

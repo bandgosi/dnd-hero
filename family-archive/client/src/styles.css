@@ -598,7 +598,11 @@ textarea.input { resize: vertical; min-height: 72px; }
 .panel-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); padding: var(--s5); }
 .panel-card > .muted { margin-bottom: var(--s3); }
 .backup-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; }
-.backup-list li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); padding: var(--s2) 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.backup-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s1) var(--s2); padding: var(--s2) 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+/* Имя копии не сжимается в столбик: при нехватке ширины кнопки переносятся на следующую строку. */
+.backup-info { flex: 1 1 15rem; min-width: 0; }
+.backup-name { display: block; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.backup-actions { display: flex; flex-wrap: wrap; gap: 2px; margin-left: auto; }
 
 .storage-bar { height: 10px; border-radius: 5px; background: #ECEEE8; overflow: hidden; margin-bottom: var(--s2); }
 .storage-bar span { display: block; height: 100%; background: var(--green); border-radius: 5px; }
