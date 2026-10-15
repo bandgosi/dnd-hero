@@ -11,6 +11,8 @@ function memo(fn, max = 20000) {
   const cache = new Map();
   return (s) => {
     const k = String(s ?? '');
+    // Кэшируются только короткие строки (имена): длинный текст не должен оседать в памяти.
+    if (k.length > 64) return fn(k);
     let v = cache.get(k);
     if (v === undefined) {
       v = fn(k);

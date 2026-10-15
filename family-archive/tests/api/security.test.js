@@ -473,6 +473,19 @@ test('копии: нехватка места не уничтожает посл
   }
 });
 
+test('во время восстановления изменения отклоняются (запись в базу заблокирована)', async () => {
+  const s = await startServer();
+  try {
+    s.db.writeBlock = () => Object.assign(new Error('Идёт восстановление из резервной копии'), { status: 409 });
+    const r = await s.post('/api/persons', { person: { display_name: 'Петров' } });
+    assert.equal(r.status, 409);
+    s.db.writeBlock = null;
+    assert.equal((await s.post('/api/persons', { person: { display_name: 'Петров' } })).status, 201);
+  } finally {
+    await s.close();
+  }
+});
+
 test('импорт: «zip-бомба» в xlsx отклоняется, не распаковываясь целиком', async () => {
   const s = await startServer();
   try {
@@ -512,6 +525,8 @@ test('импорт: гигантские диапазоны в крошечно�
       [(x) => x.replace('<sheetData>', `${'<?a?>'.repeat(200000)}<sheetData>`), /слишком большой или сложный/],
       [(x) => x.replace('<sheetData>', `<x>${'<![CDATA[]]>'.repeat(200000)}</x><sheetData>`), /слишком большой или сложный/],
       [(x) => x.replace('<sheetData>', `<x ${Array.from({ length: 250000 }, (_, i) => `a${i}="1"`).join(' ')}/><sheetData>`), /слишком большой или сложный/],
+      [(x) => x.replace('<sheetData>', `<x${' y'.repeat(300000)}/><sheetData>`), /слишком большой или сложный/],
+      [(x) => x.replace('<sheetData>', `<x ${Array.from({ length: 250000 }, (_, i) => `a${i}= ""`).join(' ')}/><sheetData>`), /слишком большой или сложный/],
     ];
     for (const [patch, error] of cases) {
       const r = await s.form('/api/imports/preview', xlsxForm(patchSheet(base, patch)));
@@ -523,6 +538,11 @@ test('импорт: гигантские диапазоны в крошечно�
     assert.equal(far.status, 200);
     assert.equal(far.data.geometry['Лист1'].compact, true);
     assert.equal(far.data.records.length, 3);
+    // Записи далеко друг от друга по вертикали — тоже сжатая схема (не 100 000 строк).
+    const tall = await s.form('/api/imports/preview', xlsxForm(buildXlsx([{ name: 'Лист1', cells: { A1: { v: 'Кахе' }, A2: { v: 'Зураб' }, A100000: { v: 'Зоя' } } }])));
+    assert.equal(tall.status, 200);
+    assert.equal(tall.data.geometry['Лист1'].compact, true);
+    assert.ok(tall.data.geometry['Лист1'].rows.length <= 6);
     // Длинный список и широкая строка имён — допустимы.
     const list = {};
     for (let i = 1; i <= 2100; i++) list[`A${i}`] = { v: `Петров ${i}` };

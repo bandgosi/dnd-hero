@@ -4,7 +4,7 @@ import path from 'node:path';
 import { loadConfig, configProblems } from './config.js';
 import { openDb } from './db.js';
 import { createApp } from './app.js';
-import { createBackup, listBackups, changedSinceLastBackup, removeStaleTemp } from './services/backup.js';
+import { createBackup, listBackups, changedSinceLastBackup, removeStaleTemp, isRestoring } from './services/backup.js';
 
 const config = loadConfig();
 
@@ -32,7 +32,7 @@ const app = createApp({ db, config });
 // Автоматическая резервная копия: раз в AUTO_BACKUP_DAYS дней, если в базе есть данные
 // и после прошлой копии что-то изменилось. Хранятся последние AUTO_BACKUP_KEEP копий.
 async function autoBackup() {
-  if (!config.autoBackupDays) return;
+  if (!config.autoBackupDays || isRestoring()) return;
   try {
     const hasData = db.get('SELECT COUNT(*) AS n FROM persons').n > 0;
     if (!hasData || !changedSinceLastBackup(db)) return;

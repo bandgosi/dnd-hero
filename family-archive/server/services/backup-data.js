@@ -11,6 +11,16 @@ export const BACKUP_TABLES = [
   'questions', 'question_persons', 'hypotheses', 'name_reviews', 'change_log', 'change_log_persons',
 ];
 
+// Допустимые элементы архива резервной копии (имена файлов — по белому списку).
+const ENTRY_RE = /^(manifest\.json|data\.json|photos\/[0-9a-f-]{36}\/[a-z0-9.-]+|imports\/[0-9a-f]{64}\.xlsx)$/;
+export function allowedEntry(name) {
+  if (!ENTRY_RE.test(name)) return false;
+  const parts = name.split('/');
+  if (parts[0] === 'photos') return isUuid(parts[1]) && isPhotoFile(parts[2]);
+  if (parts[0] === 'imports') return isImportFile(parts[1]);
+  return true;
+}
+
 export function countsOf(data) {
   return {
     persons: data.persons?.length || 0,
@@ -86,22 +96,39 @@ export function validateBackupData(data) {
   if (broken) throw unprocessable(`Копия повреждена: ${broken} связей ссылаются на отсутствующих людей`);
 }
 
-// Сводка для предпросмотра и распаковки: сколько записей и какие файлы нужны.
-export function summarize(data) {
-  const photoFiles = [];
-  for (const ph of data.photos) for (const k of ['original_file', 'display_file', 'thumb_file']) photoFiles.push(`photos/${ph.id}/${ph[k]}`);
-  const importFiles = [...new Set((data.imports || []).filter((imp) => imp.stored_file).map((imp) => `imports/${imp.stored_file}`))];
-  return { counts: countsOf(data), photoFiles, importFiles };
+// Файлы архива, на которые ссылаются данные: только они распаковываются при восстановлении.
+export function referencedFiles(data) {
+  const set = new Set();
+  for (const ph of data.photos) for (const k of ['original_file', 'display_file', 'thumb_file']) set.add(`photos/${ph.id}/${ph[k]}`);
+  for (const imp of data.imports || []) if (imp.stored_file) set.add(`imports/${imp.stored_file}`);
+  return set;
 }
 
-// Полная замена данных базы содержимым копии (одна транзакция).
-export function insertData(db, data, manifest) {
+// Сводка для предпросмотра: числа записей и (не больше 100) недостающих в архиве файлов фото.
+export function summarize(data, entries) {
+  const have = new Set(entries);
+  const missing = [];
+  let missingCount = 0;
+  for (const ph of data.photos) {
+    for (const k of ['original_file', 'display_file', 'thumb_file']) {
+      if (have.has(`photos/${ph.id}/${ph[k]}`)) continue;
+      missingCount++;
+      if (missing.length < 100) missing.push(`${ph.id}/${ph[k]}`);
+    }
+  }
+  return { counts: countsOf(data), missingCount, missingSample: missing };
+}
+
+// Полная замена данных базы содержимым копии (одна транзакция). restoreId записывается в той же
+// транзакции: по нему основной процесс узнаёт, что запись состоялась, даже если ответ потерян.
+export function insertData(db, data, manifest, restoreId = null) {
   db.tx(() => {
     db.exec('PRAGMA defer_foreign_keys = ON');
     for (const table of [...BACKUP_TABLES].reverse()) db.exec(`DELETE FROM ${table}`);
     db.exec("DELETE FROM sqlite_sequence WHERE name = 'change_log'");
     // Счётчик журнала начинается заново — отметка последней копии больше не действует.
     db.run("DELETE FROM meta WHERE key = 'last_backup_log_id'");
+    if (restoreId) db.run("INSERT INTO meta (key, value) VALUES ('last_restore_id', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", restoreId);
     for (const table of BACKUP_TABLES) for (const row of data[table] || []) db.insert(table, row);
     logChange(db, { actor: 'system', action: 'backup.restore', summary: `Данные восстановлены из резервной копии от ${manifest.createdAt}`, details: { counts: countsOf(data), manifest } });
   });

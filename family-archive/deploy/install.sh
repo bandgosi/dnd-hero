@@ -32,6 +32,7 @@ SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PORT=3000
 PORT_SET=0
 OLD_PORT=""
+OLD_DOMAIN=""
 DOMAIN=""
 DOMAIN_SET=0
 DOMAIN_CHANGED=0
@@ -144,6 +145,8 @@ if ((UPDATE)); then
   [[ -n $EMAIL ]] || EMAIL="$(conf_value EMAIL || true)"
   [[ "$(conf_value SKIP_FIREWALL || true)" == 1 ]] && SKIP_FIREWALL=1
   [[ "$(conf_value FIREWALL_DONE || true)" == 1 ]] && FIREWALL_DONE=1
+  # Установки прежних версий не записывали эту отметку: брандмауэр у них уже настраивался при установке.
+  if [[ -f $INSTALL_CONF ]] && ! grep -q '^FIREWALL_DONE=' "$INSTALL_CONF"; then FIREWALL_DONE=1; fi
   OLD_PORT="$(awk -F= '$1=="PORT"{print $2}' "$ENV_FILE" | tail -n1)"
   OLD_PORT="${OLD_PORT:-3000}"
   ((PORT_SET)) || PORT="$OLD_PORT"
@@ -521,6 +524,9 @@ rollback() {
     if [[ -f $ENV_FILE.prev ]]; then
       mv -f "$ENV_FILE.prev" "$ENV_FILE"
       PORT="$OLD_PORT"
+      # Домен в install.conf должен соответствовать восстановленным настройкам.
+      DOMAIN="$OLD_DOMAIN"
+      write_install_conf
     fi
     if ((!SKIP_SYSTEM)); then
       # Прежняя версия без отдельного сокета: новый сокет убирается, иначе он занял бы её порт.
@@ -701,8 +707,8 @@ setup_firewall() {
 if ((!SKIP_SYSTEM)); then
   if [[ -n $DOMAIN ]]; then
     setup_caddy
-    # Домен добавлен позже, а брандмауэр уже включён: сайту нужны порты 80 и 443.
-    if command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q '^Status: active'; then
+    # Домен добавлен позже, а брандмауэр (настроенный установщиком) уже включён: нужны порты 80 и 443.
+    if ((DOMAIN_CHANGED && !SKIP_FIREWALL)) && command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q '^Status: active'; then
       ufw allow 80/tcp >/dev/null
       ufw allow 443/tcp >/dev/null
     fi

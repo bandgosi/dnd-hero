@@ -61,7 +61,7 @@ function RestoreDialog({ preview, onClose, onRestored }) {
           {row('Импорты', cur.imports, c.imports)}
         </tbody>
       </table>
-      {preview.missingPhotos.length > 0 && <Notice tone="warning" title="В копии не хватает файлов фотографий">{preview.missingPhotos.length} файлов отсутствуют — эти фотографии не откроются.</Notice>}
+      {(preview.missingCount ?? preview.missingPhotos.length) > 0 && <Notice tone="warning" title="В копии не хватает файлов фотографий">{preview.missingCount ?? preview.missingPhotos.length} файлов отсутствуют — эти фотографии не откроются.</Notice>}
       <label className="field mt-16">
         <span className="field-label">Для подтверждения введите слово «восстановить»</span>
         <input className="input" value={text} onChange={(e) => setText(e.target.value)} />

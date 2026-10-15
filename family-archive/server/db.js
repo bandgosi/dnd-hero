@@ -32,6 +32,7 @@ export class Db {
     this.raw.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000; PRAGMA synchronous = FULL;');
     this.depth = 0;
     this.cache = new Map();
+    this.writeBlock = null;
   }
 
   stmt(sql) {
@@ -76,6 +77,8 @@ export class Db {
         this.depth--;
       }
     }
+    // Запись временно запрещена (например, идёт восстановление из копии в отдельном процессе).
+    if (this.writeBlock) throw this.writeBlock();
     this.raw.exec('BEGIN IMMEDIATE');
     this.depth++;
     try {

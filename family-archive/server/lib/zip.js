@@ -43,10 +43,17 @@ function readCentralDirectory(readAt, size, { maxEntries = Infinity } = {}) {
   let cdSize = tail.readUInt32LE(at + 12);
   let cdOffset = tail.readUInt32LE(at + 16);
   let cdEnd = eocdPos;
-  if (count === 0xffff || cdSize === 0xffffffff || cdOffset === 0xffffffff) {
-    if (eocdPos < 20) throw new ZipFormatError('Повреждённый ZIP64');
-    const loc = readAt(eocdPos - 20, 20);
-    if (loc.readUInt32LE(0) !== EOCD64_LOCATOR) throw new ZipFormatError('Повреждённый ZIP64');
+  // Число файлов в обычной записи — 16 бит; fflate (которым пишутся копии) при большем числе
+  // записывает остаток от деления на 65536 и не создаёт ZIP64. Тогда каталог читается до конца,
+  // а число сверяется по модулю.
+  let countMod = null;
+  const loc = eocdPos >= 20 ? readAt(eocdPos - 20, 20) : null;
+  const hasZip64 = loc && loc.readUInt32LE(0) === EOCD64_LOCATOR;
+  if (!hasZip64 && cdSize !== 0xffffffff && cdOffset !== 0xffffffff) {
+    countMod = count === 0xffff ? null : count;
+    count = Infinity;
+  } else if (count === 0xffff || cdSize === 0xffffffff || cdOffset === 0xffffffff) {
+    if (!hasZip64) throw new ZipFormatError('Повреждённый ZIP64');
     const recPos = u64(loc, 8);
     if (recPos + 56 > eocdPos - 20) throw new ZipFormatError('Повреждённый ZIP64');
     const rec = readAt(recPos, 56);
@@ -56,12 +63,13 @@ function readCentralDirectory(readAt, size, { maxEntries = Infinity } = {}) {
     cdOffset = u64(rec, 48);
     cdEnd = recPos;
   }
-  if (count > maxEntries) throw new ZipLimitError('В архиве слишком много файлов');
+  if (count !== Infinity && count > maxEntries) throw new ZipLimitError('В архиве слишком много файлов');
   if (cdSize > MAX_CD_BYTES || cdOffset + cdSize > cdEnd) throw new ZipFormatError('Повреждённый каталог ZIP');
   const cd = readAt(cdOffset, cdSize);
   const entries = [];
   let p = 0;
-  for (let k = 0; k < count; k++) {
+  for (let k = 0; k < count && !(count === Infinity && p === cd.length); k++) {
+    if (entries.length >= maxEntries) throw new ZipLimitError('В архиве слишком много файлов');
     if (p + 46 > cd.length || cd.readUInt32LE(p) !== CDH) throw new ZipFormatError('Повреждённый каталог ZIP');
     const flags = cd.readUInt16LE(p + 8);
     const method = cd.readUInt16LE(p + 10);
@@ -106,6 +114,9 @@ function readCentralDirectory(readAt, size, { maxEntries = Infinity } = {}) {
     entries.push({ name, flags, method, crc, csize, usize, offset });
     p = end;
   }
+  // Каталог должен быть прочитан ровно целиком, и число файлов — совпасть с заявленным.
+  if (p !== cd.length) throw new ZipFormatError('Повреждённый каталог ZIP');
+  if (countMod !== null && entries.length % 65536 !== countMod) throw new ZipFormatError('Повреждённый каталог ZIP');
   return { entries, cdOffset };
 }
 

@@ -95,6 +95,9 @@ export function createApp({ db, config }) {
   const FREEING = new Set(['/backups/restore-discard', '/imports/discard']);
   app.use('/api', (req, res, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+    if (backup.isRestoring() && !FREEING.has(req.path.toLowerCase().replace(/\/+$/, ''))) {
+      return res.status(409).json({ error: 'Идёт восстановление из резервной копии — изменения временно недоступны. Повторите через минуту.' });
+    }
     if (req.method !== 'DELETE' && !FREEING.has(req.path.toLowerCase().replace(/\/+$/, ''))) ensureSpace(config, 1024 * 1024 + (Number(req.headers['content-length']) || 0), 'для сохранения изменений');
     writeSlots(req, res, next);
   });

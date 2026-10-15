@@ -203,15 +203,41 @@ export function readWorkbook(buffer, { maxEntryBytes = 8 * 1024 * 1024, maxTotal
     throw new XlsxError('Файл не похож на книгу Excel (.xlsx): не удалось распаковать архив');
   }
   if (!names.length) throw new XlsxError('Файл не похож на книгу Excel (.xlsx): не удалось распаковать архив');
-  // Быстрый подсчёт до разбора: каждый узел XML (элемент, инструкция, CDATA, комментарий) и каждый
-  // атрибут становятся объектами в памяти, поэтому строятся они только для книги разумного размера.
+  // Быстрый подсчёт до разбора: каждый узел XML (элемент, инструкция, CDATA, комментарий) и каждое
+  // слово внутри тега (атрибут — в любой записи, даже без значения) становятся объектами в памяти,
+  // поэтому строятся они только для книги разумного размера.
   let nodes = 0;
   let attributes = 0;
-  const tooComplex = () => new XlsxError('Файл слишком большой или сложный для импорта. Удалите лишнее оформление или разбейте книгу.');
   for (const data of Object.values(raw)) {
-    for (let i = data.indexOf(60); i !== -1; i = data.indexOf(60, i + 1)) if (data[i + 1] !== 47) nodes++; // всё, кроме </
-    for (let i = data.indexOf(61); i !== -1; i = data.indexOf(61, i + 1)) if (data[i + 1] === 34 || data[i + 1] === 39) attributes++; // =" или ='
-    if (nodes > MAX_XML_NODES || attributes > MAX_XML_ATTRIBUTES) throw tooComplex();
+    let inTag = false;
+    let quote = 0;
+    let space = false;
+    for (let i = 0; i < data.length; i++) {
+      const b = data[i];
+      if (!inTag) {
+        if (b === 60) {
+          inTag = true;
+          quote = 0;
+          space = false;
+          if (data[i + 1] !== 47) nodes++; // всё, кроме </
+        }
+        continue;
+      }
+      if (quote) {
+        if (b === quote) quote = 0;
+        continue;
+      }
+      if (b === 34 || b === 39) quote = b;
+      else if (b === 62) inTag = false;
+      else {
+        const sp = b === 32 || b === 9 || b === 10 || b === 13;
+        if (space && !sp) attributes++;
+        space = sp;
+      }
+    }
+    if (nodes > MAX_XML_NODES || attributes > MAX_XML_ATTRIBUTES) {
+      throw new XlsxError('Файл слишком большой или сложный для импорта. Удалите лишнее оформление или разбейте книгу.');
+    }
   }
   const dec = new TextDecoder('utf-8');
   const files = {};

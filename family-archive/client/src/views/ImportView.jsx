@@ -43,7 +43,8 @@ function SheetGrid({ geometry, records }) {
 function SheetTable({ geometry, records }) {
   const recByCell = new Map(records.map((r) => [r.cell, r]));
   const mergeAt = new Map();
-  for (const m of geometry.merges) {
+  // В сжатой схеме строки и столбцы идут с пропусками — объединения в ней не рисуются.
+  for (const m of geometry.compact ? [] : geometry.merges) {
     for (let r = m.top; r <= m.bottom; r++) for (let c = m.left; c <= m.right; c++) mergeAt.set(`${r}:${c}`, m);
   }
   const borderAt = new Map(geometry.borderedCells.map((b) => [`${b.row}:${b.col}`, b.border]));

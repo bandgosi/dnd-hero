@@ -16,14 +16,17 @@ const quote = (s) => `«${s}»`;
 // Пределы разбора: поиск гипотез перебирает пары записей, схема рисуется таблицей ячеек.
 const MAX_RECORDS = 3000;
 const MAX_SAME_PAIRS = 300;
-// Имя с пометками обычно короче; ячейка с длинным текстом не импортируется (с отдельным предупреждением).
-const MAX_RECORD_CHARS = 5000;
+// Как и в карточке человека, имя — не длиннее 500 символов; более длинная ячейка не импортируется
+// (с отдельным предупреждением, где она названа).
+const MAX_RECORD_CHARS = 500;
 // Список пропущенных ячеек в ответе ограничен, полное число — в skippedTotal.
 const MAX_SKIPPED_LISTED = 200;
 const clip = (v, n = 200) => (typeof v === 'string' && v.length > n ? `${v.slice(0, n)}… (${v.length} симв.)` : v);
 // Схема листа — таблица строк × столбцов; если она слишком велика, показываются только строки
 // и столбцы с записями (импорт из-за размера схемы не отклоняется).
-const GEO_MAX_CELLS = 100000;
+const GEO_MAX_ROWS = 2000;
+const GEO_MAX_COLS = 300;
+const GEO_MAX_CELLS = 60000;
 // Общий объём текста записей (ответ предпросмотра и база не раздуваются от одной огромной строки,
 // на которую ссылаются тысячи ячеек).
 const MAX_TOTAL_TEXT = 2000000;
@@ -62,6 +65,8 @@ export function analyzeWorkbook(wb, { includeHidden = false } = {}) {
         skipped.push({ sheet: sheet.name, cell: c.ref, raw: clip(c.value), reason: 'Ячейка содержит только пробелы' });
         continue;
       }
+      totalText += c.value.length;
+      if (totalText > MAX_TOTAL_TEXT) throw new XlsxError('В ячейках книги слишком много текста для импорта имён. Проверьте, нет ли на листах длинных заметок или повторяющихся огромных значений.');
       if (c.value.trim().length > MAX_RECORD_CHARS) {
         skipped.push({ sheet: sheet.name, cell: c.ref, raw: clip(c.value), long: true, reason: `Слишком длинный текст (${c.value.trim().length} символов) — для имени это необычно; ячейка не импортирована` });
         continue;
@@ -88,8 +93,6 @@ export function analyzeWorkbook(wb, { includeHidden = false } = {}) {
     }
     sheetRecords.sort((a, b) => a.row - b.row || a.col - b.col);
     records.push(...sheetRecords);
-    for (const r of sheetRecords) totalText += r.raw.length;
-    if (totalText > MAX_TOTAL_TEXT) throw new XlsxError('В ячейках книги слишком много текста для импорта имён. Проверьте, нет ли на листах длинных заметок или повторяющихся огромных значений.');
     if (records.length > MAX_RECORDS) throw new XlsxError(`В книге больше ${MAX_RECORDS} записей — это слишком много для одного импорта. Разделите файл на несколько.`);
 
     if (included) geometry[sheet.name] = buildGeometry(sheet, sheetRecords, mergeAt);
@@ -134,7 +137,7 @@ function buildGeometry(sheet, recs, mergeAt) {
     }
     return spans.length ? { minCol, maxCol, maxRow } : { minCol: 1, maxCol: 1, maxRow: 1 };
   };
-  const tooBig = (b) => b.maxRow * (b.maxCol - b.minCol + 1) > GEO_MAX_CELLS;
+  const tooBig = (b) => b.maxRow > GEO_MAX_ROWS || b.maxCol - b.minCol + 1 > GEO_MAX_COLS || b.maxRow * (b.maxCol - b.minCol + 1) > GEO_MAX_CELLS;
   const recSpans = recs.map((r) => r.span);
   let b = box([...recSpans, ...bordered.map((c) => ({ top: c.row, left: c.col, bottom: c.row, right: c.col }))]);
   if (tooBig(b)) {
@@ -148,9 +151,10 @@ function buildGeometry(sheet, recs, mergeAt) {
   const keepRows = new Set();
   const keepCols = new Set();
   if (compact) {
+    // Только края объединений: запись, растянутая на тысячи строк, не добавляет тысячи строк схемы.
     for (const sp of recSpans) {
-      for (let r = sp.top; r <= sp.bottom; r++) keepRows.add(r);
-      for (let c = sp.left; c <= sp.right; c++) keepCols.add(c);
+      keepRows.add(sp.top).add(sp.bottom);
+      keepCols.add(sp.left).add(sp.right);
     }
     bordered = bordered.filter((c) => keepRows.has(c.row) && keepCols.has(c.col));
   }
@@ -382,16 +386,16 @@ function buildSuggestions(records, geometry) {
     const samePairs = [];
     for (let i = 0; i < recs.length; i++) {
       for (let j = i + 1; j < recs.length; j++) {
-        if (samePairsTotal >= MAX_SAME_PAIRS) {
-          samePairsCut = true;
-          break;
-        }
         const a = recs[i], b = recs[j];
         const ia = I(a), ib = I(b);
         if (!ia.sStem || ia.sStem !== ib.sStem) continue;
         if (!a.parse.given_name || searchKey(a.parse.given_name) !== searchKey(b.parse.given_name)) continue;
         const pa = a.parse.patronymic, pb = b.parse.patronymic;
         if (pa && pb && searchKey(pa) !== searchKey(pb)) continue;
+        if (samePairsTotal >= MAX_SAME_PAIRS) {
+          samePairsCut = true;
+          break;
+        }
         const [first, second] = a.span.top <= b.span.top ? [a, b] : [b, a];
         samePairs.push([first, second]);
         samePairsTotal++;
