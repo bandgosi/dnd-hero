@@ -13,6 +13,7 @@ import { QuestionsView } from './views/QuestionsView.jsx';
 import { ImportView } from './views/ImportView.jsx';
 import { ArchiveView } from './views/ArchiveView.jsx';
 import { personSearchText, matchesQuery, lifeSpan, countText } from './lib/format.js';
+import logoUrl from './assets/logo.webp';
 
 function useMedia(query) {
   const [m, setM] = useState(() => window.matchMedia(query).matches);
@@ -41,20 +42,9 @@ const lsSet = (k, v) => {
   }
 };
 
+// Логотип: древо в золотой рамке (картинка 256×256 с прозрачными углами).
 export function BrandMark({ size = 44 }) {
-  return (
-    <svg className="brand-mark" width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
-      <path d="M10 40 C17 31 24 22 36 10" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
-      <g fill="currentColor">
-        <ellipse cx="17" cy="27" rx="5.6" ry="2.7" transform="rotate(-52 17 27)" />
-        <ellipse cx="23.5" cy="19.5" rx="5.6" ry="2.7" transform="rotate(-52 23.5 19.5)" />
-        <ellipse cx="28" cy="28" rx="5.6" ry="2.7" transform="rotate(38 28 28)" />
-        <ellipse cx="33" cy="19" rx="5" ry="2.4" transform="rotate(38 33 19)" />
-        <ellipse cx="13" cy="35" rx="5" ry="2.4" transform="rotate(-25 13 35)" />
-        <ellipse cx="36.5" cy="10.5" rx="4" ry="2" transform="rotate(-40 36.5 10.5)" />
-      </g>
-    </svg>
-  );
+  return <img className="brand-mark" src={logoUrl} width={size} height={size} alt="" decoding="async" draggable="false" />;
 }
 
 function GlobalSearch({ onPick, onShowAll }) {
@@ -352,7 +342,7 @@ function LoginView({ onDone }) {
   return (
     <div className="login">
       <form className="login-card" onSubmit={submit}>
-        <BrandMark size={56} />
+        <BrandMark size={112} />
         <h1>История нашего рода</h1>
         <p className="muted">Семейный архив защищён паролем.</p>
         <label className="field">

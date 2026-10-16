@@ -209,7 +209,7 @@ textarea.input { resize: vertical; min-height: 72px; }
 .app { height: 100dvh; display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
 .topbar { display: flex; align-items: center; gap: var(--s4); min-height: 72px; padding: 10px var(--s5); }
 .brand { display: flex; align-items: center; gap: var(--s3); min-width: 0; }
-.brand-mark { color: var(--green); flex: none; }
+.brand-mark { flex: none; display: block; user-select: none; }
 .brand-title { font-family: var(--font-head); font-size: 30px; font-weight: 600; line-height: 1.1; letter-spacing: -0.01em; color: var(--text); }
 .brand-sub { font-size: 16px; color: var(--text-2); font-weight: 500; }
 .topbar-right { margin-left: auto; display: flex; align-items: center; gap: var(--s3); }
@@ -613,7 +613,9 @@ textarea.input { resize: vertical; min-height: 72px; }
 .login { min-height: 100dvh; display: grid; place-items: center; padding: var(--s4); }
 .login-card { width: min(400px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: var(--s6); display: flex; flex-direction: column; gap: var(--s3); box-shadow: var(--shadow-md); }
 .login-card h1 { font-family: var(--font-head); font-size: 26px; }
-.login-card .brand-mark { color: var(--green); }
+.login-card .brand-mark { align-self: center; filter: drop-shadow(0 4px 10px rgba(37, 43, 40, 0.18)); }
+.login-card h1 { text-align: center; }
+.login-card h1 + .muted { text-align: center; margin-top: calc(-1 * var(--s2)); }
 
 /* ---------- Средний экран: карточка поверх холста ---------- */
 @media (max-width: 1279px) {

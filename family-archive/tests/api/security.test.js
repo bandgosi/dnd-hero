@@ -108,6 +108,37 @@ test('вход по хэшу пароля; смена пароля и «заве
   }
 });
 
+test('логотип и значки доступны до входа (страница входа, вкладка браузера, иконка на телефоне)', async () => {
+  const s = await startServer({ env: { APP_PASSWORD_HASH: await hashPassword('пароль-для-значков-1') } });
+  const pngSize = (buf) => [buf.readUInt32BE(16), buf.readUInt32BE(20)];
+  try {
+    assert.equal((await s.get('/api/data')).status, 401);
+    const html = await (await s.raw('GET', '/')).text();
+    for (const href of ['/favicon.ico', '/apple-touch-icon.png', '/manifest.webmanifest']) assert.ok(html.includes(`href="${href}"`), href);
+    const manifestRes = await s.raw('GET', '/manifest.webmanifest');
+    assert.equal(manifestRes.status, 200);
+    assert.match(manifestRes.headers.get('content-type'), /manifest\+json/);
+    const manifest = await manifestRes.json();
+    assert.ok(manifest.icons.some((i) => i.purpose === 'maskable'));
+    const icons = [...manifest.icons, { src: '/apple-touch-icon.png', sizes: '180x180' }];
+    for (const icon of icons) {
+      const res = await s.raw('GET', icon.src);
+      assert.equal(res.status, 200, icon.src);
+      assert.equal(res.headers.get('content-type'), 'image/png', icon.src);
+      assert.equal(pngSize(Buffer.from(await res.arrayBuffer())).join('x'), icon.sizes, icon.src);
+    }
+    const ico = await s.raw('GET', '/favicon.ico');
+    assert.equal(ico.status, 200);
+    assert.match(ico.headers.get('content-type'), /icon/);
+    const logo = fs.readdirSync(path.join(ROOT, 'client/dist/assets')).find((f) => /^logo-.+\.webp$/.test(f));
+    const logoRes = await s.raw('GET', `/assets/${logo}`);
+    assert.equal(logoRes.status, 200);
+    assert.equal(logoRes.headers.get('content-type'), 'image/webp');
+  } finally {
+    await s.close();
+  }
+});
+
 test('вход: одновременные попытки не обходят ограничение числа попыток', async () => {
   const s = await startServer({ env: { APP_PASSWORD_HASH: await hashPassword('верный-пароль-789') } });
   try {
