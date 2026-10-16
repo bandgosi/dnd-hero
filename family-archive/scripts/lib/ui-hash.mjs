@@ -15,6 +15,9 @@ function listFiles(dir) {
   return out;
 }
 
+// Текстовые файлы: переводы строк приводятся к LF, чтобы копия git в Windows (CRLF) давала тот же отпечаток.
+export const TEXT_FILE_RE = /\.(js|jsx|css|html|json|svg|mjs|webmanifest)$/;
+
 export function uiSourceHash(root) {
   const files = [
     ...listFiles(path.join(root, 'client', 'src')),
@@ -26,7 +29,7 @@ export function uiSourceHash(root) {
   const h = crypto.createHash('sha256');
   for (const rel of files) {
     let buf = fs.readFileSync(path.join(root, rel));
-    if (/\.(js|jsx|css|html|json|svg|mjs)$/.test(rel)) buf = Buffer.from(buf.toString('utf8').replace(/\r\n/g, '\n'));
+    if (TEXT_FILE_RE.test(rel)) buf = Buffer.from(buf.toString('utf8').replace(/\r\n/g, '\n'));
     h.update(rel + '\0');
     h.update(buf);
     h.update('\0');

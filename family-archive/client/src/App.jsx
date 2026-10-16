@@ -42,7 +42,7 @@ const lsSet = (k, v) => {
   }
 };
 
-// Логотип: древо в золотой рамке (картинка 256×256 с прозрачными углами).
+// Логотип: древо в золотой рамке (картинка 384×384 с прозрачными углами — чёткая и на экране входа на телефонах с плотностью 3x).
 export function BrandMark({ size = 44 }) {
   return <img className="brand-mark" src={logoUrl} width={size} height={size} alt="" decoding="async" draggable="false" />;
 }
