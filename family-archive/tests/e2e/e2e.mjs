@@ -142,6 +142,39 @@ try {
   check('Резервная копия создаётся из интерфейса', (await page.locator('.backup-list li').count()) >= 1);
   await shot('07-archive');
 
+  // Древо на весь экран: крупные карточки, выход кнопкой, клавишей Esc и кнопкой «Назад» браузера.
+  await page.goto(`${s.url}/#/tree`);
+  await page.waitForSelector('.canvas-fs-btn');
+  await page.waitForTimeout(500);
+  const nameOnScreen = () => page.evaluate(() => {
+    const el = document.querySelector('.react-flow__node-person .pnode-name');
+    const zoom = new DOMMatrix(getComputedStyle(document.querySelector('.react-flow__viewport')).transform).a;
+    return parseFloat(getComputedStyle(el).fontSize) * zoom;
+  });
+  const fsCount = () => page.locator('.canvas-card.is-fullscreen').count();
+  // Сравнение с обычным видом «Показать всё».
+  await page.getByRole('button', { name: 'Показать всё' }).click();
+  await page.waitForTimeout(600);
+  const nameBefore = await nameOnScreen();
+  await page.click('.canvas-fs-btn');
+  await page.waitForSelector('.canvas-card.is-fullscreen .pnode-big');
+  await page.waitForTimeout(700);
+  const nameFs = await nameOnScreen();
+  await shot('09-tree-fullscreen');
+  await page.click('.fs-exit');
+  const byButton = (await fsCount()) === 0;
+  await page.click('.canvas-fs-btn');
+  await page.waitForSelector('.canvas-card.is-fullscreen');
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  const byEsc = (await fsCount()) === 0;
+  await page.click('.canvas-fs-btn');
+  await page.waitForSelector('.canvas-card.is-fullscreen');
+  await page.goBack();
+  await page.waitForTimeout(400);
+  const byBack = (await fsCount()) === 0 && (await page.locator('.view-tree').count()) === 1;
+  check('Древо на весь экран: имена крупнее, выход кнопкой, Esc и «Назад»', nameFs >= 11.5 && nameFs > nameBefore && byButton && byEsc && byBack, `имя на экране: ${nameBefore.toFixed(1)} → ${nameFs.toFixed(1)} px`);
+
   // Телефон: без горизонтальной прокрутки, карточка — нижней панелью.
   for (const [w, h] of [[390, 844], [320, 640]]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true });

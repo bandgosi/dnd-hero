@@ -166,6 +166,35 @@ function Shell() {
   const [adding, setAdding] = useState(false);
   const [focusTick, setFocusTick] = useState(0);
   const [peopleQuery, setPeopleQuery] = useState('');
+  // Полноэкранный просмотр древа. На большом экране карточка человека при входе прячется
+  // (не закрывается — несохранённые правки остаются), чтобы древо было видно целиком.
+  const [treeFs, setTreeFsState] = useState(false);
+  const setTreeFs = useCallback((on) => {
+    setTreeFsState(on);
+    if (on && window.matchMedia('(min-width: 1280px)').matches) setPanelOpen(false);
+  }, []);
+  useEffect(() => {
+    if (view !== 'tree') setTreeFsState(false);
+  }, [view]);
+  // Пока древо на весь экран, то, что под ним, недоступно для клавиатуры и экранного диктора.
+  // Шапка остаётся недоступной ещё немного после выхода: второе нажатие торопливого двойного
+  // касания «Закрыть» не попадёт в кнопку выхода из архива на том же месте.
+  const topbarTimer = useRef(null);
+  useEffect(() => {
+    if (!treeFs) return undefined;
+    clearTimeout(topbarTimer.current);
+    const els = [...document.querySelectorAll('.skip-link, .topbar, .sidebar, .view-tree > .view-header, .view-tree > .tree-toolbar')];
+    els.forEach((el) => el.setAttribute('inert', ''));
+    const root = document.documentElement;
+    root.classList.add('tree-fs-open');
+    return () => {
+      root.classList.remove('tree-fs-open');
+      for (const el of els) {
+        if (el.classList.contains('topbar')) topbarTimer.current = setTimeout(() => el.removeAttribute('inert'), 600);
+        else el.removeAttribute('inert');
+      }
+    };
+  }, [treeFs]);
 
   useEffect(() => {
     if (params.p && params.p !== selectedId) {
@@ -232,17 +261,27 @@ function Shell() {
     else navigate('tree', { p: id });
     setFocusTick((t) => t + 1);
   };
+  // На весь экран карточка человека открывается поверх древа и на большом экране: та же карточка
+  // (без пересоздания), только стилями (.app.is-tree-fs) поставлена поверх.
+  const fsOverlay = treeFs && view === 'tree';
+  // Переходы из полноэкранного просмотра заменяют его запись в истории, а не добавляют новую:
+  // тогда «Назад» потом ведёт туда, где человек был до древа, без «пустых» шагов.
+  const go2 = (v, p) => {
+    if (!fsOverlay) return navigate(v, p);
+    navigate(v, p, { replace: true });
+    if (v !== 'tree') window.history.replaceState(null, '', window.location.hash);
+  };
   const panel = (
     <PersonPanel
       personId={panelOpen || isDesktop ? selectedId : null}
       centerId={centerId}
-      closable={!isDesktop}
-      onClose={() => { setPanelOpen(false); if (isDesktop) select(null); }}
+      closable={!isDesktop || fsOverlay}
+      onClose={() => { setPanelOpen(false); if (isDesktop && !fsOverlay) select(null); }}
       onSelect={(id) => select(id, { focus: view === 'tree' })}
-      onCenter={(id) => { setCenter(id); navigate('tree', { p: id }); }}
-      onShowTree={(id) => { setMode('tree'); navigate('tree', { p: id }); setFocusTick((t) => t + 1); if (!isDesktop) setPanelOpen(false); }}
-      onShowExcel={(id) => { setMode('excel'); navigate('tree', { p: id }); setFocusTick((t) => t + 1); if (!isDesktop) setPanelOpen(false); }}
-      onQuestions={(id, tab) => { navigate('questions', { person: id, tab: tab || 'relations', status: 'all', p: id }); if (!isDesktop) setPanelOpen(false); }}
+      onCenter={(id) => { setCenter(id); go2('tree', { p: id }); }}
+      onShowTree={(id) => { setMode('tree'); go2('tree', { p: id }); setFocusTick((t) => t + 1); if (!isDesktop || fsOverlay) setPanelOpen(false); }}
+      onShowExcel={(id) => { setMode('excel'); go2('tree', { p: id }); setFocusTick((t) => t + 1); if (!isDesktop || fsOverlay) setPanelOpen(false); }}
+      onQuestions={(id, tab) => { go2('questions', { person: id, tab: tab || 'relations', status: 'all', p: id }); if (!isDesktop) setPanelOpen(false); }}
     />
   );
   const showOverlayPanel = !isDesktop && panelOpen && selectedId;
@@ -267,16 +306,20 @@ function Shell() {
         setScope={setScopeSaved}
         onSelect={(id) => select(id)}
         onCenter={setCenter}
-        onQuestions={(person, tab, q) => navigate('questions', { person: person || undefined, tab, q, status: q ? 'all' : undefined })}
-        onImport={() => navigate('import')}
+        onQuestions={(person, tab, q) => go2('questions', { person: person || undefined, tab, q, status: q ? 'all' : undefined })}
+        onImport={() => go2('import')}
         onAddPerson={() => setAdding(true)}
         focusTick={focusTick}
+        fullscreen={treeFs}
+        setFullscreen={setTreeFs}
+        cardOpen={!!(panelOpen && selectedId)}
+        onCloseCard={() => setPanelOpen(false)}
       />
     );
   }
 
   return (
-    <div className={`app ${isPhone ? 'is-phone' : ''} ${isDesktop ? 'is-desktop' : 'is-medium'}`}>
+    <div className={`app ${isPhone ? 'is-phone' : ''} ${isDesktop ? 'is-desktop' : 'is-medium'} ${fsOverlay ? 'is-tree-fs' : ''} ${fsOverlay && !(panelOpen && selectedId) ? 'fs-card-closed' : ''}`}>
       <a className="skip-link" href="#main">Перейти к содержимому</a>
       <header className="topbar">
         {isPhone && (
@@ -307,7 +350,7 @@ function Shell() {
         {isDesktop && dockPanel && panel}
       </div>
       {showOverlayPanel && (
-        <div className={isPhone ? 'sheet-layer' : 'overlay-layer'}>
+        <div className={isPhone ? 'sheet-layer' : `overlay-layer ${fsOverlay ? 'over-fs' : ''}`}>
           {isPhone && <div className="sheet-backdrop" onClick={() => setPanelOpen(false)} aria-hidden="true" />}
           <div className={isPhone ? 'bottom-sheet' : 'side-overlay'}>
             {isPhone && <div className="sheet-handle" aria-hidden="true" />}

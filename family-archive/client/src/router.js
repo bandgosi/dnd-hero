@@ -22,7 +22,8 @@ export function useRoute() {
     const clean = Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''));
     const q = new URLSearchParams(clean).toString();
     const hash = `#/${view}${q ? '?' + q : ''}`;
-    if (replace) window.history.replaceState(null, '', hash);
+    // При замене адреса служебная отметка записи истории (например, полноэкранного древа) сохраняется.
+    if (replace) window.history.replaceState(window.history.state, '', hash);
     else window.history.pushState(null, '', hash);
     setRoute(parse());
   }, []);

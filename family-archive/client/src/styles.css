@@ -271,6 +271,8 @@ textarea.input { resize: vertical; min-height: 72px; }
 .tree-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s4); margin-bottom: var(--s3); }
 .center-controls { display: flex; gap: var(--s2); align-items: center; flex-wrap: wrap; }
 .canvas-card { flex: 1; display: flex; flex-direction: column; min-height: 440px; }
+/* Место холста в разделе: остаётся занятым, пока древо открыто на весь экран (страница под ним не сдвигается). */
+.canvas-slot { flex: 1; display: flex; flex-direction: column; min-height: 440px; }
 .canvas { position: relative; flex: 1; min-height: 380px; border: 1px solid var(--line); border-radius: var(--radius-card); background: #FAF9F5; overflow: hidden; }
 .canvas-empty { justify-content: center; align-items: center; border: 1px dashed var(--line); border-radius: var(--radius-card); }
 .canvas-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 4; pointer-events: none; }
@@ -328,6 +330,67 @@ textarea.input { resize: vertical; min-height: 72px; }
 .union-partner { background: var(--surface); border: 2px solid var(--green); color: var(--green); padding: 0; }
 .union-partner:hover { background: var(--green-tint); }
 .union-co { width: 10px; height: 10px; margin: 8px; background: var(--line-strong); border-radius: 50%; }
+
+/* Крупная карточка полноэкранного просмотра (размеры совпадают с BIG в lib/graph.js) */
+.pnode-big { flex-direction: column; align-items: center; justify-content: flex-start; gap: 10px; padding: 16px 12px; text-align: center; }
+.pnode-big.is-selected { padding: 15px 11px; }
+.pnode-big .pnode-body { align-items: center; gap: 4px; width: 100%; }
+.pnode-big .pnode-name { font-size: 18px; line-height: 23px; align-items: center; }
+.pnode-big .pnode-meta { font-size: 15px; line-height: 21px; }
+.pnode-big .pnode-chips { justify-content: center; margin-top: 0; }
+.pnode-big .chip { font-size: 14px; }
+
+/* ---------- Полноэкранный просмотр древа ---------- */
+.canvas-fs-btn { position: absolute; z-index: 6; top: var(--s3); right: var(--s3); background: var(--surface); box-shadow: var(--shadow-sm); }
+.canvas-card.is-fullscreen {
+  position: fixed; inset: 0; z-index: 45; min-height: 0; margin: 0; gap: var(--s2); background: var(--bg);
+  padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+.canvas-card.is-fullscreen .canvas { min-height: 0; }
+.canvas-card.is-fullscreen .canvas-footer { padding-top: 0; }
+.fs-bar { display: flex; align-items: center; gap: var(--s3) var(--s4); min-height: 56px; flex: none; }
+.fs-heading { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.fs-title { font-family: var(--font-head); font-size: 24px; font-weight: 600; line-height: 1.15; }
+.fs-sub { font-size: 15px; color: var(--text-2-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fs-hint { font-size: 14px; color: var(--text-2-strong); white-space: nowrap; }
+.fs-exit { min-height: 52px; padding: 0 var(--s5); font-size: 18px; flex: none; }
+.fs-actions { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
+.fs-actions:empty { display: none; }
+.fs-chip { cursor: pointer; min-height: 32px; font-size: 14px; }
+.fs-exit-bottom { display: none; }
+.canvas-card.is-fullscreen .fs-bar, .canvas-card.is-fullscreen .canvas-footer { touch-action: none; }
+html.tree-fs-open, html.tree-fs-open body { overscroll-behavior: none; }
+.app.is-tree-fs .main { overflow: hidden; }
+/* Карточка человека на большом экране во время полноэкранного просмотра — поверх древа. */
+.app.is-tree-fs .shell > .panel {
+  position: fixed; z-index: 50; top: calc(80px + env(safe-area-inset-top)); right: var(--s4); bottom: 76px;
+  width: min(380px, calc(100vw - 32px)); box-shadow: var(--shadow-lg);
+}
+.app.is-tree-fs.fs-card-closed .shell > .panel { display: none; }
+/* Касание пальцем: крупнее кнопки, без подсказки про Esc; вторая «Закрыть» внизу. */
+@media (pointer: coarse) {
+  .fs-hint { display: none; }
+  .canvas-fs-btn { min-height: 44px; font-size: 15px; box-shadow: var(--shadow-md); }
+  .canvas-card.is-fullscreen .canvas-footer .btn-small { min-height: 44px; }
+  .canvas-card.is-fullscreen .zoom-group .icon-btn { min-width: 44px; min-height: 44px; }
+  .canvas-card.is-fullscreen .fs-exit-bottom { display: inline-flex; }
+}
+/* Невысокий экран (телефон боком): компактная полоса, больше места древу. */
+@media (max-height: 520px) {
+  .fs-bar { min-height: 44px; }
+  .fs-sub, .fs-hint, .canvas-card.is-fullscreen .canvas-note { display: none; }
+  .fs-title { font-size: 18px; }
+  .fs-exit { min-height: 44px; font-size: 16px; }
+  .canvas-card.is-fullscreen .legend, .canvas-card.is-fullscreen .react-flow__minimap { display: none; }
+  .fs-tip { font-size: 14px; padding: 8px 12px; }
+  .canvas-card.is-fullscreen { gap: 4px; padding-top: max(6px, env(safe-area-inset-top)); padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+}
+.fs-tip {
+  position: absolute; z-index: 6; bottom: var(--s4); left: 50%; transform: translateX(-50%); width: min(520px, calc(100% - 24px));
+  margin: 0; padding: 10px 14px; border-radius: 10px; background: var(--text); color: #fff; font-size: 15px; line-height: 1.4; box-shadow: var(--shadow-md); pointer-events: none;
+}
+/* Карточка поверх полноэкранного древа не закрывает кнопки масштаба внизу. */
+.overlay-layer.over-fs .side-overlay { top: 80px; bottom: 76px; }
 .section-node { width: 560px; display: flex; flex-direction: column; gap: 2px; color: var(--text-2-strong); font-size: 14px; }
 .section-node strong { color: var(--text); font-family: var(--font-head); font-size: 18px; font-weight: 600; }
 .grid-head { display: flex; align-items: center; justify-content: center; color: var(--text-2-strong); font-weight: 700; font-size: 13px; background: #EFF0EA; border-radius: 4px; }
@@ -618,11 +681,13 @@ textarea.input { resize: vertical; min-height: 72px; }
 .login-card h1 + .muted { text-align: center; margin-top: calc(-1 * var(--s2)); }
 
 /* ---------- Средний экран: карточка поверх холста ---------- */
+/* Карточка человека поверх содержимого: средний экран, а также полноэкранное древо на любом. */
+.overlay-layer { position: fixed; inset: 0; z-index: 50; pointer-events: none; }
+.side-overlay { position: absolute; top: 80px; right: var(--s4); bottom: var(--s4); width: min(380px, calc(100vw - 32px)); pointer-events: auto; display: flex; filter: drop-shadow(0 12px 32px rgba(37, 43, 40, 0.2)); }
+.side-overlay .panel { flex: 1; }
+
 @media (max-width: 1279px) {
   .shell, .shell.no-panel { grid-template-columns: 236px minmax(0, 1fr); }
-  .overlay-layer { position: fixed; inset: 0; z-index: 50; pointer-events: none; }
-  .side-overlay { position: absolute; top: 80px; right: var(--s4); bottom: var(--s4); width: min(380px, calc(100vw - 32px)); pointer-events: auto; display: flex; filter: drop-shadow(0 12px 32px rgba(37, 43, 40, 0.2)); }
-  .side-overlay .panel { flex: 1; }
   .brand-title { font-size: 26px; }
 }
 
@@ -646,7 +711,7 @@ textarea.input { resize: vertical; min-height: 72px; }
   .view-title { font-size: 28px; }
   .view-subtitle { font-size: 16px; }
   .view-tree { min-height: 0; }
-  .canvas-card { min-height: 62dvh; }
+  .canvas-card, .canvas-slot { min-height: 62dvh; }
   .canvas { min-height: 52dvh; }
   .legend { display: none; }
   .canvas-footer { gap: var(--s2); }
@@ -675,6 +740,15 @@ textarea.input { resize: vertical; min-height: 72px; }
   .segmented .seg-full.has-short { display: none; }
   .segmented .seg-short { display: inline; }
   .react-flow__minimap { display: none; }
+  .fs-bar { min-height: 52px; gap: var(--s2); }
+  .fs-title { font-size: 19px; }
+  .fs-sub { font-size: 13px; }
+  .fs-hint { display: none; }
+  .fs-exit { min-height: 48px; padding: 0 var(--s4); font-size: 17px; }
+  .canvas-card.is-fullscreen .canvas-note { display: none; }
+  .canvas-card.is-fullscreen .fs-exit-bottom { display: inline-flex; }
+  .canvas-card.is-fullscreen { min-height: 0; }
+  .canvas-card.is-fullscreen .canvas { min-height: 0; }
   .status-pill { font-size: 14px; min-height: 36px; padding: 0 var(--s3); }
   .tree-toolbar .segmented button { flex: 1; justify-content: center; padding: 0 6px; }
   .form-actions { bottom: calc(-1 * var(--s4)); padding-bottom: var(--s4); }
@@ -686,5 +760,6 @@ textarea.input { resize: vertical; min-height: 72px; }
 }
 
 @media print {
-  .topbar, .sidebar, .canvas-footer, .tree-toolbar { display: none; }
+  .topbar, .sidebar, .canvas-footer, .tree-toolbar, .fs-bar, .canvas-fs-btn, .fs-tip { display: none; }
+  .canvas-card.is-fullscreen { position: static; padding: 0; }
 }

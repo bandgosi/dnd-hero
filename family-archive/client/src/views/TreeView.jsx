@@ -2,15 +2,15 @@
 import { createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow, ReactFlowProvider, Background, MiniMap, Handle, Position, BaseEdge, EdgeLabelRenderer,
-  getSmoothStepPath, getBezierPath, useReactFlow, useViewport,
+  getSmoothStepPath, getBezierPath, useReactFlow, useViewport, useStore, useStoreApi, getViewportForBounds,
 } from '@xyflow/react';
 import '@xyflow/react/dist/base.css';
-import { Info, Minus, Plus, Maximize2, LocateFixed, AlertCircle, Network, Table2, X, ChevronUp, ChevronDown, FileSpreadsheet, UserPlus, HelpCircle } from 'lucide-react';
+import { Info, Minus, Plus, Scan, LocateFixed, AlertCircle, Network, Table2, X, ChevronUp, ChevronDown, FileSpreadsheet, UserPlus, HelpCircle, Expand } from 'lucide-react';
 import { useData, useUi, reportError } from '../store.jsx';
 import { api } from '../api.js';
 import { Avatar, Segmented, Toggle, EmptyState, Modal } from '../components/ui.jsx';
 import { ConfirmHypothesisDialog, RelationEditDialog, describeHyp } from '../components/dialogs.jsx';
-import { buildTree, buildExcel, hypothesisEdges } from '../lib/graph.js';
+import { buildTree, buildExcel, hypothesisEdges, BIG } from '../lib/graph.js';
 import { kinshipLabel } from '../lib/kinship.js';
 import { splitName, lifeSpan, countText, PARENT_KIND_LABELS, PARTNER_KIND_LABELS, PARTNER_STATUS_LABELS, HYP_STATUS_LABELS } from '../lib/format.js';
 
@@ -49,7 +49,7 @@ const PersonNode = memo(({ data }) => {
   const upCollapsed = ctx.collapsedUp.has(p.id);
   return (
     <div
-      className={`pnode ${selected ? 'is-selected' : ''} ${isCenter ? 'is-center' : ''} ${data.recordStatus && data.recordStatus !== 'active' ? 'is-faded' : ''}`}
+      className={`pnode ${data.big ? 'pnode-big' : ''} ${selected ? 'is-selected' : ''} ${isCenter ? 'is-center' : ''} ${data.recordStatus && data.recordStatus !== 'active' ? 'is-faded' : ''}`}
       style={{ width: data.width, minHeight: data.height }}
       title={p.display_name}
     >
@@ -57,18 +57,20 @@ const PersonNode = memo(({ data }) => {
       <Handle type="source" position={Position.Bottom} id="b" isConnectable={false} />
       <Handle type="target" position={Position.Left} id="l" isConnectable={false} />
       <Handle type="source" position={Position.Right} id="r" isConnectable={false} />
-      <Avatar person={p} size={48} />
+      <Avatar person={p} size={data.big ? BIG.avatar : 48} />
       <div className="pnode-body">
         <div className="pnode-name">
           <span>{line1}</span>
           {line2 && <span>{line2}</span>}
         </div>
         {!data.excel && span && <div className="pnode-meta">{span}</div>}
-        <div className="pnode-chips">
-          {isCenter && <span className="chip chip-green">Центр</span>}
-          {kin && !isCenter && <span className={`chip ${kin.unknown ? 'chip-muted' : 'chip-green'}`}>{kin.unknown ? 'Родство не установлено' : kin.label}</span>}
-          {data.excel ? <span className="chip chip-muted">{data.cell}</span> : !kin && rec && <span className="chip chip-muted">Из Excel</span>}
-        </div>
+        {(!data.big || isCenter || kin) && (
+          <div className="pnode-chips">
+            {isCenter && <span className="chip chip-green">Центр</span>}
+            {kin && !isCenter && <span className={`chip ${kin.unknown ? 'chip-muted' : 'chip-green'}`}>{kin.unknown ? 'Родство не установлено' : kin.label}</span>}
+            {data.excel ? <span className="chip chip-muted">{data.cell}</span> : !kin && rec && !data.big && <span className="chip chip-muted">Из Excel</span>}
+          </div>
+        )}
       </div>
       {hasParents && (
         <button type="button" className={`pnode-toggle up nodrag ${upCollapsed ? 'is-collapsed' : ''}`} onClick={(e) => { e.stopPropagation(); ctx.toggleUp(p.id); }} aria-label={upCollapsed ? 'Показать предков' : 'Свернуть предков'} title={upCollapsed ? 'Показать предков' : 'Свернуть предков'}>
@@ -232,7 +234,7 @@ function HypothesisDialog({ hypothesis, onClose, onOpenQuestion }) {
 
 // ---------- Нижняя панель управления ----------
 
-function CanvasControls({ selectedNodeId, showHyp, mode }) {
+function CanvasControls({ selectedNodeId, showHyp, mode, fullscreen, onCloseFs }) {
   const rf = useReactFlow();
   const { zoom } = useViewport();
   const toSelected = () => {
@@ -256,28 +258,146 @@ function CanvasControls({ selectedNodeId, showHyp, mode }) {
         <button type="button" className="icon-btn bordered" onClick={() => rf.zoomIn({ duration: 200 })} aria-label="Увеличить"><Plus size={18} /></button>
       </div>
       <div className="footer-actions">
-        <button type="button" className="btn btn-outline btn-small" onClick={() => rf.fitView({ padding: 0.12, duration: 400 })}><Maximize2 size={15} /> Показать всё</button>
+        <button type="button" className="btn btn-outline btn-small" onClick={() => rf.fitView(fullscreen ? { padding: FS_PADDING, maxZoom: FS_MAX_ZOOM, minZoom: FS_MIN_ZOOM, duration: 400 } : { padding: 0.12, duration: 400 })}><Scan size={15} /> Показать всё</button>
         <button type="button" className="btn btn-outline btn-small" onClick={toSelected} disabled={!selectedNodeId}><LocateFixed size={15} /> К выбранному</button>
+        {/* Вторая кнопка выхода — внизу, под большим пальцем (видна на телефонах и планшетах). */}
+        {fullscreen && <button type="button" className="btn btn-primary btn-small fs-exit-bottom" onClick={onCloseFs}><X size={16} aria-hidden="true" /> Закрыть</button>}
       </div>
     </div>
   );
 }
 
-function FitOnChange({ layoutKey, focusId, focusTick }) {
+// Мельче этого имя на экране читать трудно. На весь экран древо показывается целиком, только если
+// имена при этом не мельче; иначе — крупно, начиная с выбранного человека, центра или старшего
+// поколения (остальное — перетаскиванием, «Показать всё» — целиком, хоть и мелко).
+const READABLE_NAME_PX = 14;
+const FS_MAX_ZOOM = 1.6;
+const FS_MIN_ZOOM = 0.03;
+const FS_PADDING = 0.06;
+const nodeSize = (n) => [n.measured?.width || n.data?.width || 260, n.measured?.height || n.data?.height || 90];
+
+function FitOnChange({ layoutKey, normalKey, focusId, startId, focusTick, fullscreen, readableZoom = 0, nameFont = 15, onPartial = () => {} }) {
   const rf = useReactFlow();
+  const store = useStoreApi();
+  const paneW = useStore((s) => s.width);
+  const paneH = useStore((s) => s.height);
   const first = useRef(true);
+  const prevFs = useRef(fullscreen);
+  // Вид до входа на весь экран: размер имён (мельче на весь экран не делаем) и положение — к нему возвращаемся после выхода.
+  const entry = useRef(null);
+  const restore = useRef(null);
+  // Сразу после входа и выхода холст ещё меняет размер (анимация браузера) — подгонять вид снова.
+  const armUntil = useRef(0);
+  const lastPane = useRef({ w: 0, h: 0 });
+  const partialRef = useRef(onPartial);
+  partialRef.current = onPartial;
+  const maxZoom = fullscreen ? FS_MAX_ZOOM : 1.1;
+
+  const wholeView = useCallback(() => {
+    const { width, height } = store.getState();
+    const nodes = rf.getNodes().filter((n) => !n.hidden);
+    if (!width || !height || !nodes.length) return null;
+    return getViewportForBounds(rf.getNodesBounds(nodes), width, height, FS_MIN_ZOOM, FS_MAX_ZOOM, FS_PADDING);
+  }, [rf, store]);
+
+  const fit = useCallback((duration) => {
+    if (!fullscreen) {
+      if (restore.current) rf.setViewport(restore.current, { duration });
+      else rf.fitView({ padding: 0.12, maxZoom, duration });
+      return;
+    }
+    const whole = wholeView();
+    if (!whole) return;
+    if (whole.zoom >= readableZoom) {
+      rf.setViewport(whole, { duration });
+      partialRef.current(false);
+      return;
+    }
+    const z = Math.min(maxZoom, Math.max(readableZoom, (entry.current?.namePx || 0) / nameFont));
+    const target = [focusId, startId].map((id) => id && rf.getNode(id)).find(Boolean);
+    if (target) {
+      const [w, h] = nodeSize(target);
+      rf.setCenter(target.position.x + w / 2, target.position.y + h / 2, { zoom: z, duration });
+    } else {
+      const { width } = store.getState();
+      const persons = rf.getNodes().filter((n) => n.type === 'person' && !n.hidden);
+      const topY = Math.min(...persons.map((n) => n.position.y));
+      const top = persons.filter((n) => n.position.y < topY + 40);
+      const cx = top.reduce((sum, n) => sum + n.position.x + nodeSize(n)[0] / 2, 0) / top.length;
+      rf.setViewport({ x: width / 2 - cx * z, y: 28 - topY * z, zoom: z }, { duration });
+    }
+    partialRef.current(true);
+  }, [rf, store, fullscreen, maxZoom, readableZoom, nameFont, focusId, startId, wholeView]);
+  const fitRef = useRef(fit);
+  fitRef.current = fit;
+
   useEffect(() => {
-    const t = setTimeout(() => rf.fitView({ padding: 0.12, duration: first.current ? 0 : 350, maxZoom: 1.1 }), 30);
+    const toggled = prevFs.current !== fullscreen;
+    if (toggled && fullscreen) {
+      entry.current = { viewport: rf.getViewport(), namePx: rf.getZoom() * 15, normalKey };
+      restore.current = null;
+    } else if (toggled) {
+      // Обычный вид не изменился — вернуть его как был; иначе показать всё.
+      restore.current = entry.current?.normalKey === normalKey ? entry.current.viewport : null;
+      entry.current = null;
+    } else if (!fullscreen) {
+      restore.current = null;
+    }
+    if (toggled) armUntil.current = performance.now() + 1500;
+    const t = setTimeout(() => fitRef.current(first.current || toggled ? 0 : 350), 30);
+    const t2 = toggled ? setTimeout(() => fitRef.current(200), 380) : null;
+    prevFs.current = fullscreen;
     first.current = false;
+    return () => {
+      clearTimeout(t);
+      clearTimeout(t2);
+    };
+  }, [layoutKey, fullscreen, normalKey, rf]);
+
+  // Вход и выход из полного экрана браузера тоже меняют размер холста.
+  useEffect(() => {
+    const arm = () => {
+      armUntil.current = performance.now() + 1500;
+    };
+    document.addEventListener('fullscreenchange', arm);
+    document.addEventListener('webkitfullscreenchange', arm);
+    return () => {
+      document.removeEventListener('fullscreenchange', arm);
+      document.removeEventListener('webkitfullscreenchange', arm);
+    };
+  }, []);
+
+  useEffect(() => {
+    const prev = lastPane.current;
+    lastPane.current = { w: paneW, h: paneH };
+    if (!paneW || !paneH) return undefined;
+    if (performance.now() <= armUntil.current) {
+      const t = setTimeout(() => fitRef.current(200), 120);
+      return () => clearTimeout(t);
+    }
+    // Поворот телефона или другая ширина окна на весь экран: тот же масштаб и та же середина
+    // (а если древо целиком теперь читаемо — целиком). Изменение только высоты (панель браузера,
+    // клавиатура) вид не трогает.
+    if (!fullscreen || !prev.w || Math.abs(paneW - prev.w) < 40) return undefined;
+    const { x, y, zoom } = rf.getViewport();
+    const cx = (prev.w / 2 - x) / zoom;
+    const cy = (prev.h / 2 - y) / zoom;
+    const t = setTimeout(() => {
+      const whole = wholeView();
+      if (whole && whole.zoom >= readableZoom) {
+        rf.setViewport(whole, { duration: 200 });
+        partialRef.current(false);
+      } else rf.setCenter(cx, cy, { zoom, duration: 0 });
+    }, 60);
     return () => clearTimeout(t);
-  }, [layoutKey, rf]);
+  }, [paneW, paneH]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!focusTick || !focusId) return undefined;
     const t = setTimeout(() => {
       const n = rf.getNode(focusId);
       if (!n) return;
-      const w = n.measured?.width || n.data.width || 260;
-      const h = n.measured?.height || n.data.height || 90;
+      const [w, h] = nodeSize(n);
       rf.setCenter(n.position.x + w / 2, n.position.y + h / 2, { zoom: Math.max(rf.getZoom(), 0.9), duration: 450 });
     }, 80);
     return () => clearTimeout(t);
@@ -285,10 +405,148 @@ function FitOnChange({ layoutKey, focusId, focusTick }) {
   return null;
 }
 
+// ---------- Полноэкранный просмотр ----------
+
+const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+
+// Настоящий полный экран (компьютер, Android, iPad) запрашивается прямо в обработчике нажатия —
+// иначе браузер может отказать. На iPhone его нет: древо всё равно занимает всё окно браузера.
+function requestBrowserFullscreen(flag) {
+  const root = document.documentElement;
+  const request = root.requestFullscreen || root.webkitRequestFullscreen;
+  flag.current = false;
+  if (!request || fsElement()) return;
+  try {
+    flag.current = true;
+    Promise.resolve(request.call(root, { navigationUI: 'hide' })).catch(() => {
+      flag.current = false;
+    });
+  } catch {
+    flag.current = false;
+  }
+}
+
+const dialogOpen = () => !!document.querySelector('.modal-backdrop');
+const typing = () => !!document.activeElement?.closest?.('input, textarea, select, [contenteditable="true"]');
+
+// Выход — кнопкой «Закрыть», клавишей Esc, кнопкой или жестом «Назад» (у полноэкранного просмотра
+// своя запись в истории браузера) и выходом из полного экрана браузера. Esc и «Назад» сначала
+// закрывают то, что открыто поверх древа: окно, меню, карточку человека.
+function useFullscreenMode(active, { setActive, browserFs, cardOpen, closeCard }) {
+  const ref = useRef({});
+  ref.current = { setActive, cardOpen, closeCard };
+  // Адрес с человеком, выбранным уже на весь экран: после выхода он не должен смениться прежним.
+  const hashRef = useRef('');
+  useEffect(() => {
+    if (active) hashRef.current = window.location.hash;
+  });
+  useEffect(() => {
+    if (!active) return undefined;
+    hashRef.current = window.location.hash;
+    const token = `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+    const mark = () => window.history.pushState({ ...(window.history.state || {}), faTreeFs: token }, '');
+    const keepHash = () => {
+      if (hashRef.current && window.location.hash !== hashRef.current) window.history.replaceState(window.history.state, '', hashRef.current);
+    };
+    mark();
+    let pushed = true;
+    let reason = 'button';
+    const exit = (why) => {
+      reason = why;
+      ref.current.setActive(false);
+    };
+    const onPop = () => {
+      keepHash();
+      const modal = document.querySelector('.modal');
+      if (modal || ref.current.cardOpen) {
+        // «Назад» закрывает окно или карточку, а древо остаётся на весь экран.
+        mark();
+        if (modal) modal.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        else ref.current.closeCard();
+        return;
+      }
+      pushed = false;
+      exit('back');
+    };
+    const onFsChange = () => {
+      if (!browserFs.current || fsElement()) return;
+      browserFs.current = false;
+      // Браузер вышел из полного экрана (Esc, жест). Если поверх древа окно или карточка, или идёт
+      // ввод — закрылся только верхний слой, древо остаётся на всё окно (кнопка «Закрыть» на месте).
+      if (dialogOpen() || ref.current.cardOpen || typing()) return;
+      exit('browser');
+    };
+    const onKey = (e) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || dialogOpen() || typing() || document.querySelector('.menu-list')) return;
+      e.preventDefault();
+      if (ref.current.cardOpen) ref.current.closeCard();
+      else exit('key');
+    };
+    window.addEventListener('popstate', onPop);
+    document.addEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      document.removeEventListener('fullscreenchange', onFsChange);
+      document.removeEventListener('webkitfullscreenchange', onFsChange);
+      document.removeEventListener('keydown', onKey);
+      if (browserFs.current && fsElement()) {
+        const leave = document.exitFullscreen || document.webkitExitFullscreen;
+        try {
+          Promise.resolve(leave?.call(document)).catch(() => {});
+        } catch {
+          /* браузер уже вышел из полного экрана */
+        }
+      }
+      browserFs.current = false;
+      // Убрать свою запись истории (адрес — с выбранным сейчас человеком). Если открыт другой раздел,
+      // запись уже не наша — её не трогаем. После выхода из полного экрана браузера — с задержкой:
+      // некоторые браузеры сами делают шаг назад, и тогда второй шаг не нужен.
+      if (!pushed) return;
+      const pop = () => {
+        if (window.history.state?.faTreeFs !== token) return;
+        const h = window.location.hash;
+        window.addEventListener('popstate', () => {
+          if (window.location.hash !== h) window.history.replaceState(window.history.state, '', h);
+        }, { once: true });
+        window.history.back();
+      };
+      if (reason === 'browser') setTimeout(pop, 150);
+      else pop();
+    };
+  }, [active, browserFs]);
+}
+
 // ---------- Основной компонент ----------
 
-export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShowHyp, scope, setScope, onSelect, onCenter, onQuestions, onImport, onAddPerson, focusTick }) {
+export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShowHyp, scope, setScope, onSelect, onCenter, onQuestions, onImport, onAddPerson, focusTick, fullscreen = false, setFullscreen = () => {}, cardOpen = false, onCloseCard = () => {} }) {
   const { data, index } = useData();
+  const browserFs = useRef(false);
+  useFullscreenMode(fullscreen, { setActive: setFullscreen, browserFs, cardOpen, closeCard: onCloseCard });
+  const enterFullscreen = () => {
+    requestBrowserFullscreen(browserFs);
+    setFullscreen(true);
+  };
+  // Фокус: при входе — на кнопку «Выйти», при выходе — обратно на «На весь экран».
+  const fsEnterRef = useRef(null);
+  const fsExitRef = useRef(null);
+  const wasFs = useRef(false);
+  // Подсказка, если на весь экран видна только часть древа (иначе имена были бы слишком мелкими).
+  const [fsPartial, setFsPartial] = useState(false);
+  const [fsTip, setFsTip] = useState(false);
+  useEffect(() => {
+    if (fullscreen) fsExitRef.current?.focus({ preventScroll: true });
+    else if (wasFs.current) fsEnterRef.current?.focus({ preventScroll: true });
+    wasFs.current = fullscreen;
+    setFsPartial(false);
+    setFsTip(fullscreen);
+  }, [fullscreen]);
+  useEffect(() => {
+    if (!fsTip) return undefined;
+    const t = setTimeout(() => setFsTip(false), 9000);
+    return () => clearTimeout(t);
+  }, [fsTip]);
   const [collapsedDown, setCollapsedDown] = useState(() => loadSet('fa_collapsed_down'));
   const [collapsedUp, setCollapsedUp] = useState(() => loadSet('fa_collapsed_up'));
   const [hypDialog, setHypDialog] = useState(null);
@@ -324,14 +582,21 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
     return n;
   }), []);
 
+  // Подпись родства для расчёта высоты крупной карточки (та же, что показывается на карточке).
+  const kinLabel = useCallback((pid) => {
+    if (!centerId) return null;
+    if (pid === centerId) return 'Центр';
+    const k = kinshipLabel(centerId, pid, index);
+    return k ? (k.unknown ? 'Родство не установлено' : k.label) : null;
+  }, [centerId, index]);
   const layout = useMemo(() => {
     if (!data.persons.length) return { nodes: [], edges: [] };
     if (mode === 'excel') {
       if (!importDetail || importDetail.id !== currentImportId) return { nodes: [], edges: [], loading: !!currentImportId };
       return buildExcel({ data, index, importRow: importDetail, sheetName: excelSheet });
     }
-    return buildTree({ data, index, scope, centerId, collapsedDown, collapsedUp });
-  }, [data, index, mode, scope, centerId, collapsedDown, collapsedUp, importDetail, currentImportId, excelSheet]);
+    return buildTree({ data, index, scope, centerId, collapsedDown, collapsedUp, big: fullscreen, kinLabel });
+  }, [data, index, mode, scope, centerId, collapsedDown, collapsedUp, importDetail, currentImportId, excelSheet, fullscreen, kinLabel]);
 
   const nodeIdFor = useCallback((pid) => (mode === 'excel' ? layout.personNode?.get(pid) || pid : pid), [mode, layout]);
   const edges = useMemo(() => {
@@ -359,11 +624,16 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
       return m;
     });
   }, [onSelect]);
-  const nodes = useMemo(() => (layout.nodes || []).map((n) => ({
-    ...n,
-    measured: measured.get(n.id),
-    ...(n.type === 'person' ? { selected: n.data.personId === selectedId, draggable: false } : {}),
-  })), [layout, selectedId, measured]);
+  const nodes = useMemo(() => (layout.nodes || []).map((n) => {
+    const m = measured.get(n.id);
+    // Размер, измеренный у карточки другого вида (обычной или крупной), не подходит — карточка измерится заново.
+    const fits = !m || n.type !== 'person' || Math.abs(m.width - n.data.width) < 2;
+    return {
+      ...n,
+      measured: fits ? m : undefined,
+      ...(n.type === 'person' ? { selected: n.data.personId === selectedId, draggable: false } : {}),
+    };
+  }), [layout, selectedId, measured]);
 
   const kin = useMemo(() => {
     if (!centerId || mode === 'excel') return null;
@@ -381,7 +651,16 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
 
   const confirmedCount = data.parentChild.length + data.partnerships.length;
   const openHyps = data.hypotheses.filter((h) => h.status === 'open' || h.status === 'deferred').length;
-  const layoutKey = `${mode}|${scope}|${centerId}|${data.persons.length}|${confirmedCount}|${currentImportId}|${excelSheet}|${collapsedDown.size}|${collapsedUp.size}`;
+  const normalKey = `${mode}|${scope}|${centerId}|${data.persons.length}|${confirmedCount}|${currentImportId}|${excelSheet}|${collapsedDown.size}|${collapsedUp.size}`;
+  const layoutKey = `${normalKey}|${fullscreen}`;
+  // Показать всех: снять ограничение «что показать» и развернуть свёрнутые ветви.
+  const showEveryone = () => {
+    setScope('all');
+    setCollapsedDown(new Set());
+    setCollapsedUp(new Set());
+    storeSet('fa_collapsed_down', new Set());
+    storeSet('fa_collapsed_up', new Set());
+  };
   const center = centerId ? index.byId.get(centerId) : null;
 
   if (!data.persons.length) {
@@ -401,6 +680,7 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
   const selectedNodeId = selectedId ? (mode === 'excel' ? layout.personNode?.get(selectedId) : selectedId) : null;
   const selectedVisible = selectedNodeId && nodes.some((n) => n.id === selectedNodeId);
   const personNodeCount = nodes.filter((n) => n.type === 'person').length;
+  const partialTree = mode === 'tree' && personNodeCount < data.persons.length;
 
   return (
     <section className="view view-tree">
@@ -450,8 +730,30 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
           </select>
         )}
       </div>
-      <div className="canvas-card">
-        {mode === 'tree' && !confirmedCount && (
+      <div className="canvas-slot">
+      <div className={`canvas-card ${fullscreen ? 'is-fullscreen' : ''}`} {...(fullscreen ? { role: 'region', 'aria-label': 'Древо на весь экран' } : {})}>
+        {fullscreen && (
+          <div className="fs-bar">
+            <div className="fs-heading">
+              <strong className="fs-title">{mode === 'excel' ? 'Исходная схема Excel' : 'Семейное древо'}</strong>
+              <span className="fs-sub">
+                {mode === 'excel'
+                  ? countText(personNodeCount, 'запись', 'записи', 'записей')
+                  : partialTree ? `Показано ${personNodeCount} из ${data.persons.length}` : countText(personNodeCount, 'человек', 'человека', 'человек')}
+                {center && mode === 'tree' ? ` · центр: ${center.display_name}` : ''}
+              </span>
+            </div>
+            <div className="fs-actions">
+              {mode === 'tree' && partialTree && <button type="button" className="btn btn-outline btn-small" onClick={showEveryone}>Показать всех</button>}
+              {showHyp && <button type="button" className="chip chip-hyp fs-chip" onClick={() => setShowHyp(false)} aria-label="Скрыть предположения">Предположения <X size={14} aria-hidden="true" /></button>}
+            </div>
+            <span className="fs-hint">Закрыть можно и клавишей Esc</span>
+            <button ref={fsExitRef} type="button" className="btn btn-primary fs-exit" onClick={() => setFullscreen(false)} aria-label="Закрыть полноэкранный просмотр древа">
+              <X size={22} aria-hidden="true" /> Закрыть
+            </button>
+          </div>
+        )}
+        {mode === 'tree' && !confirmedCount && !fullscreen && (
           <div className="canvas-banner" role="note">
             <HelpCircle size={20} aria-hidden="true" />
             <div>
@@ -486,7 +788,7 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
                 nodesDraggable={false}
                 nodesConnectable={false}
                 edgesFocusable={false}
-                minZoom={0.15}
+                minZoom={fullscreen ? FS_MIN_ZOOM : 0.15}
                 maxZoom={2}
                 fitView
                 fitViewOptions={{ padding: 0.12, maxZoom: 1.1 }}
@@ -494,6 +796,7 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
                 attributionPosition="bottom-left"
                 zoomOnDoubleClick={false}
                 panOnScroll={false}
+                onMoveStart={(e) => e && fsTip && setFsTip(false)}
               >
                 <Background gap={22} size={1.2} color="var(--grid-dot)" />
                 {personNodeCount > 12 && (
@@ -501,11 +804,30 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
                 )}
               </ReactFlow>
               <Legend showHyp={showHyp} mode={mode} />
+              {fullscreen && fsPartial && fsTip && (
+                <p className="fs-tip" role="status">Видна часть древа, чтобы имена были крупными. Двигайте древо пальцем или мышью. «Показать всё» внизу покажет его целиком, но мельче.</p>
+              )}
+              {!fullscreen && !layout.loading && nodes.length > 0 && (
+                <button ref={fsEnterRef} type="button" className="btn btn-outline btn-small canvas-fs-btn" onClick={enterFullscreen} title="Показать древо на весь экран, крупно">
+                  <Expand size={16} aria-hidden="true" /> На весь экран
+                </button>
+              )}
             </div>
-            <FitOnChange layoutKey={layoutKey} focusId={selectedNodeId} focusTick={focusTick} />
-            <CanvasControls selectedNodeId={selectedVisible ? selectedNodeId : null} showHyp={showHyp} mode={mode} />
+            <FitOnChange
+              layoutKey={layoutKey}
+              normalKey={normalKey}
+              focusId={selectedVisible ? selectedNodeId : null}
+              startId={mode === 'tree' && centerId && nodes.some((n) => n.id === centerId) ? centerId : null}
+              focusTick={focusTick}
+              fullscreen={fullscreen}
+              readableZoom={READABLE_NAME_PX / (mode === 'tree' && fullscreen ? 18 : 15)}
+              nameFont={mode === 'tree' && fullscreen ? 18 : 15}
+              onPartial={setFsPartial}
+            />
+            <CanvasControls selectedNodeId={selectedVisible ? selectedNodeId : null} showHyp={showHyp} mode={mode} fullscreen={fullscreen} onCloseFs={() => setFullscreen(false)} />
           </TreeCtx.Provider>
         </ReactFlowProvider>
+      </div>
       </div>
       {hypDialog && <HypothesisDialog hypothesis={data.hypotheses.find((h) => h.id === hypDialog.id) || hypDialog} onClose={() => setHypDialog(null)} onOpenQuestion={(qid) => { setHypDialog(null); onQuestions(null, 'relations', qid); }} />}
       {partnershipDialog && <RelationEditDialog relation={data.partnerships.find((p) => p.id === partnershipDialog.id) || partnershipDialog} type="partnership" onClose={() => setPartnershipDialog(null)} />}
