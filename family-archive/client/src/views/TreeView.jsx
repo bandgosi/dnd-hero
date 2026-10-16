@@ -234,7 +234,7 @@ function HypothesisDialog({ hypothesis, onClose, onOpenQuestion }) {
 
 // ---------- Нижняя панель управления ----------
 
-function CanvasControls({ selectedNodeId, showHyp, mode, fullscreen, onCloseFs }) {
+function CanvasControls({ selectedNodeId, showHyp, mode, fullscreen, onCloseFs, onViewChange = () => {} }) {
   const rf = useReactFlow();
   const { zoom } = useViewport();
   const toSelected = () => {
@@ -253,12 +253,12 @@ function CanvasControls({ selectedNodeId, showHyp, mode, fullscreen, onCloseFs }
           : showHyp ? 'Показаны предположения, а не установленные связи.' : 'Показаны только подтверждённые связи.'}
       </p>
       <div className="zoom-group" role="group" aria-label="Масштаб">
-        <button type="button" className="icon-btn bordered" onClick={() => rf.zoomOut({ duration: 200 })} aria-label="Уменьшить"><Minus size={18} /></button>
+        <button type="button" className="icon-btn bordered" onClick={() => { onViewChange(); rf.zoomOut({ duration: 200 }); }} aria-label="Уменьшить"><Minus size={18} /></button>
         <span className="zoom-value" aria-live="polite">{Math.round(zoom * 100)}%</span>
-        <button type="button" className="icon-btn bordered" onClick={() => rf.zoomIn({ duration: 200 })} aria-label="Увеличить"><Plus size={18} /></button>
+        <button type="button" className="icon-btn bordered" onClick={() => { onViewChange(); rf.zoomIn({ duration: 200 }); }} aria-label="Увеличить"><Plus size={18} /></button>
       </div>
       <div className="footer-actions">
-        <button type="button" className="btn btn-outline btn-small" onClick={() => rf.fitView(fullscreen ? { padding: FS_PADDING, maxZoom: FS_MAX_ZOOM, minZoom: FS_MIN_ZOOM, duration: 400 } : { padding: 0.12, duration: 400 })}><Scan size={15} /> Показать всё</button>
+        <button type="button" className="btn btn-outline btn-small" onClick={() => { onViewChange(true); rf.fitView(fullscreen ? { padding: FS_PADDING, maxZoom: FS_MAX_ZOOM, minZoom: FS_MIN_ZOOM, duration: 400 } : { padding: NORMAL_FIT_PADDING, duration: 400 }); }}><Scan size={15} /> Показать всё</button>
         <button type="button" className="btn btn-outline btn-small" onClick={toSelected} disabled={!selectedNodeId} aria-label="К выбранному"><LocateFixed size={15} aria-hidden="true" /> <span className="btn-label">К выбранному</span></button>
       </div>
       {/* Вторая кнопка выхода — внизу, под большим пальцем (видна на телефонах и планшетах). */}
@@ -275,9 +275,11 @@ const READABLE_NAME_PX = 14;
 const FS_MAX_ZOOM = 1.6;
 const FS_MIN_ZOOM = 0.03;
 const FS_PADDING = 0.06;
+// В обычном виде сверху отступ больше: там обозначения и кнопка «На весь экран».
+const NORMAL_FIT_PADDING = { top: '60px', right: 0.12, bottom: 0.12, left: 0.12 };
 const nodeSize = (n) => [n.measured?.width || n.data?.width || 260, n.measured?.height || n.data?.height || 90];
 
-function FitOnChange({ layoutKey, normalKey, focusId, centerNodeId, topNodeId, focusTick, fullscreen, wholeZoom = 0, readableZoom = 0, nameFont = 15, onPartial = () => {} }) {
+function FitOnChange({ layoutKey, normalKey, focusId, centerNodeId, topNodeId, focusTick, fullscreen, wholeZoom = 0, readableZoom = 0, nameFont = 15, onPartial = () => {}, anchorRef = null }) {
   const rf = useReactFlow();
   const store = useStoreApi();
   const paneW = useStore((s) => s.width);
@@ -304,7 +306,7 @@ function FitOnChange({ layoutKey, normalKey, focusId, centerNodeId, topNodeId, f
   const fit = useCallback((duration) => {
     if (!fullscreen) {
       if (restore.current) rf.setViewport(restore.current, { duration });
-      else rf.fitView({ padding: 0.12, maxZoom, duration });
+      else rf.fitView({ padding: NORMAL_FIT_PADDING, maxZoom, duration });
       return;
     }
     const whole = wholeView();
@@ -350,6 +352,23 @@ function FitOnChange({ layoutKey, normalKey, focusId, centerNodeId, topNodeId, f
       restore.current = null;
     }
     if (toggled) armUntil.current = performance.now() + 1500;
+    const anchor = anchorRef?.current;
+    if (anchorRef) anchorRef.current = null;
+    if (fullscreen && !toggled && anchor) {
+      // На весь экран после сворачивания ветви — та же карточка в том же месте экрана.
+      const t = setTimeout(() => {
+        const n = rf.getNode(anchor.id);
+        if (!n) {
+          fitRef.current(350);
+          return;
+        }
+        const { x, y, zoom } = rf.getViewport();
+        const paneShift = (store.getState().domNode?.getBoundingClientRect().top || anchor.paneTop) - anchor.paneTop;
+        rf.setViewport({ x: x - (n.position.x - anchor.x) * zoom, y: y - (n.position.y - anchor.y) * zoom - paneShift, zoom }, { duration: 200 });
+      }, 30);
+      prevFs.current = fullscreen;
+      return () => clearTimeout(t);
+    }
     const t = setTimeout(() => fitRef.current(first.current || toggled ? 0 : 350), 30);
     const t2 = toggled ? setTimeout(() => fitRef.current(200), 380) : null;
     prevFs.current = fullscreen;
@@ -449,12 +468,14 @@ function useFullscreenMode(active, { setActive, browserFs, cardOpen, closeCard }
   useEffect(() => {
     if (!active) return undefined;
     hashRef.current = window.location.hash;
-    const token = `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+    // Запись истории уже есть (страницу перезагрузили на весь экран) — используется она.
+    const existing = window.history.state?.faTreeFs;
+    const token = existing || `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
     const mark = () => window.history.pushState({ ...(window.history.state || {}), faTreeFs: token }, '');
     const keepHash = () => {
       if (hashRef.current && window.location.hash !== hashRef.current) window.history.replaceState(window.history.state, '', hashRef.current);
     };
-    mark();
+    if (!existing) mark();
     let pushed = true;
     let reason = 'button';
     const exit = (why) => {
@@ -538,7 +559,7 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
     setFullscreen(true);
   };
   // Высота карточек считается по ширине текста — пересчитать, когда загрузится шрифт интерфейса.
-  const [fontsReady, setFontsReady] = useState(false);
+  const [fontsReady, setFontsReady] = useState(() => document.fonts?.status === 'loaded');
   useEffect(() => {
     let alive = true;
     document.fonts?.ready?.then(() => alive && setFontsReady(true));
@@ -585,6 +606,14 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
     };
   }, [mode, currentImportId, importDetail]);
 
+  // Свернули или развернули ветвь — карточка остаётся на том же месте экрана (вид не прыгает).
+  const anchorRef = useRef(null);
+  const anchorAt = useCallback((id) => {
+    const n = layoutRef.current.nodes?.find((x) => x.id === id);
+    // Положение холста на экране тоже запоминается: над ним может появиться строка «Показать всех».
+    const paneTop = document.querySelector('.canvas .react-flow')?.getBoundingClientRect().top || 0;
+    anchorRef.current = n ? { id, x: n.position.x, y: n.position.y, paneTop } : null;
+  }, []);
   const toggleDown = useCallback((id) => setCollapsedDown((s) => {
     const n = new Set(s);
     if (n.has(id)) n.delete(id);
@@ -681,16 +710,18 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
   }, [centerId, layout, index, mode]);
 
   const ctx = useMemo(() => ({
-    index, selectedId, centerId, kin, collapsedDown, collapsedUp, toggleDown, toggleUp,
+    index, selectedId, centerId, kin, collapsedDown, collapsedUp,
+    toggleDown: (id) => { anchorAt(id); toggleDown(id); },
+    toggleUp: (id) => { anchorAt(id); toggleUp(id); },
     hiddenCount: layout.hiddenCount || (() => 0),
     openHypothesis: (h) => setHypDialog(h),
     openPartnership: (p) => setPartnershipDialog(p),
-  }), [index, selectedId, centerId, kin, collapsedDown, collapsedUp, toggleDown, toggleUp, layout]);
+  }), [index, selectedId, centerId, kin, collapsedDown, collapsedUp, toggleDown, toggleUp, anchorAt, layout]);
 
   const confirmedCount = data.parentChild.length + data.partnerships.length;
   const openHyps = data.hypotheses.filter((h) => h.status === 'open' || h.status === 'deferred').length;
   const normalKey = `${mode}|${scope}|${centerId}|${data.persons.length}|${confirmedCount}|${currentImportId}|${excelSheet}|${collapsedDown.size}|${collapsedUp.size}`;
-  const layoutKey = `${normalKey}|${fullscreen}`;
+  const layoutKey = `${normalKey}|${fullscreen}|${layout.loading ? 'loading' : ''}`;
   // Показать всех: снять ограничение «что показать» и развернуть свёрнутые ветви.
   const showEveryone = () => {
     setScope('all');
@@ -829,7 +860,7 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
                 minZoom={fullscreen ? FS_MIN_ZOOM : 0.15}
                 maxZoom={2}
                 fitView
-                fitViewOptions={{ padding: 0.12, maxZoom: 1.1 }}
+                fitViewOptions={{ padding: NORMAL_FIT_PADDING, maxZoom: 1.1 }}
                 proOptions={{ hideAttribution: false }}
                 attributionPosition="bottom-left"
                 zoomOnDoubleClick={false}
@@ -863,8 +894,19 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
               readableZoom={READABLE_NAME_PX / (mode === 'tree' && fullscreen ? 18 : 15)}
               nameFont={mode === 'tree' && fullscreen ? 18 : 15}
               onPartial={setFsPartial}
+              anchorRef={anchorRef}
             />
-            <CanvasControls selectedNodeId={selectedVisible ? selectedNodeId : null} showHyp={showHyp} mode={mode} fullscreen={fullscreen} onCloseFs={() => setFullscreen(false)} />
+            <CanvasControls
+              selectedNodeId={selectedVisible ? selectedNodeId : null}
+              showHyp={showHyp}
+              mode={mode}
+              fullscreen={fullscreen}
+              onCloseFs={() => setFullscreen(false)}
+              onViewChange={(all) => {
+                setFsTip(false);
+                if (all) setFsPartial(false);
+              }}
+            />
           </TreeCtx.Provider>
         </ReactFlowProvider>
       </div>

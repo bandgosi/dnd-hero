@@ -1,7 +1,7 @@
 // Оболочка приложения: верхняя панель, навигация, центральная область, карточка человека.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Search, Network, Users, HelpCircle, FileSpreadsheet, Archive, Menu as MenuIcon, X, Database, Lock, Loader2, RotateCcw, LogOut } from 'lucide-react';
-import { DataProvider, useData } from './store.jsx';
+import { DataProvider, useData, useUi } from './store.jsx';
 import { useRoute } from './router.js';
 import { api } from './api.js';
 import { ConfirmHost, Toasts, SaveStatus, Avatar, Spinner } from './components/ui.jsx';
@@ -153,6 +153,7 @@ function Sidebar({ view, go, onPick, onShowAll, open, onClose, isPhone }) {
 
 function Shell() {
   const { data, index, loadError, reload } = useData();
+  const ui = useUi();
   const { view, params, navigate } = useRoute();
   const isDesktop = useMedia('(min-width: 1280px)');
   const isPhone = useMedia('(max-width: 767px)');
@@ -168,7 +169,8 @@ function Shell() {
   const [peopleQuery, setPeopleQuery] = useState('');
   // Полноэкранный просмотр древа. На большом экране карточка человека при входе прячется
   // (не закрывается — несохранённые правки остаются), чтобы древо было видно целиком.
-  const [treeFs, setTreeFsState] = useState(false);
+  // После перезагрузки на весь экран (запись истории осталась) древо снова открывается на весь экран.
+  const [treeFs, setTreeFsState] = useState(() => !!window.history.state?.faTreeFs && /^(#\/?(tree)?(\?|$)|$)/.test(window.location.hash));
   const setTreeFs = useCallback((on) => {
     setTreeFsState(on);
     if (on && window.matchMedia('(min-width: 1280px)').matches) setPanelOpen(false);
@@ -177,8 +179,8 @@ function Shell() {
     if (view !== 'tree') setTreeFsState(false);
   }, [view]);
   // Пока древо на весь экран, то, что под ним, недоступно для клавиатуры и экранного диктора.
-  // Шапка остаётся недоступной ещё немного после выхода: второе нажатие торопливого двойного
-  // касания «Закрыть» не попадёт в кнопку выхода из архива на том же месте.
+  // Шапка остаётся недоступной ещё немного после выхода: повторное касание «Закрыть» не попадёт
+  // в кнопку выхода из архива на том же месте (выход из архива к тому же переспрашивает).
   const topbarTimer = useRef(null);
   useEffect(() => {
     if (!treeFs) return undefined;
@@ -190,7 +192,7 @@ function Shell() {
     return () => {
       root.classList.remove('tree-fs-open');
       for (const el of els) {
-        if (el.classList.contains('topbar')) topbarTimer.current = setTimeout(() => el.removeAttribute('inert'), 600);
+        if (el.classList.contains('topbar')) topbarTimer.current = setTimeout(() => el.removeAttribute('inert'), 1500);
         else el.removeAttribute('inert');
       }
     };
@@ -319,7 +321,7 @@ function Shell() {
   }
 
   return (
-    <div className={`app ${isPhone ? 'is-phone' : ''} ${isDesktop ? 'is-desktop' : 'is-medium'} ${fsOverlay ? 'is-tree-fs' : ''} ${fsOverlay && !(panelOpen && selectedId) ? 'fs-card-closed' : ''}`}>
+    <div className={`app ${isPhone ? 'is-phone' : ''} ${isDesktop ? 'is-desktop' : 'is-medium'} ${fsOverlay ? 'is-tree-fs' : ''} ${fsOverlay && !(panelOpen && selectedId) ? 'fs-card-closed' : ''} ${showOverlayPanel && !isPhone && !fsOverlay ? 'card-overlay' : ''}`}>
       <a className="skip-link" href="#main">Перейти к содержимому</a>
       <header className="topbar">
         {isPhone && (
@@ -338,7 +340,10 @@ function Shell() {
             <Plus size={20} /> <span className="hide-phone">Добавить человека</span>
           </button>
           {data.meta.authEnabled && (
-            <button type="button" className="icon-btn" title="Выйти" aria-label="Выйти" onClick={async () => { try { await api.post('/api/auth/logout'); } finally { window.location.reload(); } }}>
+            <button type="button" className="icon-btn" title="Выйти из архива" aria-label="Выйти из архива" onClick={async () => {
+              if (!(await ui.confirm({ title: 'Выйти из архива?', message: 'Чтобы снова открыть архив на этом устройстве, понадобится пароль.', confirmText: 'Выйти' }))) return;
+              try { await api.post('/api/auth/logout'); } finally { window.location.reload(); }
+            }}>
               <LogOut size={20} />
             </button>
           )}
