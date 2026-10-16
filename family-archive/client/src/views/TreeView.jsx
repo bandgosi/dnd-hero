@@ -10,7 +10,7 @@ import { useData, useUi, reportError } from '../store.jsx';
 import { api } from '../api.js';
 import { Avatar, Segmented, Toggle, EmptyState, Modal } from '../components/ui.jsx';
 import { ConfirmHypothesisDialog, RelationEditDialog, describeHyp } from '../components/dialogs.jsx';
-import { buildTree, buildExcel, hypothesisEdges, BIG } from '../lib/graph.js';
+import { buildTree, buildExcel, hypothesisEdges, descendants, BIG, shortKin } from '../lib/graph.js';
 import { kinshipLabel } from '../lib/kinship.js';
 import { splitName, lifeSpan, countText, PARENT_KIND_LABELS, PARTNER_KIND_LABELS, PARTNER_STATUS_LABELS, HYP_STATUS_LABELS } from '../lib/format.js';
 
@@ -67,7 +67,7 @@ const PersonNode = memo(({ data }) => {
         {(!data.big || isCenter || kin) && (
           <div className="pnode-chips">
             {isCenter && <span className="chip chip-green">Центр</span>}
-            {kin && !isCenter && <span className={`chip ${kin.unknown ? 'chip-muted' : 'chip-green'}`}>{kin.unknown ? 'Родство не установлено' : kin.label}</span>}
+            {kin && !isCenter && <span className={`chip ${kin.unknown ? 'chip-muted' : 'chip-green'}`} title={data.big ? kin.label : undefined}>{kin.unknown ? 'Родство не установлено' : data.big ? shortKin(kin.label) : kin.label}</span>}
             {data.excel ? <span className="chip chip-muted">{data.cell}</span> : !kin && rec && !data.big && <span className="chip chip-muted">Из Excel</span>}
           </div>
         )}
@@ -111,7 +111,7 @@ const UnionNode = memo(({ data }) => {
 });
 
 const SectionNode = memo(({ data }) => (
-  <div className="section-node">
+  <div className="section-node" style={data.width ? { width: data.width } : undefined}>
     <strong>Пока без подтверждённых связей · {data.count}</strong>
     <span>{data.hasTree ? 'Эти люди появятся в древе, когда вы подтвердите их связи.' : 'Люди показаны отдельно, без домысленного древа. Связи подтверждаются в разделе «Уточнить связи».'}</span>
   </div>
@@ -259,10 +259,10 @@ function CanvasControls({ selectedNodeId, showHyp, mode, fullscreen, onCloseFs }
       </div>
       <div className="footer-actions">
         <button type="button" className="btn btn-outline btn-small" onClick={() => rf.fitView(fullscreen ? { padding: FS_PADDING, maxZoom: FS_MAX_ZOOM, minZoom: FS_MIN_ZOOM, duration: 400 } : { padding: 0.12, duration: 400 })}><Scan size={15} /> Показать всё</button>
-        <button type="button" className="btn btn-outline btn-small" onClick={toSelected} disabled={!selectedNodeId}><LocateFixed size={15} /> К выбранному</button>
-        {/* Вторая кнопка выхода — внизу, под большим пальцем (видна на телефонах и планшетах). */}
-        {fullscreen && <button type="button" className="btn btn-primary btn-small fs-exit-bottom" onClick={onCloseFs}><X size={16} aria-hidden="true" /> Закрыть</button>}
+        <button type="button" className="btn btn-outline btn-small" onClick={toSelected} disabled={!selectedNodeId} aria-label="К выбранному"><LocateFixed size={15} aria-hidden="true" /> <span className="btn-label">К выбранному</span></button>
       </div>
+      {/* Вторая кнопка выхода — внизу, под большим пальцем (видна на телефонах и планшетах). */}
+      {fullscreen && <button type="button" className="btn btn-primary btn-small fs-exit-bottom" onClick={onCloseFs} aria-label="Закрыть полноэкранный просмотр древа"><X size={16} aria-hidden="true" /> Закрыть</button>}
     </div>
   );
 }
@@ -270,13 +270,14 @@ function CanvasControls({ selectedNodeId, showHyp, mode, fullscreen, onCloseFs }
 // Мельче этого имя на экране читать трудно. На весь экран древо показывается целиком, только если
 // имена при этом не мельче; иначе — крупно, начиная с выбранного человека, центра или старшего
 // поколения (остальное — перетаскиванием, «Показать всё» — целиком, хоть и мелко).
+const WHOLE_NAME_PX = 12;
 const READABLE_NAME_PX = 14;
 const FS_MAX_ZOOM = 1.6;
 const FS_MIN_ZOOM = 0.03;
 const FS_PADDING = 0.06;
 const nodeSize = (n) => [n.measured?.width || n.data?.width || 260, n.measured?.height || n.data?.height || 90];
 
-function FitOnChange({ layoutKey, normalKey, focusId, startId, focusTick, fullscreen, readableZoom = 0, nameFont = 15, onPartial = () => {} }) {
+function FitOnChange({ layoutKey, normalKey, focusId, centerNodeId, topNodeId, focusTick, fullscreen, wholeZoom = 0, readableZoom = 0, nameFont = 15, onPartial = () => {} }) {
   const rf = useReactFlow();
   const store = useStoreApi();
   const paneW = useStore((s) => s.width);
@@ -308,26 +309,31 @@ function FitOnChange({ layoutKey, normalKey, focusId, startId, focusTick, fullsc
     }
     const whole = wholeView();
     if (!whole) return;
-    if (whole.zoom >= readableZoom) {
+    if (whole.zoom >= wholeZoom) {
       rf.setViewport(whole, { duration });
       partialRef.current(false);
       return;
     }
     const z = Math.min(maxZoom, Math.max(readableZoom, (entry.current?.namePx || 0) / nameFont));
-    const target = [focusId, startId].map((id) => id && rf.getNode(id)).find(Boolean);
+    const target = [focusId, centerNodeId].map((id) => id && rf.getNode(id)).find(Boolean);
+    const top = topNodeId && rf.getNode(topNodeId);
     if (target) {
+      // Человек — в середине экрана, но без пустого места над древом.
+      const { width, height } = store.getState();
       const [w, h] = nodeSize(target);
-      rf.setCenter(target.position.x + w / 2, target.position.y + h / 2, { zoom: z, duration });
-    } else {
+      const topY = Math.min(...rf.getNodes().filter((n) => n.type === 'person' && !n.hidden).map((n) => n.position.y));
+      const y = Math.min(height / 2 - (target.position.y + h / 2) * z, 28 - topY * z);
+      rf.setViewport({ x: width / 2 - (target.position.x + w / 2) * z, y, zoom: z }, { duration });
+    } else if (top) {
+      // С основной ветви: её старшее поколение — вверху экрана, по центру.
       const { width } = store.getState();
       const persons = rf.getNodes().filter((n) => n.type === 'person' && !n.hidden);
       const topY = Math.min(...persons.map((n) => n.position.y));
-      const top = persons.filter((n) => n.position.y < topY + 40);
-      const cx = top.reduce((sum, n) => sum + n.position.x + nodeSize(n)[0] / 2, 0) / top.length;
+      const cx = top.position.x + nodeSize(top)[0] / 2;
       rf.setViewport({ x: width / 2 - cx * z, y: 28 - topY * z, zoom: z }, { duration });
-    }
+    } else rf.fitView({ padding: FS_PADDING, maxZoom, minZoom: FS_MIN_ZOOM, duration });
     partialRef.current(true);
-  }, [rf, store, fullscreen, maxZoom, readableZoom, nameFont, focusId, startId, wholeView]);
+  }, [rf, store, fullscreen, maxZoom, wholeZoom, readableZoom, nameFont, focusId, centerNodeId, topNodeId, wholeView]);
   const fitRef = useRef(fit);
   fitRef.current = fit;
 
@@ -384,7 +390,7 @@ function FitOnChange({ layoutKey, normalKey, focusId, startId, focusTick, fullsc
     const cy = (prev.h / 2 - y) / zoom;
     const t = setTimeout(() => {
       const whole = wholeView();
-      if (whole && whole.zoom >= readableZoom) {
+      if (whole && whole.zoom >= wholeZoom) {
         rf.setViewport(whole, { duration: 200 });
         partialRef.current(false);
       } else rf.setCenter(cx, cy, { zoom, duration: 0 });
@@ -524,10 +530,22 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
   const { data, index } = useData();
   const browserFs = useRef(false);
   useFullscreenMode(fullscreen, { setActive: setFullscreen, browserFs, cardOpen, closeCard: onCloseCard });
+  // Размер экрана на момент входа — для сетки людей без связей (её форма подстраивается под экран).
+  const [fsBox, setFsBox] = useState(null);
   const enterFullscreen = () => {
     requestBrowserFullscreen(browserFs);
+    setFsBox({ w: window.innerWidth - 24, h: window.innerHeight - 150 });
     setFullscreen(true);
   };
+  // Высота карточек считается по ширине текста — пересчитать, когда загрузится шрифт интерфейса.
+  const [fontsReady, setFontsReady] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    document.fonts?.ready?.then(() => alive && setFontsReady(true));
+    return () => {
+      alive = false;
+    };
+  }, []);
   // Фокус: при входе — на кнопку «Выйти», при выходе — обратно на «На весь экран».
   const fsEnterRef = useRef(null);
   const fsExitRef = useRef(null);
@@ -595,8 +613,8 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
       if (!importDetail || importDetail.id !== currentImportId) return { nodes: [], edges: [], loading: !!currentImportId };
       return buildExcel({ data, index, importRow: importDetail, sheetName: excelSheet });
     }
-    return buildTree({ data, index, scope, centerId, collapsedDown, collapsedUp, big: fullscreen, kinLabel });
-  }, [data, index, mode, scope, centerId, collapsedDown, collapsedUp, importDetail, currentImportId, excelSheet, fullscreen, kinLabel]);
+    return buildTree({ data, index, scope, centerId, collapsedDown, collapsedUp, big: fullscreen, kinLabel, gridBox: fullscreen ? fsBox : null });
+  }, [data, index, mode, scope, centerId, collapsedDown, collapsedUp, importDetail, currentImportId, excelSheet, fullscreen, kinLabel, fsBox, fontsReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const nodeIdFor = useCallback((pid) => (mode === 'excel' ? layout.personNode?.get(pid) || pid : pid), [mode, layout]);
   const edges = useMemo(() => {
@@ -635,6 +653,26 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
     };
   }), [layout, selectedId, measured]);
 
+  // Откуда начинать крупный просмотр, если ничего не выбрано: старшее поколение основной ветви —
+  // человек верхнего ряда с наибольшим числом потомков (и середина его пары, если есть партнёр).
+  const topNodeId = useMemo(() => {
+    if (!fullscreen) return null;
+    const persons = (layout.nodes || []).filter((n) => n.type === 'person' && !n.data.isolated);
+    if (!persons.length) return null;
+    const topY = Math.min(...persons.map((n) => n.position.y));
+    let best = null;
+    let bestCount = -1;
+    for (const n of persons) {
+      if (n.position.y > topY + 40) continue;
+      const count = mode === 'tree' ? descendants(n.id, index).size : 0;
+      if (count > bestCount) {
+        best = n;
+        bestCount = count;
+      }
+    }
+    const union = (layout.edges || []).find((e) => e.type === 'partner' && e.source === best.id)?.target;
+    return union || best.id;
+  }, [fullscreen, layout, index, mode]);
   const kin = useMemo(() => {
     if (!centerId || mode === 'excel') return null;
     const m = new Map();
@@ -817,9 +855,11 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
               layoutKey={layoutKey}
               normalKey={normalKey}
               focusId={selectedVisible ? selectedNodeId : null}
-              startId={mode === 'tree' && centerId && nodes.some((n) => n.id === centerId) ? centerId : null}
+              centerNodeId={mode === 'tree' && centerId && nodes.some((n) => n.id === centerId) ? centerId : null}
+              topNodeId={topNodeId}
               focusTick={focusTick}
               fullscreen={fullscreen}
+              wholeZoom={WHOLE_NAME_PX / (mode === 'tree' && fullscreen ? 18 : 15)}
               readableZoom={READABLE_NAME_PX / (mode === 'tree' && fullscreen ? 18 : 15)}
               nameFont={mode === 'tree' && fullscreen ? 18 : 15}
               onPartial={setFsPartial}

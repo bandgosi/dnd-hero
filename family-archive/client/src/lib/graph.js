@@ -11,7 +11,9 @@ const PAD = 14;
 const NAME_FONT = '600 15px "Manrope Variable", "Segoe UI", system-ui, sans-serif';
 // Крупные карточки полноэкранного просмотра: узкие, фото сверху, имя крупно по центру.
 // Числа совпадают со стилями .pnode-big в styles.css.
-export const BIG = { width: 200, avatar: 76, padY: 16, padX: 12, gap: 10, nameLine: 23, metaLine: 21, chipLine: 18.2, chipFont: '500 14px "Manrope Variable", "Segoe UI", system-ui, sans-serif', font: '600 18px "Manrope Variable", "Segoe UI", system-ui, sans-serif' };
+export const BIG = { width: 200, avatar: 64, padY: 12, padX: 12, gap: 8, nameLine: 23, metaLine: 22, chipLine: 18.2, chipLines: 3, chipFont: '600 14px "Manrope Variable", "Segoe UI", system-ui, sans-serif', font: '600 18px "Manrope Variable", "Segoe UI", system-ui, sans-serif' };
+// На крупной карточке длинная подпись дальнего родства сокращается (путь виден в карточке человека).
+export const shortKin = (label) => (label && label.startsWith('Родственник по подтверждённым связям') ? 'Дальний родственник' : label);
 
 let ctx = null;
 function measure(text, font = NAME_FONT) {
@@ -45,7 +47,8 @@ export function countLines(text, maxWidth, font = NAME_FONT) {
 }
 
 export function nodeHeight(person, width = NODE_W, { meta = true, chip = true } = {}) {
-  const textW = width - PAD * 2 - AVATAR - 12;
+  // − 2 px — рамка карточки.
+  const textW = width - PAD * 2 - 2 - AVATAR - 12;
   const [a, b] = splitName(person);
   const lines = countLines(a, textW) + countLines(b, textW);
   const h = PAD * 2 + lines * 20 + (meta ? 19 : 0) + (chip ? 30 : 0);
@@ -58,7 +61,8 @@ export function bigNodeHeight(person, { chip = null } = {}) {
   const textW = BIG.width - BIG.padX * 2 - 4;
   const [a, b] = splitName(person);
   const lines = Math.max(1, countLines(a, textW, BIG.font) + countLines(b, textW, BIG.font));
-  const chipH = chip ? Math.max(24, Math.ceil(countLines(chip, textW - 16, BIG.chipFont) * BIG.chipLine + 4)) + 4 : 0;
+  const chipLines = chip ? Math.min(BIG.chipLines, countLines(shortKin(chip), textW - 16, BIG.chipFont)) : 0;
+  const chipH = chip ? Math.max(24, Math.ceil(chipLines * BIG.chipLine + 4)) + 4 : 0;
   // + 2 px — рамка карточки (входит в высоту).
   const h = 2 + BIG.padY * 2 + BIG.avatar + BIG.gap + lines * BIG.nameLine + (lifeSpan(person) ? BIG.metaLine + 4 : 0) + chipH;
   return Math.ceil(h);
@@ -117,7 +121,7 @@ export function scopeSet(scope, centerId, data, index) {
 
 // ---------- Семейное древо ----------
 
-export function buildTree({ data, index, scope, centerId, collapsedDown, collapsedUp, big = false, kinLabel = () => null }) {
+export function buildTree({ data, index, scope, centerId, collapsedDown, collapsedUp, big = false, kinLabel = () => null, gridBox = null }) {
   const W = big ? BIG.width : NODE_W;
   const heightOf = (id) => (big ? bigNodeHeight(index.byId.get(id), { chip: kinLabel(id) }) : nodeHeight(index.byId.get(id)));
   const GAP = big ? 20 : 28;
@@ -144,7 +148,7 @@ export function buildTree({ data, index, scope, centerId, collapsedDown, collaps
   const edges = [];
   const unions = [];
   const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: 'TB', nodesep: big ? 26 : 40, ranksep: big ? 46 : 54, marginx: 24, marginy: 24 });
+  g.setGraph({ rankdir: 'TB', nodesep: big ? 24 : 40, ranksep: big ? 30 : 54, marginx: 24, marginy: 24 });
   g.setDefaultEdgeLabel(() => ({}));
 
   const partnerOf = new Map();
@@ -214,6 +218,19 @@ export function buildTree({ data, index, scope, centerId, collapsedDown, collaps
   let maxX = 0;
   if (connected.length) {
     dagre.layout(g);
+    // Крупные карточки одного поколения — одной высоты: ряды ровные, линии партнёров на одном уровне.
+    if (big) {
+      const rowH = new Map();
+      for (const id of connected) {
+        const n = g.node(id);
+        const k = Math.round(n.y);
+        rowH.set(k, Math.max(rowH.get(k) || 0, n.height));
+      }
+      for (const id of connected) {
+        const n = g.node(id);
+        n.height = rowH.get(Math.round(n.y));
+      }
+    }
     for (const id of connected) {
       const n = g.node(id);
       nodes.push({ id, type: 'person', position: { x: n.x - W / 2, y: n.y - n.height / 2 }, data: { personId: id, width: W, height: n.height, big } });
@@ -238,11 +255,27 @@ export function buildTree({ data, index, scope, centerId, collapsedDown, collaps
       for (let i = 0; i < 4; i++) if (oa[i] !== ob[i]) return oa[i] < ob[i] ? -1 : 1;
       return index.byId.get(a).display_name.localeCompare(index.byId.get(b).display_name, 'ru');
     });
-    // Сетка близка по пропорциям к холсту, чтобы карточки оставались читаемыми.
-    const cols = Math.min(big ? 8 : 6, Math.max(1, Math.round(Math.sqrt((isolated.length * 1.45 * (big ? 190 : 110)) / (W + GAP)))));
+    // Сетка близка по пропорциям к холсту, чтобы карточки оставались читаемыми. На весь экран — по
+    // размеру экрана: целиком, если так имена не мельче 12 px, иначе столько столбцов, сколько
+    // помещается крупно (тогда листать только вниз).
+    let cols = Math.min(6, Math.max(1, Math.round(Math.sqrt((isolated.length * 1.45 * 110) / (W + GAP)))));
+    if (big && gridBox?.w > 0 && gridBox?.h > 0) {
+      const avgH = isolated.reduce((s, id) => s + heightOf(id), 0) / isolated.length;
+      let best = 1;
+      let bestZoom = 0;
+      for (let c = 1; c <= Math.min(isolated.length, 12); c++) {
+        const rows = Math.ceil(isolated.length / c);
+        const z = Math.min((gridBox.w * 0.94) / (c * (W + GAP) - GAP), (gridBox.h * 0.94) / (rows * (avgH + GAP)));
+        if (z > bestZoom) {
+          bestZoom = z;
+          best = c;
+        }
+      }
+      cols = bestZoom * 18 >= 12 ? best : Math.max(1, Math.min(isolated.length, Math.floor(((gridBox.w * 0.94) / (14 / 18) + GAP) / (W + GAP))));
+    }
     const startY = connected.length ? maxY + 110 : 60;
     const startX = connected.length ? minX : 0;
-    nodes.push({ id: 'section:isolated', type: 'section', position: { x: startX, y: startY - 46 }, data: { count: isolated.length, hasTree: connected.length > 0 }, selectable: false, draggable: false });
+    nodes.push({ id: 'section:isolated', type: 'section', position: { x: startX, y: startY - 46 }, data: { count: isolated.length, hasTree: connected.length > 0, width: big ? Math.min(560, Math.max(W, cols * (W + GAP) - GAP)) : undefined }, selectable: false, draggable: false });
     let y = startY;
     for (let i = 0; i < isolated.length; i += cols) {
       const row = isolated.slice(i, i + cols);

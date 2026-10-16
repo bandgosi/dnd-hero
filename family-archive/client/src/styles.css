@@ -332,13 +332,18 @@ textarea.input { resize: vertical; min-height: 72px; }
 .union-co { width: 10px; height: 10px; margin: 8px; background: var(--line-strong); border-radius: 50%; }
 
 /* Крупная карточка полноэкранного просмотра (размеры совпадают с BIG в lib/graph.js) */
-.pnode-big { flex-direction: column; align-items: center; justify-content: flex-start; gap: 10px; padding: 16px 12px; text-align: center; }
-.pnode-big.is-selected { padding: 15px 11px; }
+.pnode-big { flex-direction: column; align-items: center; justify-content: flex-start; gap: 8px; padding: 12px; text-align: center; }
+.pnode-big.is-selected { padding: 11px; }
 .pnode-big .pnode-body { align-items: center; gap: 4px; width: 100%; }
 .pnode-big .pnode-name { font-size: 18px; line-height: 23px; align-items: center; }
-.pnode-big .pnode-meta { font-size: 15px; line-height: 21px; }
+.pnode-big .pnode-meta { font-size: 16px; line-height: 22px; }
 .pnode-big .pnode-chips { justify-content: center; margin-top: 0; }
-.pnode-big .chip { font-size: 14px; }
+/* Не больше трёх строк; полный текст — во всплывающей подсказке. */
+.pnode-big .chip { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; font-size: 14px; font-weight: 600; }
+/* Кнопки свернуть/развернуть ветвь — крупнее, по размеру пальца. */
+.pnode-big .pnode-toggle { min-width: 36px; height: 30px; border-radius: 15px; font-size: 14px; }
+.pnode-big .pnode-toggle.down { bottom: -16px; }
+.pnode-big .pnode-toggle.up { top: -16px; }
 
 /* ---------- Полноэкранный просмотр древа ---------- */
 .canvas-fs-btn { position: absolute; z-index: 6; top: var(--s3); right: var(--s3); background: var(--surface); box-shadow: var(--shadow-sm); }
@@ -746,7 +751,10 @@ html.tree-fs-open, html.tree-fs-open body { overscroll-behavior: none; }
   .fs-hint { display: none; }
   .fs-exit { min-height: 48px; padding: 0 var(--s4); font-size: 17px; }
   .canvas-card.is-fullscreen .canvas-note { display: none; }
-  .canvas-card.is-fullscreen .fs-exit-bottom { display: inline-flex; }
+  /* Нижняя панель на весь экран — две строки: масштаб и кнопки, ниже широкая «Закрыть». */
+  .canvas-card.is-fullscreen .fs-exit-bottom { display: inline-flex; flex-basis: 100%; justify-content: center; min-height: 48px; font-size: 16px; }
+  .canvas-card.is-fullscreen .zoom-value { display: none; }
+  .canvas-card.is-fullscreen .footer-actions .btn-label { display: none; }
   .canvas-card.is-fullscreen { min-height: 0; }
   .canvas-card.is-fullscreen .canvas { min-height: 0; }
   .status-pill { font-size: 14px; min-height: 36px; padding: 0 var(--s3); }
