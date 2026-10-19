@@ -93,6 +93,8 @@ const UnionNode = memo(({ data }) => {
       <div className="union union-co" title="Общие дети; партнёрство не указано">
         <Handle type="target" position={Position.Top} id="t" isConnectable={false} />
         <Handle type="source" position={Position.Bottom} id="b" isConnectable={false} />
+        <Handle type="target" position={Position.Left} id="l" isConnectable={false} />
+        <Handle type="source" position={Position.Right} id="r" isConnectable={false} />
       </div>
     );
   }
@@ -102,6 +104,8 @@ const UnionNode = memo(({ data }) => {
     <button type="button" className="union union-partner nodrag" title={label} aria-label={`${label}. Открыть`} onClick={(e) => { e.stopPropagation(); ctx.openPartnership(p); }}>
       <Handle type="target" position={Position.Top} id="t" isConnectable={false} />
       <Handle type="source" position={Position.Bottom} id="b" isConnectable={false} />
+      <Handle type="target" position={Position.Left} id="l" isConnectable={false} />
+      <Handle type="source" position={Position.Right} id="r" isConnectable={false} />
       <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true">
         <circle cx="5.5" cy="6" r="4" fill="none" stroke="currentColor" strokeWidth="1.6" />
         <circle cx="10.5" cy="6" r="4" fill="none" stroke="currentColor" strokeWidth="1.6" />
@@ -147,8 +151,39 @@ function PartnerEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, t
   );
 }
 
+// Ломаная из вертикальных и горизонтальных участков со скруглёнными углами.
+function orthoPath(points, radius = 8) {
+  const pts = points.filter((p, i) => i === 0 || Math.abs(p[0] - points[i - 1][0]) > 0.5 || Math.abs(p[1] - points[i - 1][1]) > 0.5);
+  let d = `M ${pts[0][0]} ${pts[0][1]}`;
+  for (let i = 1; i < pts.length; i++) {
+    const [x, y] = pts[i];
+    const next = pts[i + 1];
+    if (!next) {
+      d += ` L ${x} ${y}`;
+      break;
+    }
+    const [px, py] = pts[i - 1];
+    const r = Math.min(radius, Math.hypot(x - px, y - py) / 2, Math.hypot(next[0] - x, next[1] - y) / 2);
+    const inX = x - Math.sign(x - px) * r;
+    const inY = y - Math.sign(y - py) * r;
+    const outX = x + Math.sign(next[0] - x) * r;
+    const outY = y + Math.sign(next[1] - y) * r;
+    d += ` L ${inX} ${inY} Q ${x} ${y} ${outX} ${outY}`;
+  }
+  return d;
+}
+
+// Родитель (или значок пары) → ребёнок: вниз до своего уровня, по горизонтали, вниз к ребёнку.
+// Уровень (busY) у каждой семьи свой, поэтому линии разных семей не сливаются.
 function ParentEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data }) {
-  const [path, lx, ly] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: 10 });
+  let path;
+  let lx;
+  let ly;
+  if (data?.busY != null) {
+    path = orthoPath([[sourceX, sourceY], [sourceX, data.busY], [targetX, data.busY], [targetX, targetY]]);
+    lx = targetX;
+    ly = (data.busY + targetY) / 2 - 10;
+  } else [path, lx, ly] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: 10 });
   const kinds = (data?.rels || []).map((r) => r.kind).filter((k) => k && k !== 'biological' && k !== 'unknown');
   return (
     <>
@@ -164,6 +199,21 @@ function ParentEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, ta
 
 function CoparentEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition }) {
   const [path] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: 10 });
+  return <BaseEdge id={id} path={path} style={{ stroke: 'var(--line-strong)', strokeWidth: 1.6 }} />;
+}
+
+// Пара, которая не может стоять рядом (у человека больше двух партнёров): от каждого вниз до своего
+// уровня и по горизонтали к значку.
+function PairLaneEdge({ id, sourceX, sourceY, targetX, data }) {
+  const path = orthoPath([[sourceX, sourceY], [sourceX, data.laneY], [targetX, data.laneY]]);
+  if (data.kind === 'partner') {
+    return (
+      <>
+        <BaseEdge id={id} path={path} style={{ stroke: 'var(--green)', strokeWidth: 5 }} />
+        <path d={path} fill="none" style={{ stroke: 'var(--surface)', strokeWidth: 1.6 }} />
+      </>
+    );
+  }
   return <BaseEdge id={id} path={path} style={{ stroke: 'var(--line-strong)', strokeWidth: 1.6 }} />;
 }
 
@@ -193,7 +243,7 @@ function HypothesisEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition
   );
 }
 
-const edgeTypes = { partner: PartnerEdge, parent: ParentEdge, coparent: CoparentEdge, hypothesis: HypothesisEdge };
+const edgeTypes = { partner: PartnerEdge, parent: ParentEdge, coparent: CoparentEdge, pairLane: PairLaneEdge, hypothesis: HypothesisEdge };
 
 // ---------- Окно предположения ----------
 
@@ -699,8 +749,8 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
         bestCount = count;
       }
     }
-    const union = (layout.edges || []).find((e) => e.type === 'partner' && e.source === best.id)?.target;
-    return union || best.id;
+    const union = (layout.edges || []).find((e) => e.type === 'partner' && (e.source === best.id || e.target === best.id));
+    return union ? (union.source === best.id ? union.target : union.source) : best.id;
   }, [fullscreen, layout, index, mode]);
   const kin = useMemo(() => {
     if (!centerId || mode === 'excel') return null;

@@ -146,24 +146,27 @@ export function buildTree({ data, index, scope, centerId, collapsedDown, collaps
   const visible = new Set([...included].filter((id) => !hidden.has(id)));
   const hasEdge = new Set();
   const edges = [];
-  const unions = [];
-  const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: 'TB', nodesep: big ? 24 : 40, ranksep: big ? 30 : 54, marginx: 24, marginy: 24 });
-  g.setDefaultEdgeLabel(() => ({}));
-
+  // Пары: партнёрство (значок с кольцами) или двое родителей общего ребёнка без указанного
+  // партнёрства (точка). Пара стоит рядом в одной «семейной строке», значок — между ними.
+  const pairs = new Map(); // ключ «a|b» → { a, b, kind, unions: [{ id, partnership }] }
+  const pairKey = (a, b) => (a < b ? `${a}|${b}` : `${b}|${a}`);
   const partnerOf = new Map();
   for (const p of data.partnerships) {
-    if (!visible.has(p.person1_id) || !visible.has(p.person2_id)) continue;
+    if (!visible.has(p.person1_id) || !visible.has(p.person2_id) || p.person1_id === p.person2_id) continue;
+    const key = pairKey(p.person1_id, p.person2_id);
     const u = `u:${p.id}`;
-    unions.push({ id: u, kind: 'partnership', partnership: p });
-    edges.push({ id: `e:${p.id}:1`, source: p.person1_id, target: u, type: 'partner', sourceHandle: 'b', targetHandle: 't', data: { partnership: p } });
-    edges.push({ id: `e:${p.id}:2`, source: p.person2_id, target: u, type: 'partner', sourceHandle: 'b', targetHandle: 't', data: { partnership: p } });
+    if (!pairs.has(key)) pairs.set(key, { a: p.person1_id, b: p.person2_id, kind: 'partnership', unions: [] });
+    pairs.get(key).unions.push({ id: u, partnership: p });
     hasEdge.add(p.person1_id);
     hasEdge.add(p.person2_id);
-    const key = [p.person1_id, p.person2_id].sort().join('|');
     if (!partnerOf.has(key) || p.status === 'ongoing' || p.kind === 'marriage') partnerOf.set(key, u);
   }
-  const coUnions = new Map();
+  // Линии к детям: от значка пары, от точки двух родителей или от единственного родителя.
+  const families = new Map(); // источник → { source, kind: 'union'|'person', children: [{ child, rels }] }
+  const addChild = (source, kind, child, rels) => {
+    if (!families.has(source)) families.set(source, { source, kind, children: [] });
+    families.get(source).children.push({ child, rels });
+  };
   for (const c of visible) {
     const parents = (index.parentsOf.get(c) || []).filter((r) => visible.has(r.parent_id));
     if (!parents.length) continue;
@@ -171,76 +174,321 @@ export function buildTree({ data, index, scope, centerId, collapsedDown, collaps
     let remaining = [...parents];
     for (let i = 0; i < remaining.length && remaining.length >= 2; i++) {
       for (let j = i + 1; j < remaining.length; j++) {
-        const key = [remaining[i].parent_id, remaining[j].parent_id].sort().join('|');
-        const u = partnerOf.get(key);
+        const u = partnerOf.get(pairKey(remaining[i].parent_id, remaining[j].parent_id));
         if (u) {
-          edges.push({ id: `pc:${u}:${c}`, source: u, target: c, type: 'parent', sourceHandle: 'b', targetHandle: 't', data: { rels: [remaining[i], remaining[j]] } });
+          addChild(u, 'union', c, [remaining[i], remaining[j]]);
           remaining = remaining.filter((_, k) => k !== i && k !== j);
           i = remaining.length;
           break;
         }
       }
     }
-    if (remaining.length === 2) {
-      const key = remaining.map((r) => r.parent_id).sort().join('|');
-      let u = coUnions.get(key);
-      if (!u) {
-        u = `c:${key}`;
-        coUnions.set(key, u);
-        unions.push({ id: u, kind: 'coparents' });
-        for (const r of remaining) edges.push({ id: `cp:${u}:${r.parent_id}`, source: r.parent_id, target: u, type: 'coparent', sourceHandle: 'b', targetHandle: 't', data: {} });
-      }
-      edges.push({ id: `pc:${u}:${c}`, source: u, target: c, type: 'parent', sourceHandle: 'b', targetHandle: 't', data: { rels: remaining } });
+    if (remaining.length === 2 && remaining[0].parent_id !== remaining[1].parent_id) {
+      const key = pairKey(remaining[0].parent_id, remaining[1].parent_id);
+      if (!pairs.has(key)) pairs.set(key, { a: remaining[0].parent_id, b: remaining[1].parent_id, kind: 'coparents', unions: [{ id: `c:${key}` }] });
+      addChild(`c:${key}`, 'union', c, remaining);
       remaining = [];
     }
-    for (const r of remaining) {
-      edges.push({ id: `pc:${r.id}`, source: r.parent_id, target: c, type: 'parent', sourceHandle: 'b', targetHandle: 't', data: { rels: [r], direct: true } });
-    }
+    for (const r of remaining) addChild(r.parent_id, 'person', c, [r]);
     for (const r of parents) hasEdge.add(r.parent_id);
   }
 
   const connected = [...visible].filter((id) => hasEdge.has(id));
   const isolated = [...visible].filter((id) => !hasEdge.has(id));
   const nodes = [];
-  const heights = new Map();
-  for (const id of connected) {
-    const h = heightOf(id);
-    heights.set(id, h);
-    g.setNode(id, { width: W, height: h });
-  }
-  for (const u of unions) g.setNode(u.id, { width: 26, height: 26 });
-  for (const e of edges) {
-    const minlen = e.type === 'parent' && e.data.direct ? 2 : 1;
-    g.setEdge(e.source, e.target, { minlen, weight: e.type === 'partner' || e.type === 'coparent' ? 3 : 1 });
-  }
   let maxY = 0;
   let minX = 0;
   let maxX = 0;
   if (connected.length) {
-    dagre.layout(g);
-    // Крупные карточки одного поколения — одной высоты: ряды ровные, линии партнёров на одном уровне.
-    if (big) {
-      const rowH = new Map();
-      for (const id of connected) {
-        const n = g.node(id);
-        const k = Math.round(n.y);
-        rowH.set(k, Math.max(rowH.get(k) || 0, n.height));
-      }
-      for (const id of connected) {
-        const n = g.node(id);
-        n.height = rowH.get(Math.round(n.y));
-      }
+    const PAIR_GAP = big ? 40 : 44; // промежуток между карточками пары — для значка
+    const LANE = 10; // шаг уровней горизонтальных линий в промежутке между поколениями
+    const LANE_TOP = big ? 22 : 18; // первый уровень — ниже кнопки «свернуть» под карточкой
+    const BASE_RANKSEP = big ? 46 : 54;
+    const heights = new Map(connected.map((id) => [id, heightOf(id)]));
+    // Семейные строки — связные группы пар. Порядок внутри — цепочкой, чтобы каждая пара стояла рядом
+    // (человек с двумя партнёрами — между ними).
+    const adj = new Map(connected.map((id) => [id, new Set()]));
+    for (const pr of pairs.values()) {
+      if (!adj.has(pr.a) || !adj.has(pr.b)) continue;
+      adj.get(pr.a).add(pr.b);
+      adj.get(pr.b).add(pr.a);
     }
+    const blockOf = new Map();
+    const blocks = [];
     for (const id of connected) {
-      const n = g.node(id);
-      nodes.push({ id, type: 'person', position: { x: n.x - W / 2, y: n.y - n.height / 2 }, data: { personId: id, width: W, height: n.height, big } });
-      maxY = Math.max(maxY, n.y + n.height / 2);
-      maxX = Math.max(maxX, n.x + W / 2);
-      minX = Math.min(minX, n.x - W / 2);
+      if (blockOf.has(id)) continue;
+      const members = [];
+      const stack = [id];
+      blockOf.set(id, null);
+      while (stack.length) {
+        const x = stack.pop();
+        members.push(x);
+        for (const y of adj.get(x)) if (!blockOf.has(y)) {
+          blockOf.set(y, null);
+          stack.push(y);
+        }
+      }
+      const deg = (m) => adj.get(m).size;
+      const byDeg = (a, b) => deg(a) - deg(b) || (a < b ? -1 : 1);
+      const start = [...members].sort(byDeg)[0];
+      const order = [start];
+      const seen = new Set(order);
+      let cur = start;
+      while (order.length < members.length) {
+        let next = [...adj.get(cur)].filter((x) => !seen.has(x)).sort(byDeg)[0];
+        if (!next) next = members.find((m) => !seen.has(m) && [...adj.get(m)].some((x) => seen.has(x))) || members.find((m) => !seen.has(m));
+        order.push(next);
+        seen.add(next);
+        cur = next;
+      }
+      const b = { id: `b:${blocks.length}`, order, height: Math.max(...order.map((m) => heights.get(m))) };
+      b.width = order.length * W + (order.length - 1) * PAIR_GAP;
+      blocks.push(b);
+      for (const m of order) blockOf.set(m, b);
     }
-    for (const u of unions) {
-      const n = g.node(u.id);
-      nodes.push({ id: u.id, type: 'union', position: { x: n.x - 13, y: n.y - 13 }, data: { kind: u.kind, partnership: u.partnership }, selectable: false });
+    const unionBlock = new Map();
+    const pairOfUnion = new Map();
+    for (const pr of pairs.values()) {
+      for (const u of pr.unions) {
+        unionBlock.set(u.id, blockOf.get(pr.a));
+        pairOfUnion.set(u.id, pr);
+      }
+    }
+    const sourceBlock = (f) => (f.kind === 'union' ? unionBlock.get(f.source) : blockOf.get(f.source));
+
+    const layoutBlocks = (ranksep) => {
+      const g = new dagre.graphlib.Graph();
+      g.setGraph({ rankdir: 'TB', nodesep: big ? 24 : 40, ranksep, marginx: 24, marginy: 24 });
+      g.setDefaultEdgeLabel(() => ({}));
+      for (const b of blocks) g.setNode(b.id, { width: b.width, height: b.height });
+      for (const f of families.values()) {
+        const from = sourceBlock(f);
+        if (!from) continue;
+        for (const { child } of f.children) {
+          const to = blockOf.get(child);
+          if (!to || to === from) continue;
+          const e = g.edge(from.id, to.id);
+          g.setEdge(from.id, to.id, { minlen: 1, weight: (e?.weight || 0) + 1 });
+        }
+      }
+      dagre.layout(g);
+      return g;
+    };
+
+    // Размещение людей и значков по раскладке строк; уровни горизонтальных линий.
+    const place = (g) => {
+      const at = new Map(blocks.map((b) => [b, { ...g.node(b.id) }]));
+      const rankOf = (b) => Math.round(at.get(b).y);
+      // Крупные карточки одного поколения — одной высоты: ряды ровные.
+      const rankH = new Map();
+      for (const b of blocks) rankH.set(rankOf(b), Math.max(rankH.get(rankOf(b)) || 0, b.height));
+      // Откуда к человеку идут линии от родителей (семьи-источники).
+      const incoming = new Map();
+      for (const f of families.values()) {
+        for (const { child } of f.children) {
+          if (!incoming.has(child)) incoming.set(child, []);
+          incoming.get(child).push(f);
+        }
+      }
+      const pos = new Map(); // человек → { x, y, w, h, cx, cy, block }
+      const unionPos = new Map(); // значок → { cx, cy }
+      const sourceX = (f) => {
+        if (f.kind === 'person') return pos.get(f.source)?.cx;
+        const up = unionPos.get(f.source);
+        if (up) return up.cx;
+        const pr = pairOfUnion.get(f.source);
+        const a = pr && pos.get(pr.a);
+        const b = pr && pos.get(pr.b);
+        return a && b ? (a.cx + b.cx) / 2 : undefined;
+      };
+      const parentXOf = (m) => {
+        const xs = (incoming.get(m) || []).map(sourceX).filter((v) => v != null);
+        return xs.length ? xs.reduce((s, v) => s + v, 0) / xs.length : null;
+      };
+      const placeBlock = (b) => {
+        const n = at.get(b);
+        const rowH = big ? rankH.get(rankOf(b)) : null;
+        let x = n.x - b.width / 2;
+        for (const m of b.order) {
+          const h = rowH || heights.get(m);
+          pos.set(m, { x, y: n.y - h / 2, w: W, h, cx: x + W / 2, cy: n.y, block: b });
+          x += W + PAIR_GAP;
+        }
+        // Значки соседних пар — в промежутке между карточками, по середине; несколько партнёрств
+        // одной пары — друг над другом.
+        for (let i = 0; i + 1 < b.order.length; i++) {
+          const pr = pairs.get(pairKey(b.order[i], b.order[i + 1]));
+          if (!pr) continue;
+          const l = pos.get(b.order[i]);
+          pr.unions.forEach((u, k) => unionPos.set(u.id, { cx: l.x + W + PAIR_GAP / 2, cy: l.cy + (k - (pr.unions.length - 1) / 2) * 30 }));
+        }
+      };
+      // Поколения сверху вниз: братья и сёстры встают в порядке своих пар-родителей (дети второй
+      // пары — со стороны второго партнёра), строка разворачивается, если так линии к её родителям
+      // короче.
+      const ranks = [...new Set(blocks.map(rankOf))].sort((a, b) => a - b);
+      for (const rank of ranks) {
+        const row = blocks.filter((b) => rankOf(b) === rank).sort((a, b) => at.get(a).x - at.get(b).x);
+        const info = new Map(row.map((b) => {
+          const fams = b.order.flatMap((m) => incoming.get(m) || []);
+          const parentBlocks = [...new Set(fams.map((f) => sourceBlock(f)?.id).filter(Boolean))].sort().join(',');
+          const xs = fams.map(sourceX).filter((v) => v != null);
+          return [b, { key: parentBlocks, desired: xs.length ? xs.reduce((s, v) => s + v, 0) / xs.length : null }];
+        }));
+        for (let i = 0; i < row.length;) {
+          let j = i + 1;
+          const k = info.get(row[i]).key;
+          while (j < row.length && k && info.get(row[j]).key === k && row[j].width === row[i].width) j++;
+          if (j - i > 1 && row.slice(i, j).every((b) => info.get(b).desired != null)) {
+            const slots = row.slice(i, j).map((b) => at.get(b).x);
+            const sorted = row.slice(i, j).sort((a, b) => info.get(a).desired - info.get(b).desired);
+            sorted.forEach((b, t) => {
+              at.get(b).x = slots[t];
+            });
+          }
+          i = j;
+        }
+        for (const b of row) {
+          if (b.order.length > 1) {
+            // Сравнить исходный и обратный порядок по длине линий к родителям.
+            const cost = (order) => order.reduce((s, m, t) => {
+              const px = parentXOf(m);
+              return px == null ? s : s + Math.abs(at.get(b).x - b.width / 2 + t * (W + PAIR_GAP) + W / 2 - px);
+            }, 0);
+            const rev = [...b.order].reverse();
+            if (cost(rev) + 0.5 < cost(b.order)) b.order = rev;
+          }
+          placeBlock(b);
+        }
+      }
+      // Пары, которые не стоят рядом (у человека больше двух партнёров), — значок ниже строки.
+      const lanePairs = [];
+      for (const pr of pairs.values()) {
+        const pa = pos.get(pr.a);
+        const pb = pos.get(pr.b);
+        if (!pa || !pb) continue;
+        const ia = pa.block.order.indexOf(pr.a);
+        const ib = pb.block.order.indexOf(pr.b);
+        pr.adjacent = pa.block === pb.block && Math.abs(ia - ib) === 1;
+        pr.left = pa.cx <= pb.cx ? pr.a : pr.b;
+        pr.right = pr.left === pr.a ? pr.b : pr.a;
+        if (!pr.adjacent) {
+          for (const u of pr.unions) unionPos.delete(u.id);
+          lanePairs.push(pr);
+        }
+      }
+      // Уровни горизонтальных линий в промежутке под каждым поколением: отрезки разных семей,
+      // которые перекрываются по горизонтали, идут на разной высоте и не сливаются.
+      const rankBottom = new Map();
+      for (const b of blocks) {
+        const n = at.get(b);
+        const k = Math.round(n.y);
+        rankBottom.set(k, Math.max(rankBottom.get(k) || -Infinity, n.y + (big ? rankH.get(k) : b.height) / 2));
+      }
+      const items = [];
+      for (const pr of lanePairs) {
+        const l = pos.get(pr.left);
+        const r = pos.get(pr.right);
+        items.push({ kind: 'pair', pr, rank: Math.round(l.block && at.get(l.block).y), from: Math.min(l.cx, r.cx), to: Math.max(l.cx, r.cx), minLane: 0 });
+      }
+      for (const f of families.values()) {
+        let sx;
+        let rank;
+        if (f.kind === 'union') {
+          const pr = pairOfUnion.get(f.source);
+          if (!pr || !pos.get(pr.a)) continue;
+          rank = Math.round(at.get(pos.get(pr.a).block).y);
+          sx = pr.adjacent ? unionPos.get(f.source).cx : (pos.get(pr.a).cx + pos.get(pr.b).cx) / 2;
+          f.lanePair = pr.adjacent ? null : pr;
+        } else {
+          const p = pos.get(f.source);
+          if (!p) continue;
+          rank = Math.round(at.get(p.block).y);
+          sx = p.cx;
+        }
+        const xs = [sx, ...f.children.map(({ child }) => pos.get(child)?.cx).filter((v) => v != null)];
+        f.sx = sx;
+        items.push({ kind: 'family', f, rank, from: Math.min(...xs), to: Math.max(...xs) });
+      }
+      const byRank = new Map();
+      for (const it of items) {
+        if (!byRank.has(it.rank)) byRank.set(it.rank, []);
+        byRank.get(it.rank).push(it);
+      }
+      let maxLanes = 0;
+      for (const [rank, list] of byRank) {
+        // Сначала линии не соседних пар (их значок — на своём уровне), потом семьи.
+        list.sort((a, b) => (a.kind === b.kind ? a.from - b.from : a.kind === 'pair' ? -1 : 1));
+        const laneEnd = [];
+        const pairLane = new Map();
+        for (const it of list) {
+          // Значок пары на своём уровне занимает и соседний ниже; линии к её детям — ещё ниже.
+          const min = it.kind === 'family' && it.f.lanePair ? (pairLane.get(it.f.lanePair) ?? -2) + 2 : 0;
+          let lane = min;
+          const busy = (k) => laneEnd[k] != null && laneEnd[k] > it.from - 14;
+          while (busy(lane) || (it.kind === 'pair' && busy(lane + 1))) lane++;
+          laneEnd[lane] = it.to;
+          it.lane = lane;
+          if (it.kind === 'pair') {
+            pairLane.set(it.pr, lane);
+            laneEnd[lane + 1] = Math.max(laneEnd[lane + 1] ?? -Infinity, it.to);
+          }
+          maxLanes = Math.max(maxLanes, lane + (it.kind === 'pair' ? 2 : 1));
+        }
+        const base = rankBottom.get(rank) + LANE_TOP;
+        for (const it of list) {
+          const y = base + it.lane * LANE;
+          if (it.kind === 'pair') {
+            const cx = (pos.get(it.pr.left).cx + pos.get(it.pr.right).cx) / 2;
+            it.pr.laneY = y;
+            it.pr.unions.forEach((u, k) => unionPos.set(u.id, { cx: cx + k * 30, cy: y }));
+          } else it.f.busY = y;
+        }
+      }
+      return { pos, unionPos, maxLanes };
+    };
+
+    let g = layoutBlocks(BASE_RANKSEP);
+    let placed = place(g);
+    // Уровней много — промежуток между поколениями шире.
+    const need = LANE_TOP + (placed.maxLanes - 1) * LANE + LANE_TOP;
+    if (need > BASE_RANKSEP) {
+      g = layoutBlocks(need);
+      placed = place(g);
+    }
+    const { pos, unionPos } = placed;
+    for (const id of connected) {
+      const p = pos.get(id);
+      nodes.push({ id, type: 'person', position: { x: p.x, y: p.y }, data: { personId: id, width: W, height: p.h, big } });
+      maxY = Math.max(maxY, p.y + p.h);
+      maxX = Math.max(maxX, p.x + W);
+      minX = Math.min(minX, p.x);
+    }
+    for (const pr of pairs.values()) {
+      if (!pos.get(pr.a) || !pos.get(pr.b)) continue;
+      pr.unions.forEach((u) => {
+        const up = unionPos.get(u.id);
+        if (!up) return;
+        nodes.push({ id: u.id, type: 'union', position: { x: up.cx - 13, y: up.cy - 13 }, data: { kind: pr.kind, partnership: u.partnership }, selectable: false });
+        const type = pr.kind === 'partnership' ? 'partner' : 'coparent';
+        const tag = u.partnership ? u.partnership.id : u.id;
+        if (pr.adjacent) {
+          edges.push({ id: `e:${tag}:1`, source: pr.left, target: u.id, type, sourceHandle: 'r', targetHandle: 'l', data: { partnership: u.partnership } });
+          edges.push({ id: `e:${tag}:2`, source: u.id, target: pr.right, type, sourceHandle: 'r', targetHandle: 'l', data: { partnership: u.partnership } });
+        } else {
+          for (const [i, m] of [pr.left, pr.right].entries()) {
+            edges.push({ id: `e:${tag}:${i + 1}`, source: m, target: u.id, type: 'pairLane', sourceHandle: 'b', targetHandle: 't', data: { kind: type, laneY: pr.laneY } });
+          }
+        }
+      });
+    }
+    for (const f of families.values()) {
+      if (f.busY == null) continue;
+      for (const { child, rels } of f.children) {
+        if (!pos.get(child)) continue;
+        const id = f.kind === 'union' ? `pc:${f.source}:${child}` : `pc:${rels[0].id}`;
+        edges.push({ id, source: f.source, target: child, type: 'parent', sourceHandle: 'b', targetHandle: 't', data: { rels, busY: f.busY, direct: f.kind === 'person' } });
+      }
     }
   }
   // Люди без подтверждённых связей — отдельной сеткой, без ложного древа.
