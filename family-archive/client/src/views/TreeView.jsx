@@ -141,10 +141,14 @@ const nodeTypes = { person: PersonNode, union: UnionNode, section: SectionNode, 
 
 // ---------- Линии ----------
 
-function PartnerEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition }) {
+// Подсветка линий выбранного человека: мягкий ореол под линией.
+const Halo = ({ path, on }) => (on ? <path d={path} fill="none" className="edge-halo" /> : null);
+
+function PartnerEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data }) {
   const [path] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: 10 });
   return (
     <>
+      <Halo path={path} on={data?.hl} />
       <BaseEdge id={id} path={path} style={{ stroke: 'var(--green)', strokeWidth: 5 }} />
       <path d={path} fill="none" style={{ stroke: 'var(--surface)', strokeWidth: 1.6 }} />
     </>
@@ -198,7 +202,8 @@ function ParentEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, ta
   const kinds = (data?.rels || []).map((r) => r.kind).filter((k) => k && k !== 'biological' && k !== 'unknown');
   return (
     <>
-      <BaseEdge id={id} path={path} style={{ stroke: 'var(--line-strong)', strokeWidth: 1.8 }} />
+      <Halo path={path} on={data?.hl} />
+      <BaseEdge id={id} path={path} style={data?.hl ? { stroke: 'var(--green)', strokeWidth: 3 } : { stroke: 'var(--line-strong)', strokeWidth: 1.8 }} />
       {kinds.length > 0 && (
         <EdgeLabelRenderer>
           <div className="edge-label nodrag nopan" style={{ transform: side ? `translate(0, -50%) translate(${lx}px, ${ly}px)` : `translate(-50%, -50%) translate(${lx}px, ${ly + 10}px)` }}>{PARENT_KIND_LABELS[kinds[0]]}</div>
@@ -208,9 +213,14 @@ function ParentEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, ta
   );
 }
 
-function CoparentEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition }) {
+function CoparentEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data }) {
   const [path] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: 10 });
-  return <BaseEdge id={id} path={path} style={{ stroke: 'var(--line-strong)', strokeWidth: 1.6 }} />;
+  return (
+    <>
+      <Halo path={path} on={data?.hl} />
+      <BaseEdge id={id} path={path} style={data?.hl ? { stroke: 'var(--green)', strokeWidth: 3 } : { stroke: 'var(--line-strong)', strokeWidth: 1.6 }} />
+    </>
+  );
 }
 
 // Пара, которая не может стоять рядом (у человека больше двух партнёров): от каждого вниз до своего
@@ -220,12 +230,18 @@ function PairLaneEdge({ id, sourceX, sourceY, targetX, data }) {
   if (data.kind === 'partner') {
     return (
       <>
+        <Halo path={path} on={data.hl} />
         <BaseEdge id={id} path={path} style={{ stroke: 'var(--green)', strokeWidth: 5 }} />
         <path d={path} fill="none" style={{ stroke: 'var(--surface)', strokeWidth: 1.6 }} />
       </>
     );
   }
-  return <BaseEdge id={id} path={path} style={{ stroke: 'var(--line-strong)', strokeWidth: 1.6 }} />;
+  return (
+    <>
+      <Halo path={path} on={data.hl} />
+      <BaseEdge id={id} path={path} style={data.hl ? { stroke: 'var(--green)', strokeWidth: 3 } : { stroke: 'var(--line-strong)', strokeWidth: 1.6 }} />
+    </>
+  );
 }
 
 function HypothesisEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data }) {
@@ -714,10 +730,28 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
 
   const nodeIdFor = useCallback((pid) => (mode === 'excel' ? layout.personNode?.get(pid) || pid : pid), [mode, layout]);
   const edges = useMemo(() => {
-    const base = layout.edges || [];
+    let base = layout.edges || [];
+    // Выбранный человек: подсвечены линии к его родителям (с линиями их пары) и к его детям (с линиями
+    // его пар). Подсвеченные рисуются поверх остальных.
+    if (mode === 'tree' && selectedId) {
+      const isPair = (e) => e.type === 'partner' || e.type === 'coparent' || e.type === 'pairLane';
+      const own = new Set(); // значки пар выбранного
+      const parentsUnion = new Set(); // значок пары его родителей
+      const hl = new Set();
+      for (const e of base) if (isPair(e) && (e.source === selectedId || e.target === selectedId)) own.add(e.source === selectedId ? e.target : e.source);
+      for (const e of base) {
+        if (e.type !== 'parent') continue;
+        if (e.target === selectedId) {
+          hl.add(e.id);
+          parentsUnion.add(e.source);
+        } else if (e.source === selectedId || own.has(e.source)) hl.add(e.id);
+      }
+      for (const e of base) if (isPair(e) && (own.has(e.source) || own.has(e.target) || parentsUnion.has(e.source) || parentsUnion.has(e.target))) hl.add(e.id);
+      if (hl.size) base = base.map((e) => (hl.has(e.id) ? { ...e, zIndex: 1, className: 'is-hl', data: { ...e.data, hl: true } } : e));
+    }
     if (!showHyp) return base;
     return [...base, ...hypothesisEdges(data.hypotheses, layout.nodes, { selectedId, nodeIdFor })];
-  }, [layout, showHyp, data.hypotheses, selectedId, nodeIdFor]);
+  }, [layout, showHyp, data.hypotheses, selectedId, nodeIdFor, mode]);
 
   // Размеры узлов, измеренные холстом, нужны миникарте и «Показать всё».
   const [measured, setMeasured] = useState(() => new Map());

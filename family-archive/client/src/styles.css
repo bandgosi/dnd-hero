@@ -329,6 +329,7 @@ textarea.input { resize: vertical; min-height: 72px; }
 .union { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; }
 .union-partner { background: var(--surface); border: 2px solid var(--green); color: var(--green); padding: 0; }
 .union-partner:hover { background: var(--green-tint); }
+.edge-halo { stroke: rgba(33, 78, 66, 0.16); stroke-width: 12; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 .union-co { position: relative; width: 10px; height: 10px; margin: 8px; background: var(--line-strong); border-radius: 50%; }
 /* Отметка родства на карточке — не больше трёх строк; полный текст — во всплывающей подсказке. */
 .chip-clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
