@@ -64,10 +64,10 @@ const PersonNode = memo(({ data }) => {
           {line2 && <span>{line2}</span>}
         </div>
         {!data.excel && span && <div className="pnode-meta">{span}</div>}
-        {(!data.big || isCenter || kin) && (
+        {(isCenter || kin || data.excel || (rec && !data.big)) && (
           <div className="pnode-chips">
             {isCenter && <span className="chip chip-green">Центр</span>}
-            {kin && !isCenter && <span className={`chip ${kin.unknown ? 'chip-muted' : 'chip-green'}`} title={data.big ? kin.label : undefined}>{kin.unknown ? 'Родство не установлено' : data.big ? shortKin(kin.label) : kin.label}</span>}
+            {kin && !isCenter && <span className={`chip chip-clamp ${kin.unknown ? 'chip-muted' : 'chip-green'}`} title={kin.label}>{kin.unknown ? 'Родство не установлено' : shortKin(kin.label)}</span>}
             {data.excel ? <span className="chip chip-muted">{data.cell}</span> : !kin && rec && !data.big && <span className="chip chip-muted">Из Excel</span>}
           </div>
         )}
@@ -164,10 +164,12 @@ function orthoPath(points, radius = 8) {
     }
     const [px, py] = pts[i - 1];
     const r = Math.min(radius, Math.hypot(x - px, y - py) / 2, Math.hypot(next[0] - x, next[1] - y) / 2);
-    const inX = x - Math.sign(x - px) * r;
-    const inY = y - Math.sign(y - py) * r;
-    const outX = x + Math.sign(next[0] - x) * r;
-    const outY = y + Math.sign(next[1] - y) * r;
+    // Знак с порогом: доли пикселя (неточность измерения) — не поворот.
+    const sg = (v) => (Math.abs(v) < 0.5 ? 0 : Math.sign(v));
+    const inX = x - sg(x - px) * r;
+    const inY = y - sg(y - py) * r;
+    const outX = x + sg(next[0] - x) * r;
+    const outY = y + sg(next[1] - y) * r;
     d += ` L ${inX} ${inY} Q ${x} ${y} ${outX} ${outY}`;
   }
   return d;
@@ -179,18 +181,27 @@ function ParentEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, ta
   let path;
   let lx;
   let ly;
-  if (data?.busY != null) {
-    path = orthoPath([[sourceX, sourceY], [sourceX, data.busY], [targetX, data.busY], [targetX, targetY]]);
-    lx = targetX;
-    ly = (data.busY + targetY) / 2 - 10;
+  if (data?.points?.length >= 3) {
+    // Точки рассчитаны раскладкой; начало и конец — по фактическим точкам подключения.
+    const pts = data.points.map((p) => [...p]);
+    pts[0] = [sourceX, sourceY];
+    pts[1][0] = sourceX;
+    const tx = targetX + (data.tdx || 0);
+    pts[pts.length - 2][0] = tx;
+    pts[pts.length - 1] = [tx, targetY];
+    path = orthoPath(pts);
+    // Подпись (усыновление и т. п.) — сбоку от входа в карточку, не на кнопке «предки».
+    lx = tx + 14;
+    ly = (pts[pts.length - 2][1] + targetY) / 2;
   } else [path, lx, ly] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: 10 });
+  const side = data?.points?.length >= 3;
   const kinds = (data?.rels || []).map((r) => r.kind).filter((k) => k && k !== 'biological' && k !== 'unknown');
   return (
     <>
       <BaseEdge id={id} path={path} style={{ stroke: 'var(--line-strong)', strokeWidth: 1.8 }} />
       {kinds.length > 0 && (
         <EdgeLabelRenderer>
-          <div className="edge-label nodrag nopan" style={{ transform: `translate(-50%, -50%) translate(${lx}px, ${ly + 10}px)` }}>{PARENT_KIND_LABELS[kinds[0]]}</div>
+          <div className="edge-label nodrag nopan" style={{ transform: side ? `translate(0, -50%) translate(${lx}px, ${ly}px)` : `translate(-50%, -50%) translate(${lx}px, ${ly + 10}px)` }}>{PARENT_KIND_LABELS[kinds[0]]}</div>
         </EdgeLabelRenderer>
       )}
     </>
@@ -230,7 +241,7 @@ function HypothesisEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition
         <button
           type="button"
           className={`hyp-marker nodrag nopan ${hl ? 'is-wide' : ''}`}
-          style={{ transform: `translate(-50%, -50%) translate(${lx}px, ${ly}px)`, opacity: ctx.selectedId && !hl ? 0.6 : 1 }}
+          style={{ transform: `translate(-50%, -50%) translate(${lx}px, ${ly + (data.labelDy || 0)}px)`, opacity: ctx.selectedId && !hl ? 0.6 : 1 }}
           onClick={(e) => { e.stopPropagation(); ctx.openHypothesis(h); }}
           aria-label={`Предположение: ${d.text}`}
           title={`Предположение: ${d.text}`}
@@ -402,6 +413,12 @@ function FitOnChange({ layoutKey, normalKey, focusId, centerNodeId, topNodeId, f
       restore.current = null;
     }
     if (toggled) armUntil.current = performance.now() + 1500;
+    // Древо открыто, чтобы показать конкретного человека, — его покажет фокус, без «показать всё».
+    if (first.current && focusTick && focusId) {
+      first.current = false;
+      prevFs.current = fullscreen;
+      return undefined;
+    }
     const anchor = anchorRef?.current;
     if (anchorRef) anchorRef.current = null;
     if (fullscreen && !toggled && anchor) {
@@ -427,7 +444,7 @@ function FitOnChange({ layoutKey, normalKey, focusId, centerNodeId, topNodeId, f
       clearTimeout(t);
       clearTimeout(t2);
     };
-  }, [layoutKey, fullscreen, normalKey, rf]);
+  }, [layoutKey, fullscreen, normalKey, rf]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Вход и выход из полного экрана браузера тоже меняют размер холста.
   useEffect(() => {
@@ -909,8 +926,6 @@ export function TreeView({ selectedId, centerId, mode, setMode, showHyp, setShow
                 edgesFocusable={false}
                 minZoom={fullscreen ? FS_MIN_ZOOM : 0.15}
                 maxZoom={2}
-                fitView
-                fitViewOptions={{ padding: NORMAL_FIT_PADDING, maxZoom: 1.1 }}
                 proOptions={{ hideAttribution: false }}
                 attributionPosition="bottom-left"
                 zoomOnDoubleClick={false}

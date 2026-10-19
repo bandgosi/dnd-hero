@@ -329,7 +329,9 @@ textarea.input { resize: vertical; min-height: 72px; }
 .union { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; }
 .union-partner { background: var(--surface); border: 2px solid var(--green); color: var(--green); padding: 0; }
 .union-partner:hover { background: var(--green-tint); }
-.union-co { width: 10px; height: 10px; margin: 8px; background: var(--line-strong); border-radius: 50%; }
+.union-co { position: relative; width: 10px; height: 10px; margin: 8px; background: var(--line-strong); border-radius: 50%; }
+/* Отметка родства на карточке — не больше трёх строк; полный текст — во всплывающей подсказке. */
+.chip-clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* Крупная карточка полноэкранного просмотра (размеры совпадают с BIG в lib/graph.js) */
 .pnode-big { flex-direction: column; align-items: center; justify-content: flex-start; gap: 8px; padding: 12px; text-align: center; }
