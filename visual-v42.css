@@ -22,8 +22,8 @@
 .roll-receipt[hidden]{display:none;}.roll-receipt span,.roll-receipt small {display:block;overflow-wrap:anywhere;color:#c6cdda;}.roll-receipt strong {display:block;font-size:42px;line-height:1.3;color:#e7cf9a;}.receipt-close {position:absolute;right:6px;top:4px;width:36px;height:36px;background:none;border:0;color:#cbd2dd;font-size:24px;pointer-events:auto;}
 .natural-twenty {border-color:#ebcb80;animation:art-critical .65s ease;}.natural-one {border-color:#b4646e;}.natural-one strong {color:#ef9ca6;}
 .v42-dialog {background:#191e27;color:#e9ecf1;border:1px solid #615374;border-radius:20px;padding:24px;max-width:min(440px,calc(100vw - 32px));}.v42-dialog::backdrop {background:#0009;}.v42-dialog p{line-height:1.65;}
-@media(max-width:719px){
-#tab-spells.detail-open .ui-detail,#tab-inventory.detail-open .ui-detail{position:fixed;z-index:300;inset:auto 0 calc(70px + env(safe-area-inset-bottom));max-height:calc(90dvh - 70px);overflow-y:auto;border-radius:24px 24px 0 0;padding:10px 18px 20px;box-shadow:0 -80px 0 80px #0009;background:#191e27;animation:sheet-rise .2s ease-out;}
+@container sheet (width < 720px){
+#tab-spells.detail-open .ui-detail,#tab-inventory.detail-open .ui-detail{position:fixed;z-index:300;inset:auto env(safe-area-inset-right,0px) calc(70px + env(safe-area-inset-bottom,0px)) env(safe-area-inset-left,0px);max-height:calc(90dvh - 70px);overflow-y:auto;border-radius:24px 24px 0 0;padding:10px 18px 20px;box-shadow:0 -80px 0 80px #0009;background:#191e27;animation:sheet-rise .2s ease-out;}
 .ui-detail:before {content:'';display:block;width:38px;height:4px;border-radius:3px;background:#647080;margin:0 auto 10px;}
 .detail-back {position:sticky;top:0;z-index:2;background:#222a36!important;min-height:44px;}
 .detail-actions {position:sticky;bottom:0;background:#191e27;padding:10px 0;}
@@ -39,41 +39,77 @@
 #char-combat .hp-current{font-size:40px;line-height:1.15}#char-combat .hp-controls{margin:6px 0;}
 #char-combat .combat-stat{padding:8px 4px;}#char-combat .combat-stat-label{font-size:10px;}#char-combat .combat-stat-val{font-size:26px;}
 #char-combat .section-title{margin-bottom:10px;}#char-combat .combat-stats-grid{margin-bottom:6px;}
-@media(min-width:720px){.abilities-grid{grid-template-columns:repeat(6,minmax(0,1fr));}}
+@container sheet (min-width:720px){.abilities-grid{grid-template-columns:repeat(6,minmax(0,1fr));}}
 }
 @media screen {.attack-actions .primary{background:#514329;border-color:#8e7547;color:#f7e4be;}.battle-entry.primary{background:#514329;border-color:#8e7547;color:#f7e4be;}}
 
-/* v45 — вход в той же графитово-золотой палитре, что и лист героя. */
+/* v47 — welcome follows usable shell width, including iOS safe areas. */
 @media screen {
 #screen-welcome {background:#0c0f13;}
-#screen-welcome .welcome-bg {position:relative;isolation:isolate;display:grid;grid-template-rows:auto minmax(150px,1fr) auto;align-items:stretch;justify-content:normal;min-height:100%;flex:1 0 auto;padding:calc(env(safe-area-inset-top,0px) + 24px) 24px calc(env(safe-area-inset-bottom,0px) + 24px);background:#0c0f13;}
-.welcome-scene {position:absolute;z-index:-1;inset:0 0 320px;background:linear-gradient(180deg,#0c0f1322 25%,#0c0f1300 52%,#0c0f13 100%),url('images/welcome-amethyst.webp') center 75% / cover no-repeat;opacity:.85;}
-.welcome-brand {grid-row:1;display:flex;align-items:center;gap:12px;}
-#screen-welcome .welcome-logo {width:56px;height:56px;margin:0;border-radius:14px;}
+#screen-welcome .welcome-bg {position:relative;isolation:isolate;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(140px,1fr) auto;gap:16px;align-items:stretch;justify-content:normal;min-height:100%;flex:1 0 auto;padding:calc(env(safe-area-inset-top,0px) + 20px) 20px calc(env(safe-area-inset-bottom,0px) + 20px);background:#0c0f13;}
+.welcome-scene {position:relative;grid-row:2;z-index:-1;min-width:0;margin-inline:-20px;background:linear-gradient(180deg,#0c0f13 0%,#0c0f1300 20%,#0c0f1300 80%,#0c0f13 100%),url('images/welcome-amethyst.webp') center 65% / cover no-repeat;opacity:.85;}
+.welcome-brand {grid-row:1;display:flex;align-items:center;gap:12px;min-width:0;width:100%;max-width:480px;justify-self:center;}
+#screen-welcome .welcome-logo {width:52px;height:52px;flex-shrink:0;margin:0;border-radius:14px;}
 #screen-welcome .welcome-title {font-family:Georgia,'Times New Roman',serif;font-size:23px;letter-spacing:1.8px;color:#e5c784;text-shadow:none;text-align:left;margin:0 0 6px;}
 .welcome-edition {font-size:9px;letter-spacing:1.6px;color:#aeb8c8;}
-#screen-welcome .welcome-bottom {grid-row:3;display:block;position:relative;padding:24px;border:1px solid #3b3540;border-radius:24px;background:linear-gradient(145deg,#20242df5,#151a23fa);box-shadow:0 16px 48px #0005;}
+#screen-welcome .welcome-bottom {grid-row:3;display:block;position:relative;justify-self:center;min-width:0;width:100%;max-width:480px;padding:24px;border:1px solid #3b3540;border-radius:24px;background:linear-gradient(145deg,#20242df5,#151a23fa);box-shadow:0 16px 48px #0005;}
 .welcome-kicker {display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:1.6px;color:#c6ad79;}
-.welcome-kicker>span {width:6px;height:6px;transform:rotate(45deg);background:#b8a0d8;}
-.welcome-heading {font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:clamp(27px,6.8vw,36px);line-height:1.18;letter-spacing:-.4px;color:#f0e5d2;margin:16px 0 14px;}
+.welcome-kicker>span {width:6px;height:6px;flex-shrink:0;transform:rotate(45deg);background:#b8a0d8;}
+.welcome-heading {font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:clamp(27px,6.8cqi,36px);line-height:1.18;letter-spacing:-.4px;color:#f0e5d2;margin:16px 0 14px;}
 #screen-welcome .welcome-sub {font-family:var(--ui-font,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif);font-size:14px;line-height:1.6;font-style:normal;text-align:left;color:#adb7c7;text-shadow:none;}
 .welcome-features {display:flex;flex-wrap:wrap;gap:8px 14px;margin:20px 0 24px;}
-.welcome-features>span {display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#c5cbd5;}
+.welcome-features>span {display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#c5cbd5;}
 .welcome-features img {width:17px;height:17px;object-fit:contain;opacity:.8;}
 #screen-welcome .welcome-btn {display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:56px;padding:14px 18px;border:1px solid #a78a53;border-radius:12px;background:linear-gradient(135deg,#655333,#493d29);color:#f7e4be;font-family:var(--ui-font,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif);font-size:15px;font-weight:600;letter-spacing:.1px;box-shadow:inset 0 1px #dfc58a26,0 4px 14px #0003;transition:background .15s,transform .15s;}
-#screen-welcome .welcome-btn>span:last-child {font-size:24px;font-weight:400;}
+#screen-welcome .welcome-btn>span:last-child {font-size:24px;font-weight:400;flex-shrink:0;}
 #screen-welcome .welcome-btn:focus-visible {outline:3px solid #c7abe9;outline-offset:4px;}
 #screen-welcome .welcome-btn:active {transform:translateY(1px);}
-.welcome-footer {display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:16px;font-size:10px;color:#8995a7;}
+.welcome-footer {display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:16px;font-size:11px;color:#8995a7;}
 .welcome-offline {display:flex;align-items:center;gap:6px;}
 .welcome-offline i {width:5px;height:5px;border-radius:50%;background:#92ad96;}
-#screen-welcome .welcome-version {margin:0;font-family:inherit;font-size:10px;letter-spacing:0;text-shadow:none;color:#8995a7;}
-@media(min-width:720px){
-#screen-welcome .welcome-bg {grid-template-columns:minmax(0,1fr) minmax(330px,1fr);grid-template-rows:auto 1fr;gap:32px;padding:calc(env(safe-area-inset-top,0px) + 32px) 32px calc(env(safe-area-inset-bottom,0px) + 32px);}
-.welcome-brand {grid-column:1/-1;}.welcome-scene {inset:0 35% 0 0;background-image:linear-gradient(90deg,#0c0f1300 45%,#0c0f13 100%),url('images/welcome-amethyst.webp');background-position:center,center bottom;}
-#screen-welcome .welcome-bottom {grid-column:2;grid-row:2;align-self:center;padding:28px;}.welcome-heading{font-size:30px;}
+#screen-welcome .welcome-version {margin:0;font-family:inherit;font-size:11px;letter-spacing:0;text-shadow:none;color:#8995a7;}
+/* Wide screens retain the illustrated two-column composition. */
+@container sheet (min-width:900px){
+#screen-welcome .welcome-bg {grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto 1fr;gap:24px;padding:calc(env(safe-area-inset-top,0px) + 28px) 28px calc(env(safe-area-inset-bottom,0px) + 28px);}
+.welcome-brand {grid-column:1/-1;max-width:none;}
+.welcome-scene {position:absolute;inset:0 35% 0 0;margin:0;background-image:linear-gradient(90deg,#0c0f1300 45%,#0c0f13 100%),url('images/welcome-amethyst.webp');background-position:center,center bottom;}
+#screen-welcome .welcome-bottom {grid-column:2;grid-row:2;align-self:center;max-width:480px;padding:28px;}
+.welcome-heading{font-size:32px;}
 }
-@media(max-width:359px){#screen-welcome .welcome-bg {padding-left:16px;padding-right:16px;}#screen-welcome .welcome-bottom {padding:20px;}.welcome-heading{font-size:27px;}.welcome-break{display:none;}}
-@media(max-height:650px) and (max-width:719px){#screen-welcome .welcome-bg {grid-template-rows:auto minmax(80px,1fr) auto;row-gap:16px;padding-top:calc(env(safe-area-inset-top,0px) + 16px);}.welcome-scene {inset:0 0 120px;}}
+/* Compact windows keep the call to action visible without shrinking the text. */
+@media(max-height:700px){
+@container sheet (min-width:600px){
+#screen-welcome .welcome-bg {grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);grid-template-rows:auto 1fr;gap:16px;padding:calc(env(safe-area-inset-top,0px) + 16px) 20px calc(env(safe-area-inset-bottom,0px) + 16px);}
+.welcome-brand {grid-column:1/-1;max-width:none;}
+.welcome-scene {position:absolute;inset:0 45% 0 0;margin:0;background-image:linear-gradient(90deg,#0c0f1300 45%,#0c0f13 100%),url('images/welcome-amethyst.webp');background-position:center,center;}
+#screen-welcome .welcome-bottom {grid-column:2;grid-row:2;align-self:center;padding:20px;border-radius:20px;}
+.welcome-heading {font-size:28px;margin:12px 0;}
+.welcome-features {margin:16px 0;gap:8px 12px;}
+}
+@container sheet (width < 600px){
+#screen-welcome .welcome-bg {grid-template-rows:auto minmax(60px,1fr) auto;gap:12px;padding-top:calc(env(safe-area-inset-top,0px) + 12px);}
+#screen-welcome .welcome-bottom {padding:20px;}
+.welcome-features {margin:14px 0;}
+}
+}
+@media(max-height:500px){
+@container sheet (min-width:600px){
+#screen-welcome .welcome-bg {gap:12px;padding-top:calc(env(safe-area-inset-top,0px) + 12px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px);}
+#screen-welcome .welcome-logo {width:40px;height:40px;}
+#screen-welcome .welcome-title {font-size:20px;}
+#screen-welcome .welcome-bottom {padding:16px;}
+.welcome-heading {font-size:24px;margin:8px 0;}
+.welcome-features {margin:10px 0;}
+.welcome-footer {margin-top:10px;}
+}
+}
+@container sheet (max-width:359px){
+#screen-welcome .welcome-bg {padding-left:12px;padding-right:12px;}
+.welcome-scene {margin-inline:-12px;}
+#screen-welcome .welcome-bottom {padding:18px;}
+.welcome-heading{font-size:27px;}
+.welcome-features{gap:8px 10px;}
+.welcome-features>span{font-size:11px;}
+}
 @media(prefers-reduced-motion:reduce){#screen-welcome .welcome-btn{transition:none;}}
 }

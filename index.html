@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="D&D Герой">
 <meta name="theme-color" content="#0c0f13">
 <title>D&D Герой</title>
@@ -67,8 +67,8 @@
     --stone: #12161c;
     --stone-light: #2a313c;
     --shadow: rgba(0,0,0,0.5);
-    --safe-top: env(safe-area-inset-top);
-    --safe-bottom: env(safe-area-inset-bottom);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -76,6 +76,10 @@
 
   html {
     height: 100%;
+    background: var(--bg);
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     overflow: hidden;
   }
 
@@ -100,6 +104,7 @@
   .app {
     display: flex;
     flex-direction: column;
+    container: sheet / inline-size;
     height: 100dvh;
     height: var(--app-h, 100dvh);
   }
@@ -902,6 +907,7 @@
     display: none;
     align-items: flex-end;
     justify-content: center;
+    padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
   }
 
   .modal-overlay.open { display: flex; }
@@ -1003,6 +1009,7 @@
     flex-direction: column;
     padding-top: var(--safe-top);
     padding-bottom: var(--safe-bottom);
+    padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
   }
   .ai-overlay.open { display: flex; }
 
@@ -1978,7 +1985,7 @@
   .fab-dice { right: max(16px, env(safe-area-inset-right, 0px)); }
   .nav-btn, .subtab-btn { min-height: 44px; }
 
-  @media screen and (min-width: 720px) {
+  @container sheet (min-width: 720px) {
     /* Two readable columns, with the same bottom navigation in either posture. */
     #char-main.active, #char-combat.active,
     #tab-spells > .content, #tab-dice > .content, #tab-notes > .content {
@@ -2014,13 +2021,17 @@
     .nav-btn { padding: 12px 8px; font-size: 11px; gap: 4px; }
     .fab-dice { right: max(24px, calc((100vw - 1120px) / 2 + 24px)); bottom: calc(var(--safe-bottom) + 86px); }
     .quick-roll { bottom: calc(var(--safe-bottom) + 96px); }
-    .modal-overlay { align-items: center; padding: max(24px, var(--safe-top)) 24px max(24px, var(--safe-bottom)); }
+  }
+
+  /* These overlays are siblings of .app, so use the viewport for them. */
+  @media screen and (min-width: 720px) {
+    .modal-overlay { align-items: center; padding: max(24px, var(--safe-top)) max(24px, env(safe-area-inset-right, 0px)) max(24px, var(--safe-bottom)) max(24px, env(safe-area-inset-left, 0px)); }
     .modal-sheet { max-width: 560px; border: 1px solid var(--line); border-radius: 20px; }
     .ai-overlay { max-width: 960px; margin-inline: auto; border-inline: 1px solid var(--line); box-shadow: 0 0 80px #0008; }
   }
 
   /* Narrow cover displays and split-screen windows. */
-  @media screen and (max-width: 359px) {
+  @container sheet (max-width: 359px) {
     .section { padding-left: 12px; padding-right: 12px; }
     .nav-btn { font-size: 9px; letter-spacing: 0; padding-inline: 2px; }
     .page-header h1 { font-size: 18px; letter-spacing: 1px; }
@@ -2189,7 +2200,7 @@
   .inspiration-bar { box-shadow:none; }
   .insp-text { font:600 14px var(--ui-font); }
   .insp-status { font-size:13px; }
-  @media (max-width:719px) {
+  @container sheet (width < 720px) {
     #tab-spells.detail-open .spell-overview,#tab-spells.detail-open .ui-master,#tab-inventory.detail-open .ui-master,#tab-inventory.detail-open .wallet-section { display:none; }
     #tab-spells.detail-open .ui-detail,#tab-inventory.detail-open .ui-detail { display:block; }
     #tab-spells.detail-open .fab-dice { display:none; }
@@ -2197,7 +2208,7 @@
     .ui-detail { padding:16px; }
     .combat-actions .section { padding-top:16px!important; }
   }
-  @media (min-width:720px) {
+  @container sheet (min-width:720px) {
     #tab-spells > .content { padding:22px 24px; }
     .spell-overview { grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
     .ui-workspace { grid-template-columns:minmax(0,1fr) minmax(0,1.06fr); }
@@ -2214,7 +2225,7 @@
     .coin-name { text-align:left; font-size:12px; }
     .coin-input { text-align:left; }
   }
-  @media (max-width:359px) {
+  @container sheet (max-width:359px) {
     .page-header { padding-left:14px; padding-right:14px; }
     .page-header h1 { font-size:22px; }
     #tab-spells > .content { padding:12px; }
@@ -2253,7 +2264,7 @@
           <span><img src="images/ui/die.png" alt="">Кубики</span>
         </div>
         <button class="welcome-btn" onclick="startApp()"><span>Начать приключение</span><span aria-hidden="true">→</span></button>
-        <div class="welcome-footer"><span class="welcome-offline"><i aria-hidden="true"></i>Работает без интернета</span><span class="welcome-version">версия 46</span></div>
+        <div class="welcome-footer"><span class="welcome-offline"><i aria-hidden="true"></i>Работает без интернета</span><span class="welcome-version">версия 47</span></div>
       </div>
     </div>
   </div>
@@ -6807,7 +6818,8 @@ function uiOpen(kind,index) {
   uiView[kind].selected=(kind==='spells'?state.spells:state.inventory)[index];
   if(kind==='spells') renderSpellList(); else renderInventory();
   tab.classList.add('detail-open');
-  if(matchMedia('(max-width:719px)').matches) content.scrollTop=0;
+  // Follow the actual single-column layout, including landscape safe areas.
+  if(getComputedStyle(tab.querySelector('.ui-workspace')).gridTemplateColumns.split(' ').length===1) content.scrollTop=0;
   tab.querySelector('.ui-detail h2')?.focus({preventScroll:true});
 }
 function uiBack(kind) {

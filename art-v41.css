@@ -70,7 +70,7 @@
   @keyframes art-heal { 50% {box-shadow:0 0 0 3px #89c79e66;} }
   @keyframes art-damage { 50% {box-shadow:0 0 0 3px #ec919966;} }
   @keyframes art-critical { 50% {box-shadow:0 -3px 20px #e8c37a55; border-top-color:#e8c37a;} }
-  @media (min-width:720px) {
+  @container sheet (min-width:720px) {
     .hero-banner { padding:168px 30px 26px; grid-template-columns:124px minmax(0,1fr); }
     .hero-banner .char-portrait { width:120px; height:120px; }
     .hero-banner .char-name-input { font-size:36px; }
@@ -80,7 +80,7 @@
     .hero-banner .class-cover { top:50%; transform:translateY(-50%); }
     #tab-spells>.page-header { background-position:center 51%; background-size:100% auto; padding-top:calc(var(--safe-top) + 30px); padding-bottom:30px; }
   }
-  @media (max-width:359px) {
+  @container sheet (max-width:359px) {
     .hero-banner { grid-template-columns:78px minmax(0,1fr); padding:124px 14px 20px; gap:12px; }
     .hero-banner .char-portrait { width:76px; height:76px; }
     .hero-banner .char-name-input { font-size:24px; }
