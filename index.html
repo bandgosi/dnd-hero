@@ -2264,7 +2264,7 @@
           <span><img src="images/ui/die.png" alt="">Кубики</span>
         </div>
         <button class="welcome-btn" onclick="startApp()"><span>Начать приключение</span><span aria-hidden="true">→</span></button>
-        <div class="welcome-footer"><span class="welcome-offline"><i aria-hidden="true"></i>Работает без интернета</span><span class="welcome-version">версия 47</span></div>
+        <div class="welcome-footer"><span class="welcome-offline"><i aria-hidden="true"></i>Работает без интернета</span><span class="welcome-version">версия 48</span></div>
       </div>
     </div>
   </div>
@@ -3067,6 +3067,7 @@
       <button class="primary-btn" style="flex:1;background:var(--stone)" onclick="exportCharacters()">⬇ Экспорт</button>
       <button class="primary-btn" style="flex:1;background:var(--stone)" onclick="document.getElementById('import-file').click()">⬆ Импорт</button>
     </div>
+    <p class="ui-muted">Для переноса на новый телефон: экспортируйте JSON со всеми героями, фотографиями и историей бросков. QR передаёт одного героя без фотографии и истории.</p>
     <input type="file" id="import-file" accept="application/json" style="display:none" onchange="if(this.files[0])importCharacters(this.files[0]); this.value='';">
   </div>
 </div>
@@ -3573,6 +3574,9 @@ function startApp() {
   loadFxSettings();
   initSwipeNav();
   setInterval(saveAll, 5000);
+  // iOS can suspend the app without running another autosave timer.
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveAll();});
+  window.addEventListener('pagehide',saveAll);
   setTimeout(maybeShowBackupReminder, 4000);
 }
 
@@ -4371,11 +4375,11 @@ function renderRollHistory() {
   }
   div.innerHTML = state.rollHistory.slice(0,10).map(r=>`
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.095)">
-      <div style="font-family:Cinzel,serif;font-size:22px;color:${r.isCrit?'#f0c040':r.isFail?'#c03030':'var(--ink)'};min-width:36px;text-align:center">${r.total}</div>
+      <div style="font-family:Cinzel,serif;font-size:22px;color:${r.isCrit?'#f0c040':r.isFail?'#c03030':'var(--ink)'};min-width:36px;text-align:center">${esc(String(r.total))}</div>
       <div style="flex:1">
-        <div style="font-size:13px;color:var(--ink-light)">${r.label}${r.isCrit?' ⭐ КРИТ!':r.isFail?' 💀 ПРОВАЛ':''}</div>
+        <div style="font-size:13px;color:var(--ink-light)">${esc(r.label)}${r.isCrit?' ⭐ КРИТ!':r.isFail?' 💀 ПРОВАЛ':''}</div>
       </div>
-      <div style="font-size:11px;color:#8d97a3">${r.time}</div>
+      <div style="font-size:11px;color:#8d97a3">${esc(r.time)}</div>
     </div>`).join('');
 }
 
@@ -4633,8 +4637,49 @@ const FIELD_IDS = ['char-name','char-class','char-subclass','char-level','char-r
 
 function genId() { return 'c' + Date.now() + Math.floor(Math.random()*100000); }
 
-function getStore() { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || null; } catch(e) { return null; } }
-function setStore(s) { try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch(e){} }
+let storeReadFailed = false;
+function storageError(error) {
+  let banner = document.getElementById('storage-error');
+  if(!banner) {
+    banner = document.createElement('div'); banner.id = 'storage-error'; banner.setAttribute('role','alert');
+    document.getElementById('screen-main').prepend(banner);
+  }
+  const quota = error && (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED');
+  banner.textContent = quota
+    ? 'Не удалось сохранить: хранилище приложения заполнено. Не закрывайте приложение. Экспортируйте JSON; уменьшите объём фотографий или данных и повторите.'
+    : 'Не удалось прочитать или сохранить данные на устройстве. Не закрывайте приложение. Экспортируйте героев в JSON; проверьте доступ к хранилищу.';
+  const button = document.createElement('button'); button.className = 'ui-button'; button.textContent = 'Экспорт JSON';
+  button.onclick = exportCharacters; banner.append(' ', button);
+}
+function getStore() {
+  try {
+    const store = JSON.parse(localStorage.getItem(STORE_KEY));
+    if(store !== null && (!Array.isArray(store.list) || !store.list.every(c=>c && c.data))) throw new Error('Повреждено хранилище');
+    storeReadFailed = false;
+    return store;
+  } catch(e) { storeReadFailed = true; storageError(e); return null; }
+}
+// localStorage.setItem is atomic: failure leaves the previous value intact.
+// Every caller receives the result; UI success/navigation must follow a true result.
+function setStore(s) {
+  if(storeReadFailed) return false; // Never overwrite a save we could not read.
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(s));
+    document.getElementById('storage-error')?.remove();
+    return true;
+  } catch(e) { storageError(e); return false; }
+}
+function snapshotStore() {
+  const store = getStore();
+  if(!store) throw new Error('Не удалось прочитать сохранённых героев.');
+  const current = store.list.find(c=>c.id === store.active);
+  if(!current) throw new Error('Активный герой не найден. Экспорт отменён.');
+  if(current) {
+    current.data = serializeCurrent();
+    current.name = document.getElementById('char-name')?.value || current.name;
+  }
+  return store;
+}
 
 // Снимок текущего персонажа: состояние + значения полей формы
 function serializeCurrent() {
@@ -4670,7 +4715,7 @@ function applyCharacter(data) {
   state.features = d.features || [];
   state.concentrationSpell = d.concentrationSpell || null;
   state.bonusSlots = (d.bonusSlots && d.bonusSlots.length===9) ? d.bonusSlots : new Array(9).fill(0);
-  const fields = (data && data.fields) || {};
+  const fields = Object.assign({}, blankCharacterData().fields, (data && data.fields) || {});
   FIELD_IDS.forEach(id => { const el=document.getElementById(id); if(el && fields[id]!==undefined) el.value=fields[id]; });
   syncSubclassOptions(fields['char-subclass'] || ''); // варианты зависят от класса, поэтому после полей
   // Кости Хитов: берём из сейва или вычисляем по классу/уровню
@@ -4685,13 +4730,8 @@ function applyCharacter(data) {
 
 // Записать текущего персонажа в активный слот хранилища
 function saveAll() {
-  const store = getStore();
-  if(!store || !store.active) return;
-  const idx = store.list.findIndex(c => c.id === store.active);
-  if(idx < 0) return;
-  store.list[idx].data = serializeCurrent();
-  store.list[idx].name = document.getElementById('char-name')?.value || store.list[idx].name;
-  setStore(store);
+  try { return setStore(snapshotStore()); }
+  catch(e) { storageError(e); return false; }
 }
 
 // Пустой персонаж для кнопки «Новый герой»
@@ -4743,13 +4783,13 @@ function renderCharMenu() {
 
 // Быстрое создание (пустой герой) — вызывается мастером и как запасной путь
 function newCharacter(data) {
-  saveAll();
+  if(!saveAll()) return false;
   const store = getStore();
   const id = genId();
   data = data || blankCharacterData();
   store.list.push({ id, name: data.fields['char-name'], data });
   store.active = id;
-  setStore(store);
+  if(!setStore(store)) return false;
   applyCharacter(data);
   renderCharMenu();
   showToast('🆕 Герой создан');
@@ -4810,12 +4850,12 @@ function finishWizard() {
 }
 
 function switchCharacter(id) {
-  saveAll();
+  if(!saveAll()) return false;
   const store = getStore();
   const c = store.list.find(x => x.id === id);
   if(!c) return;
   store.active = id;
-  setStore(store);
+  if(!setStore(store)) return false;
   applyCharacter(c.data);
   renderCharMenu();
   closeCharMenu();
@@ -4823,18 +4863,21 @@ function switchCharacter(id) {
 }
 
 function deleteCharacter(id) {
+  if(!saveAll()) return false;
   const store = getStore();
   if(store.list.length <= 1) { showToast('Нельзя удалить единственного героя'); return; }
   if(!confirm('Удалить героя? Это необратимо.')) return;
   store.list = store.list.filter(x => x.id !== id);
-  if(store.active === id) { store.active = store.list[0].id; applyCharacter(store.list[0].data); }
-  setStore(store);
+  const wasActive = store.active === id;
+  if(wasActive) store.active = store.list[0].id;
+  if(!setStore(store)) return false;
+  if(wasActive) applyCharacter(store.list[0].data);
   renderCharMenu();
   showToast('🗑 Герой удалён');
 }
 
 function duplicateCharacter(id) {
-  saveAll();
+  if(!saveAll()) return false;
   const store = getStore();
   const c = store.list.find(x => x.id === id);
   if(!c) return;
@@ -4843,30 +4886,48 @@ function duplicateCharacter(id) {
   const nm = (copy.fields['char-name']||'Герой') + ' (копия)';
   copy.fields['char-name'] = nm;
   store.list.push({ id: nid, name: nm, data: copy });
-  setStore(store);
+  if(!setStore(store)) return false;
   renderCharMenu();
   showToast('⧉ Копия создана');
 }
 
-function exportCharacters() {
-  saveAll();
-  const store = getStore();
-  const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'dnd-герои.json';
-  document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
-  try { localStorage.setItem('dnd_last_export', String(Date.now())); } catch(e){}
-  const rt = document.getElementById('backup-toast'); if(rt) rt.remove();
-  showToast('⬇ Файл сохранён');
+// Canonical JSON makes integrity checks independent of whitespace/key order.
+function canonicalJSON(value) {
+  if(Array.isArray(value)) return '[' + value.map(canonicalJSON).join(',') + ']';
+  if(value && typeof value === 'object') return '{' + Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+canonicalJSON(value[k])).join(',') + '}';
+  return JSON.stringify(value);
+}
+async function backupHash(value) {
+  if(!globalThis.crypto?.subtle) throw new Error('Для проверки резервной копии откройте приложение по HTTPS. Интернет после открытия не требуется.');
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonicalJSON(value)));
+  return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function exportCharacters() {
+  try {
+    // Export the live form even if localStorage is full. The file is the rescue path.
+    const store = snapshotStore();
+    setStore(store);
+    validateBackupStore(store);
+    const backup = { ...store, backup: { format:'dnd-hero', version:1, count:store.list.length, algorithm:'SHA-256', checksum:await backupHash(store) } };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'dnd-герои-' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    // Safari can consume the URL after the click handler has returned.
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    try { localStorage.setItem('dnd_last_export', String(Date.now())); } catch(e){}
+    document.getElementById('backup-toast')?.remove();
+    showToast('⬇ JSON подготовлен: героев ' + store.list.length + '. Сохраните файл в «Файлы».');
+    return true;
+  } catch(e) { showToast('Экспорт не выполнен: ' + e.message); return false; }
 }
 
 // ============ ПОДЕЛИТЬСЯ / QR / ПЕЧАТЬ ============
 // Компактная выгрузка активного персонажа: без фото, истории бросков и
 // того, что вычисляется при загрузке (ячейки). Пустые значения выбрасываем.
 function compactCharPayload() {
-  saveAll();
+  if(!saveAll()) return null;
   const store = getStore();
   const c = store && store.list.find(x => x.id === store.active);
   if(!c) return null;
@@ -4927,12 +4988,14 @@ function importFromCode() {
   if(!code) { showToast('Вставь код'); return; }
   try {
     const c = parseCharPayload(code);
-    if(!c.data) throw new Error('bad');
+    validateCharacterData(c.data);
+    if(!saveAll()) return false;
     const store = getStore() || { active:null, list:[] };
+    if(storeReadFailed) return false;
     const id = genId();
     store.list.push({ id, name: c.name, data: c.data });
     store.active = id;
-    setStore(store);
+    if(!setStore(store)) return false;
     applyCharacter(c.data);
     document.getElementById('import-code').value = '';
     document.getElementById('modal-share').classList.remove('open');
@@ -4948,12 +5011,13 @@ function handleShareHash() {
   if(!m) return false;
   try {
     const c = parseCharPayload(decodeURIComponent(m[1]));
-    if(!c.data) throw new Error('bad');
+    validateCharacterData(c.data);
     const store = getStore() || { active:null, list:[] };
+    if(storeReadFailed) return false;
     const id = genId();
     store.list.push({ id, name: c.name, data: c.data });
     store.active = id;
-    setStore(store);
+    if(!setStore(store)) return false;
     history.replaceState(null, '', location.pathname);
     setTimeout(()=>showToast('📥 Герой получен: ' + c.name), 800);
     return true;
@@ -5021,27 +5085,125 @@ function maybeShowBackupReminder() {
   setTimeout(()=>{ if(t.parentElement) t.remove(); }, 15000);
 }
 
-function importCharacters(file) {
-  const r = new FileReader();
-  r.onload = () => {
-    try {
-      const imp = JSON.parse(r.result);
-      const store = getStore() || { active:null, list:[] };
-      if(Array.isArray(imp.list)) {
-        imp.list.forEach(c => { const id=genId(); store.list.push({ id, name:c.name||'Импорт', data:c.data }); store.active=id; });
-      } else if(imp.state || imp.fields) {
-        const id=genId();
-        store.list.push({ id, name:(imp.fields&&imp.fields['char-name'])||'Импорт', data:imp });
-        store.active=id;
-      } else { showToast('Файл не распознан'); return; }
-      setStore(store);
-      const a = store.list.find(c => c.id === store.active);
-      applyCharacter(a.data);
-      renderCharMenu();
-      showToast('📥 Импортировано');
-    } catch(e) { showToast('Ошибка импорта файла'); }
+const MAX_BACKUP_BYTES = 25 * 1024 * 1024;
+const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+function checkBackup(condition, message) { if(!condition) throw new Error(message); }
+function validateCharacterData(data) {
+  checkBackup(isRecord(data) && (isRecord(data.state) || isRecord(data.fields)), 'Нет данных персонажа.');
+  if(data.fields !== undefined) {
+    checkBackup(isRecord(data.fields), 'Неверный формат полей персонажа.');
+    Object.values(data.fields).forEach(v=>checkBackup(typeof v === 'string' || typeof v === 'number', 'Неверное значение поля персонажа.'));
+  }
+  if(data.state === undefined) return; // Legacy field-only saves remain supported.
+  checkBackup(isRecord(data.state), 'Неверный формат характеристик.');
+  const d = data.state;
+  const array = (key,test,length) => {
+    if(d[key] === undefined) return;
+    checkBackup(Array.isArray(d[key]) && (!length || d[key].length === length) && d[key].every(test), 'Повреждены данные: ' + key + '.');
   };
-  r.readAsText(file);
+  const number = v => typeof v === 'number' && Number.isFinite(v);
+  const text = v => typeof v === 'string';
+  array('abilities',number,6); array('saveProfs',v=>typeof v==='boolean',6);
+  array('skillProfs',v=>typeof v==='boolean'); array('bonusSlots',v=>Number.isInteger(v) && v>=0 && v<=1000,9);
+  for(const key of ['dsSuccess','dsFailure']) array(key,v=>typeof v==='boolean',3);
+  array('conditions',text);
+  for(const key of ['spells','inventory','attacks','resources','features']) {
+    array(key,v=>isRecord(v) && text(v.name));
+    for(const entry of d[key] || []) {
+      if(key==='resources') checkBackup(Number.isInteger(entry.max) && entry.max>=0 && entry.max<=1000, 'Неверный размер счётчика ресурса.');
+      for(const prop of ['description','desc','damage','school','cast','icon','castingTime','range','components','duration','higherLevels','rarity','itemType','recover'])
+        if(entry[prop] != null) checkBackup(text(entry[prop]), 'Повреждено описание: ' + key + '.');
+      for(const prop of ['level','qty','bonus','current','max','used'])
+        if(entry[prop] !== undefined) checkBackup(number(entry[prop]), 'Повреждено число: ' + key + '.');
+      if(entry.detail !== undefined) {
+        checkBackup(isRecord(entry.detail), 'Повреждено описание предмета.');
+        for(const prop of ['description','school','damage','higherLevels','rarity','itemType','castingTime','range','components','duration'])
+          if(entry.detail[prop] != null) checkBackup(text(entry.detail[prop]), 'Повреждено описание предмета.');
+        if(entry.detail.properties != null) checkBackup(Array.isArray(entry.detail.properties) && entry.detail.properties.every(text), 'Повреждены свойства предмета.');
+      }
+    }
+  }
+  array('spellSlots',v=>isRecord(v) && ['level','total','used'].every(k=>number(v[k])));
+  array('rollHistory',v=>isRecord(v) && text(v.label) && number(v.total) && text(v.time) && (v.rolls===undefined || Array.isArray(v.rolls)&&v.rolls.every(number)));
+  for(const [key,props] of [['hp',['current','max']],['hitDice',['total','used','die']]])
+    if(d[key] !== undefined) checkBackup(isRecord(d[key]) && props.every(k=>number(d[key][k])), 'Повреждены данные: ' + key + '.');
+  for(const key of ['portrait','concentrationSpell']) if(d[key]!=null) checkBackup(text(d[key]), 'Неверное значение: ' + key + '.');
+  if(d.portraitImg != null) checkBackup(text(d.portraitImg) && /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=\r\n]+$/.test(d.portraitImg), 'Фотография повреждена или имеет неподдерживаемый формат.');
+  for(const key of ['tempHP','diceCount']) if(d[key]!==undefined) checkBackup(number(d[key]), 'Неверное число: ' + key + '.');
+}
+function validateBackupStore(store) {
+  checkBackup(isRecord(store) && Array.isArray(store.list) && store.list.length>0, 'В файле нет списка героев.');
+  const ids = new Set();
+  for(const c of store.list) {
+    checkBackup(isRecord(c) && typeof c.id==='string' && /^[A-Za-z0-9_-]{1,128}$/.test(c.id) && !ids.has(c.id), 'Неверные или повторяющиеся идентификаторы героев.');
+    ids.add(c.id);
+    checkBackup(typeof c.name==='string', 'Нет имени персонажа.');
+    if(c.importFingerprint !== undefined) checkBackup(/^[a-f0-9]{64}$/.test(c.importFingerprint), 'Повреждена информация об импорте.');
+    validateCharacterData(c.data);
+  }
+  checkBackup(ids.has(store.active), 'Активный персонаж отсутствует в файле.');
+}
+async function parseBackup(text) {
+  let imp;
+  try {
+    imp = JSON.parse(text.replace(/^\uFEFF/,''), (key,value)=>{
+      checkBackup(!['__proto__','constructor','prototype'].includes(key), 'Файл содержит недопустимые поля.');
+      return value;
+    });
+  } catch(e) { throw new Error(e instanceof SyntaxError ? 'JSON повреждён или файл загружен не полностью.' : e.message); }
+  checkBackup(isRecord(imp), 'Файл не распознан.');
+  if(imp.backup !== undefined) {
+    const m = imp.backup;
+    checkBackup(isRecord(m) && m.format==='dnd-hero' && m.version===1 && m.algorithm==='SHA-256', 'Версия резервной копии не поддерживается.');
+    const {backup, ...payload} = imp;
+    checkBackup(m.count===imp.list?.length && m.checksum===await backupHash(payload), 'Проверка целостности не пройдена: файл изменён или повреждён.');
+    imp = payload;
+  }
+  if(!('list' in imp) && (imp.state || imp.fields)) {
+    validateCharacterData(imp);
+    // Stable id makes repeated imports of legacy single-character files safe too.
+    const id = 'legacy-' + await backupHash(imp);
+    imp = {active:id,list:[{id,name:imp.fields?.['char-name'] || 'Импорт',data:imp}]};
+  }
+  validateBackupStore(imp);
+  return imp;
+}
+let importInProgress = false;
+async function importCharacters(file) {
+  if(!file) return false;
+  if(importInProgress) { showToast('Дождитесь завершения импорта.'); return false; }
+  importInProgress = true;
+  try {
+    checkBackup(file.size>0 && file.size<=MAX_BACKUP_BYTES, 'Файл пуст или больше 25 МБ.');
+    let text;
+    try { text = await file.text(); } catch(e) { throw new Error('Не удалось прочитать файл. Скачайте его из iCloud и повторите импорт.'); }
+    const imp = await parseBackup(text); // Entire file validated before any storage mutation.
+    const entries = [];
+    for(const c of imp.list) entries.push({...c, importFingerprint:c.importFingerprint || await backupHash({id:c.id,name:c.name,data:c.data})});
+    // No awaits after reading live state: autosave cannot race the commit.
+    const stored = getStore();
+    checkBackup(!storeReadFailed, 'Не удалось прочитать имеющихся героев. Импорт отменён.');
+    const store = stored ? snapshotStore() : {active:null,list:[]};
+    const known = new Set(store.list.map(c=>c.importFingerprint).filter(Boolean));
+    let added=0, skipped=0, active=null;
+    for(const c of entries) {
+      const same = store.list.find(x=>x.id===c.id && canonicalJSON(x.data)===canonicalJSON(c.data) && x.name===c.name);
+      if(same || known.has(c.importFingerprint)) { skipped++; continue; }
+      const sourceId=c.id;
+      // An id collision never overwrites local progress: retain a separate copy.
+      if(store.list.some(x=>x.id===c.id)) do { c.id=genId(); } while(store.list.some(x=>x.id===c.id));
+      store.list.push(c); known.add(c.importFingerprint); added++;
+      if(sourceId===imp.active) active=c.id;
+    }
+    if(!added) { showToast('Все герои из файла уже импортированы. Дубликаты не созданы.'); return true; }
+    store.active = active || store.active || store.list[0].id;
+    if(!setStore(store)) { showToast('Импорт не сохранён. Прежние герои сохранены; уменьшите объём данных в хранилище приложения и повторите.'); return false; }
+    applyCharacter(store.list.find(c=>c.id===store.active).data);
+    renderCharMenu();
+    showToast('📥 Сохранено героев: ' + added + (skipped ? '. Уже были: ' + skipped : '') + '. Можно перезагрузить приложение.');
+    return true;
+  } catch(e) { showToast('Импорт отменён: ' + e.message); return false; }
+  finally { importInProgress = false; }
 }
 
 function renderAll() {
@@ -5150,6 +5312,7 @@ function seedDefaultCharacter(store) {
 
 function loadData() {
   let store = getStore();
+  if(storeReadFailed) { loadDefaultCharacter(); renderAll(); return; }
 
   // Первый запуск — пробуем мигрировать старый одиночный сейв, иначе создаём Шептуна
   if(!store) {
@@ -5164,8 +5327,7 @@ function loadData() {
         const id = genId();
         store.list.push({ id, name: old.charName||'Герой', data: { state: old.state||{}, fields } });
         store.active = id;
-        setStore(store);
-        localStorage.removeItem('dnd_hero_save');
+        if(setStore(store)) localStorage.removeItem('dnd_hero_save');
       }
     } catch(e){}
     if(!store.list.length) seedDefaultCharacter(store);
@@ -5175,7 +5337,7 @@ function loadData() {
 
   const active = store.list.find(c => c.id === store.active) || store.list[0];
   store.active = active.id;
-  setStore(store);
+  setStore(store); // A failed write must not prevent displaying the saved character.
   applyCharacter(active.data);
 }
 
@@ -6703,9 +6865,11 @@ function addKnowledgeItem(i) {
 }
 
 function showToast(msg) {
+  document.getElementById('toast')?.remove();
   const t = document.createElement('div');
+  t.id = 'toast'; t.setAttribute('role','status');
   t.textContent = msg;
-  t.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--stone);color:var(--gold-light);border:1px solid var(--gold);border-radius:20px;padding:10px 20px;font-family:"Cinzel",serif;font-size:13px;letter-spacing:0.5px;z-index:500;white-space:nowrap;animation:fadeInUp 0.3s ease';
+  t.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--stone);color:var(--gold-light);border:1px solid var(--gold);border-radius:20px;padding:10px 20px;font-family:"Cinzel",serif;font-size:13px;letter-spacing:0.5px;z-index:500;width:max-content;max-width:calc(100vw - 32px);white-space:normal;overflow-wrap:anywhere;animation:fadeInUp 0.3s ease';
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2500);
 }
@@ -6742,13 +6906,10 @@ window.addEventListener('resize', setAppHeight);
 window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 300));
 
 if ('serviceWorker' in navigator) {
-  // Новый воркер захватил управление — перезагружаемся один раз, чтобы сразу
-  // показать свежую версию (без ручного удаления приложения).
-  let swRefreshing = false;
+  // Never reload a running character sheet during an import or unsaved edit.
+  const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if(swRefreshing) return;
-    swRefreshing = true;
-    location.reload();
+    if(hadController) showUpdateToast();
   });
   window.addEventListener('load', () => {
     // updateViaCache:'none' — сам sw.js всегда берётся из сети, а не из HTTP-кэша
@@ -6767,12 +6928,16 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+function reloadForUpdate() {
+  if(document.getElementById('screen-main').classList.contains('active') && !saveAll()) return;
+  location.reload();
+}
 function showUpdateToast() {
   if(document.getElementById('update-toast')) return;
   const t = document.createElement('div');
   t.id = 'update-toast';
   t.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--stone);color:var(--gold-light);border:1px solid var(--gold);border-radius:14px;padding:12px 16px;font-family:"Cinzel",serif;font-size:13px;z-index:500;display:flex;align-items:center;gap:12px;animation:fadeInUp 0.3s ease;max-width:92vw';
-  t.innerHTML = '<span>Доступно обновление</span><button onclick="location.reload()" style="background:linear-gradient(135deg,var(--crimson),#6b0f0f);border:1px solid var(--gold);border-radius:8px;color:var(--gold-light);font-family:Cinzel,serif;font-size:12px;padding:7px 12px;cursor:pointer;letter-spacing:0.5px">ОБНОВИТЬ</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#8a94a1;font-size:16px;cursor:pointer;padding:2px">✕</button>';
+  t.innerHTML = '<span>Доступно обновление</span><button onclick="reloadForUpdate()" style="background:linear-gradient(135deg,var(--crimson),#6b0f0f);border:1px solid var(--gold);border-radius:8px;color:var(--gold-light);font-family:Cinzel,serif;font-size:12px;padding:7px 12px;cursor:pointer;letter-spacing:0.5px">ОБНОВИТЬ</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#8a94a1;font-size:16px;cursor:pointer;padding:2px">✕</button>';
   document.body.appendChild(t);
 }
 // v40 presentation state is ephemeral; character saves keep the v4 schema.
