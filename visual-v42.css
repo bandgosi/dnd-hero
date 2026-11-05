@@ -156,3 +156,84 @@
     .ui-master .coin-metal {margin-inline:auto;}
   }
 }
+
+@media screen {
+  .main-navigation { display: contents; }
+  #side-navigation-toggle { margin-top: 12px; }
+  #side-navigation-toggle[aria-pressed="true"] {
+    color: #eadfff;
+    border-color: #a381d0;
+    background: #71509550;
+  }
+
+  /* Leave 320px for a single column or 720px for two scrollable panes. */
+  @container sheet (376px <= width < 720px) or (width >= 780px) {
+    .side-navigation #screen-main.active {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 56px;
+      grid-template-rows: auto minmax(0, 1fr);
+      overflow: hidden;
+    }
+    .side-navigation #screen-main > [id^="tab-"] {
+      grid-area: 2 / 1;
+      min-width: 0;
+    }
+    .side-navigation #storage-error { grid-area: 1 / 1 / 2 / -1; }
+    .side-navigation .main-navigation {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      grid-area: 2 / 2;
+      position: relative;
+      z-index: 195;
+      min-height: 0;
+      overflow-y: auto;
+      scrollbar-width: none;
+      overscroll-behavior-y: contain;
+      background: #11151c;
+      box-shadow: inset 1px 0 var(--line);
+      padding: max(8px, var(--safe-top)) 0 max(8px, var(--safe-bottom));
+    }
+    .side-navigation .nav-bar {
+      flex-direction: column;
+      gap: 4px;
+      margin-block: auto;
+      padding: 4px 0;
+      border: 0;
+    }
+    .side-navigation .nav-btn {
+      flex: none;
+      width: 44px;
+      min-height: 48px;
+      justify-content: center;
+      gap: 3px;
+      padding: 4px 0;
+      font-size: 9px;
+      white-space: nowrap;
+    }
+    .side-navigation .fab-dice {
+      align-self: center;
+      justify-content: center;
+      flex: none;
+      margin: 0 0 8px;
+      padding: 0;
+      width: 44px;
+      height: 44px;
+    }
+    .side-navigation .fab-dice span { display: none; }
+    .side-navigation .page-header h1 { font-size: clamp(20px, 5.5vw, 25px); }
+    .side-navigation #quick-roll.show {
+      left: calc((100% + env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 56px) / 2);
+      bottom: calc(var(--safe-bottom) + 16px);
+    }
+  }
+
+  @container sheet (376px <= width < 720px) {
+    .side-navigation #tab-spells.detail-open .ui-detail,
+    .side-navigation #tab-inventory.detail-open .ui-detail {
+      right: calc(env(safe-area-inset-right, 0px) + 56px);
+      bottom: var(--safe-bottom);
+      z-index: 190;
+    }
+  }
+}

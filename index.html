@@ -2264,7 +2264,7 @@
           <span><img src="images/ui/die.png" alt="">Кубики</span>
         </div>
         <button class="welcome-btn" onclick="startApp()"><span>Начать приключение</span><span aria-hidden="true">→</span></button>
-        <div class="welcome-footer"><span class="welcome-offline"><i aria-hidden="true"></i>Работает без интернета</span><span class="welcome-version">версия 48</span></div>
+        <div class="welcome-footer"><span class="welcome-offline"><i aria-hidden="true"></i>Работает без интернета</span><span class="welcome-version">версия 49</span></div>
       </div>
     </div>
   </div>
@@ -2913,7 +2913,8 @@
     </div><!-- end tab-guide -->
 
     <!-- NAV -->
-    <nav class="nav-bar">
+    <div class="main-navigation">
+    <nav class="nav-bar" aria-label="Разделы приложения">
       <button class="nav-btn active" onclick="switchTab('character',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
         Герой
@@ -2939,6 +2940,7 @@
         Гид
       </button>
     </nav>
+    </div>
   </div><!-- end screen-main -->
 
   <!-- Плавающая кнопка быстрого d20 -->
@@ -3068,6 +3070,7 @@
       <button class="primary-btn" style="flex:1;background:var(--stone)" onclick="document.getElementById('import-file').click()">⬆ Импорт</button>
     </div>
     <p class="ui-muted">Для переноса на новый телефон: экспортируйте JSON со всеми героями, фотографиями и историей бросков. QR передаёт одного героя без фотографии и истории.</p>
+    <button type="button" id="side-navigation-toggle" class="ui-button" aria-pressed="false">Навигация справа</button>
     <input type="file" id="import-file" accept="application/json" style="display:none" onchange="if(this.files[0])importCharacters(this.files[0]); this.value='';">
   </div>
 </div>

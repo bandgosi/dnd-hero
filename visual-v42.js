@@ -99,3 +99,25 @@ function initDualPaneLayout() {
   }
 }
 initDualPaneLayout();
+
+// The placement preference is local to the device and independent of character saves.
+function initSideNavigation() {
+  const app = document.querySelector('.app');
+  const toggle = document.getElementById('side-navigation-toggle');
+  const key = 'dnd_nav_on_right';
+
+  function setPlacement(enabled) {
+    app.classList.toggle('side-navigation', enabled);
+    toggle.setAttribute('aria-pressed', String(enabled));
+  }
+
+  try { setPlacement(localStorage.getItem(key) === '1'); } catch (_) {}
+  toggle.addEventListener('click', () => {
+    const enabled = !app.classList.contains('side-navigation');
+    setPlacement(enabled);
+    try { localStorage.setItem(key, enabled ? '1' : '0'); } catch (_) {}
+    closeCharMenu();
+    app.querySelector('.nav-btn.active')?.focus({preventScroll: true});
+  });
+}
+initSideNavigation();

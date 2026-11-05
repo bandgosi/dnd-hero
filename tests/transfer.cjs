@@ -54,7 +54,7 @@ const {spawn}=require('node:child_process');
    await target.waitForFunction(()=>document.getElementById('portrait-img').naturalWidth>0);
    assert.equal(await target.evaluate(()=>saveAll()),true);
   }
-  await target.waitForFunction(async()=>navigator.serviceWorker.controller&&(await caches.keys()).includes('dnd-hero-v48'));
+  await target.waitForFunction(async()=>navigator.serviceWorker.controller&&(await caches.keys()).includes('dnd-hero-v49'));
   await target.waitForLoadState('networkidle');
   const beforeReload=await raw(target);
   await fresh.setOffline(true);await target.reload();await target.locator('.welcome-btn').click();
