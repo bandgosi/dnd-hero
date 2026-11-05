@@ -68,3 +68,56 @@ applyCharacter=function(...args){receipt.hidden=true;return v42Apply.apply(this,
 document.querySelector('.combat-actions').append(bookkeeping,conditionsDetails);
 const attackSection=document.getElementById('attacks-list').closest('.section');slots.before(attackSection);
 artRefreshOverview();v42RefreshCombat();
+
+// v48: move existing nodes once; folding/unfolding changes CSS only.
+// Both sides remain useful and can scroll without moving the other side.
+function initDualPaneLayout() {
+  function group(parent,nodes,label) {
+    const pane=document.createElement('div');pane.className='dual-pane';
+    pane.setAttribute('role','region');pane.setAttribute('aria-label',label);pane.tabIndex=0;
+    parent.append(pane);pane.append(...nodes);return pane;
+  }
+  const main=document.getElementById('char-main'),mainNodes=[...main.children];
+  group(main,mainNodes.slice(0,3),'Портрет и параметры героя');
+  group(main,mainNodes.slice(3),'Опыт, предыстория и особенности');
+  const abilities=document.getElementById('char-abilities'),abilityNodes=[...abilities.children];
+  group(abilities,abilityNodes.slice(0,2),'Характеристики и пассивные значения');
+  group(abilities,abilityNodes.slice(2),'Спасброски и навыки');
+  const notes=document.querySelector('#tab-notes > .content'),noteNodes=[...notes.children];
+  group(notes,noteNodes.slice(0,2),'Кампания и локации');
+  group(notes,noteNodes.slice(2),'Персонажи и другие заметки');
+  const spellMaster=document.querySelector('#tab-spells .ui-master');
+  spellMaster.prepend(document.querySelector('.spell-overview'));
+  const invMaster=document.querySelector('#tab-inventory .ui-master');
+  invMaster.prepend(document.querySelector('.wallet-section'));
+  document.querySelector('#tab-inventory .ui-workspace').parentElement.classList.add('workspace-section');
+  for(const selector of ['.combat-vitals','.combat-actions','#tab-dice > .content > .section','.ui-master','.ui-detail']) {
+    document.querySelectorAll(selector).forEach((el,i)=>{
+      if(!el.hasAttribute('aria-label'))el.setAttribute('aria-label',el.classList.contains('ui-master')?'Список и параметры':el.classList.contains('combat-vitals')?'Здоровье героя':el.classList.contains('combat-actions')?'Атаки и ресурсы':i?'История бросков':'Броски кубиков');
+      el.setAttribute('role','region');el.tabIndex=0;
+    });
+  }
+}
+initDualPaneLayout();
+
+// The placement preference is local to the device and independent of character saves.
+function initSideNavigation() {
+  const app = document.querySelector('.app');
+  const toggle = document.getElementById('side-navigation-toggle');
+  const key = 'dnd_nav_on_right';
+
+  function setPlacement(enabled) {
+    app.classList.toggle('side-navigation', enabled);
+    toggle.setAttribute('aria-pressed', String(enabled));
+  }
+
+  try { setPlacement(localStorage.getItem(key) === '1'); } catch (_) {}
+  toggle.addEventListener('click', () => {
+    const enabled = !app.classList.contains('side-navigation');
+    setPlacement(enabled);
+    try { localStorage.setItem(key, enabled ? '1' : '0'); } catch (_) {}
+    closeCharMenu();
+    app.querySelector('.nav-btn.active')?.focus({preventScroll: true});
+  });
+}
+initSideNavigation();
